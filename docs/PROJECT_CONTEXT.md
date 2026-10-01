@@ -10,8 +10,8 @@ Escuta Aí Brasil é a direção atual de uma plataforma de escuta psicossocial 
 - Dados, credenciais, análises e respostas são mocks em memória.
 - Não há backend, API, banco, autenticação real, autorização, multi-tenancy, integrações, telemetria, CI/CD ou deploy configurado.
 - O build de produção compila com TypeScript estrito e Vite.
-- O diretório atual não contém `.git`; é necessário localizar o repositório esperado ou inicializar/conectar um remoto com autorização.
-- Há alterações locais em andamento para landing por persona e meios de comunicação, ainda sem commit.
+- O repositório Git foi inicializado em `main` e conectado a `https://github.com/ArthurMMaciel/fala-ai-brasil.git`.
+- A baseline, incluindo as alterações de landing por persona e meios de comunicação, foi publicada no remoto.
 
 ## Personas e fluxos existentes
 

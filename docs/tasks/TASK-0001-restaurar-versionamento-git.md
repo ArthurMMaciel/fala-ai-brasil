@@ -1,6 +1,7 @@
 # TASK-0001 — Restaurar versionamento Git
 
-- Status: proposta
+- Status: concluída
+- Conclusão: 2026-09-30
 - Área: DevOps/Governança
 - Prioridade: P0
 - Estimativa: 0,5 dia
@@ -34,3 +35,7 @@ Remover somente metadados Git recém-criados se confirmado erro, preservando arq
 Clone limpo e build.
 ## Definição de pronto
 Baseline reproduzível e enviado ao remoto correto.
+
+## Evidência de conclusão
+
+Repositório inicializado na branch `main`, remoto `origin` configurado para `ArthurMMaciel/fala-ai-brasil` e baseline publicada com sucesso.

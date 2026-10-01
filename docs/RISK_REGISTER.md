@@ -8,7 +8,7 @@ Escala: probabilidade (P) e impacto (I) de 1 a 5; exposição = P × I.
 | R-002 | Autenticação e autorização apenas simuladas no cliente | 5 | 5 | 25 | Não usar dados reais; implementar auth server-side e RBAC | Tecnologia | Aberto |
 | R-003 | Empresa/admin sem fronteiras e sem isolamento por organização | 5 | 5 | 25 | Modelo de tenancy e testes de autorização/IDOR | Tecnologia | Aberto |
 | R-004 | Reidentificação por relato/contexto | 4 | 5 | 20 | Separação de dados, revisão humana e critérios de anonimização | Produto/Privacidade | Aberto |
-| R-005 | Ausência de Git no diretório atual | 4 | 4 | 16 | Localizar ou inicializar repositório e remoto; commit baseline | Tecnologia | Aberto |
+| R-005 | Ausência de Git no diretório atual | 4 | 4 | 16 | Repositório inicializado e baseline publicada | Tecnologia | Mitigado |
 | R-006 | Perda de dados por ausência de persistência/backups | 5 | 4 | 20 | Não usar em produção; definir banco, backup e restore testado | Tecnologia | Aberto |
 | R-007 | Promessas públicas maiores que controles reais | 4 | 5 | 20 | Revisar linguagem, threat model e evidências antes de piloto | Produto/Jurídico | Aberto |
 | R-008 | Dados sensíveis enviados a IA/terceiros | 3 | 5 | 15 | Bloqueio por política até DPIA/avaliação e contrato | Tecnologia/Privacidade | Aberto |

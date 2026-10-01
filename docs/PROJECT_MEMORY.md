@@ -57,11 +57,11 @@ Aplicação Vite + TypeScript sem framework, renderizada por template strings em
 - Não enviar dados sensíveis a IA/terceiros sem avaliação aprovada.
 - Alterações estruturais exigem ADR; trabalho relevante exige tarefa.
 
-## Alterações em andamento
+## Alterações recentes
 
 - Landing segmentada entre empregado e empresa.
 - Passo de meios de comunicação na manifestação, com validação de e-mail/telefone.
-- Ainda não versionadas porque o diretório atual não possui Git.
+- Baseline publicada na branch `main` do repositório `ArthurMMaciel/fala-ai-brasil` em 2026-09-30.
 
 ## Aprendizados e incidentes
 

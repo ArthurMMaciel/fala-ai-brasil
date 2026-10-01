@@ -2,7 +2,7 @@
 
 | Ordem | Tarefa | Prioridade | Estado |
 |---:|---|---|---|
-| 1 | [TASK-0001](TASK-0001-restaurar-versionamento-git.md) Restaurar versionamento Git | P0 | proposta |
+| 1 | [TASK-0001](TASK-0001-restaurar-versionamento-git.md) Restaurar versionamento Git | P0 | concluída |
 | 2 | [TASK-0002](TASK-0002-eliminar-xss-na-poc.md) Eliminar XSS na POC | P0 | proposta |
 | 3 | [TASK-0003](TASK-0003-decisao-de-naming.md) Decidir naming | P1 | proposta |
 | 4 | [TASK-0004](TASK-0004-testes-e-ci-baseline.md) Testes e CI baseline | P1 | proposta |
