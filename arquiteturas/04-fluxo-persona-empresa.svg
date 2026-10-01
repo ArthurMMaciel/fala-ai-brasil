@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Fluxo por persona - Empresa</title>
+  <desc id="desc">Jornada da empresa na Voz Psicossocial.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f5f8f7}.ink{fill:#173d3b}.muted{fill:#5f7773}.head{fill:#103d3b}.panel{fill:#fff;stroke:#d9e5e2;stroke-width:2}.corp{fill:#e8f6ed;stroke:#7ec69a;stroke-width:2}.safe{fill:#e8f0ff;stroke:#96afe9;stroke-width:2}.warn{fill:#fff5d8;stroke:#e4bd43;stroke-width:2}.line{stroke:#4f6e69;stroke-width:3;fill:none;marker-end:url(#arrow)}.title{font:500 48px Arial,sans-serif}.subtitle{font:400 24px Arial,sans-serif}.label{font:500 25px Arial,sans-serif}.small{font:400 21px Arial,sans-serif}.tiny{font:400 18px Arial,sans-serif}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#4f6e69"/></marker>
+  </defs>
+  <rect class="bg" width="1600" height="1000"/>
+  <rect x="56" y="52" width="1488" height="118" rx="28" class="head"/>
+  <text x="90" y="112" class="title" fill="#fff">Persona: Empresa</text>
+  <text x="92" y="148" class="subtitle" fill="#c8dedb">Recebe relato protegido, responde institucionalmente e melhora sua responsividade</text>
+
+  <rect x="90" y="245" width="280" height="130" rx="22" class="safe"/>
+  <text x="230" y="286" text-anchor="middle" class="label ink">1. Convite</text>
+  <text x="230" y="323" text-anchor="middle" class="small muted">Empresa recebe contato</text>
+  <text x="230" y="350" text-anchor="middle" class="tiny muted">da plataforma</text>
+
+  <rect x="450" y="245" width="310" height="130" rx="22" class="safe"/>
+  <text x="605" y="286" text-anchor="middle" class="label ink">2. Relato protegido</text>
+  <text x="605" y="323" text-anchor="middle" class="small muted">Acesso somente a versao</text>
+  <text x="605" y="350" text-anchor="middle" class="tiny muted">anonimizada e contextual</text>
+
+  <rect x="840" y="245" width="280" height="130" rx="22" class="corp"/>
+  <text x="980" y="286" text-anchor="middle" class="label ink">3. Analise interna</text>
+  <text x="980" y="323" text-anchor="middle" class="small muted">RH, lideranca, juridico</text>
+  <text x="980" y="350" text-anchor="middle" class="tiny muted">ou compliance avaliam</text>
+
+  <rect x="1200" y="245" width="280" height="130" rx="22" class="corp"/>
+  <text x="1340" y="286" text-anchor="middle" class="label ink">4. Resposta</text>
+  <text x="1340" y="323" text-anchor="middle" class="small muted">Retorno institucional</text>
+  <text x="1340" y="350" text-anchor="middle" class="tiny muted">e providencias gerais</text>
+
+  <rect x="840" y="515" width="280" height="130" rx="22" class="panel"/>
+  <text x="980" y="556" text-anchor="middle" class="label ink">5. Status</text>
+  <text x="980" y="593" text-anchor="middle" class="small muted">A plataforma atualiza</text>
+  <text x="980" y="620" text-anchor="middle" class="tiny muted">timeline do usuario</text>
+
+  <rect x="450" y="515" width="310" height="130" rx="22" class="panel"/>
+  <text x="605" y="556" text-anchor="middle" class="label ink">6. Metricas</text>
+  <text x="605" y="593" text-anchor="middle" class="small muted">Taxa de resposta, tempo</text>
+  <text x="605" y="620" text-anchor="middle" class="tiny muted">medio e casos tratados</text>
+
+  <rect x="90" y="515" width="280" height="130" rx="22" class="warn"/>
+  <text x="230" y="556" text-anchor="middle" class="label ink">7. Ranking</text>
+  <text x="230" y="593" text-anchor="middle" class="small muted">Responsividade observavel</text>
+  <text x="230" y="620" text-anchor="middle" class="tiny muted">sem virar certificacao</text>
+
+  <path d="M370 310 H450" class="line"/><path d="M760 310 H840" class="line"/><path d="M1120 310 H1200" class="line"/>
+  <path d="M1340 375 V455 Q1340 485 1310 485 H980 Q950 485 950 515" class="line"/>
+  <path d="M840 580 H760" class="line"/><path d="M450 580 H370" class="line"/>
+
+  <rect x="140" y="735" width="1320" height="140" rx="24" class="panel"/>
+  <text x="175" y="780" class="label ink">Limites claros para a empresa</text>
+  <text x="175" y="822" class="small muted">• Nao recebe identidade do trabalhador nem o texto original identificavel.</text>
+  <text x="175" y="858" class="small muted">• Nao compra nota, nao apaga relato e nao transforma ranking em certificacao de saude psicossocial.</text>
+  <text x="175" y="894" class="small muted">• Responde ao caso e evolui seus indicadores por comportamento observavel: prazo, retorno e tratamento.</text>
+</svg>

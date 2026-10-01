@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Fluxo por persona - Usuario trabalhador</title>
+  <desc id="desc">Jornada do usuario trabalhador na plataforma Voz Psicossocial.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f5f8f7}.ink{fill:#173d3b}.muted{fill:#5f7773}.panel{fill:#fff;stroke:#d9e5e2;stroke-width:2}.head{fill:#103d3b}.step{fill:#e8f0ff;stroke:#91aae5;stroke-width:2}.sys{fill:#f0e9ff;stroke:#b99af0;stroke-width:2}.safe{fill:#e8f6ed;stroke:#7ec69a;stroke-width:2}.warn{fill:#fff5d8;stroke:#e4bd43;stroke-width:2}.line{stroke:#4f6e69;stroke-width:3;fill:none;marker-end:url(#arrow)}.title{font:500 48px Arial,sans-serif}.subtitle{font:400 24px Arial,sans-serif}.label{font:500 25px Arial,sans-serif}.small{font:400 21px Arial,sans-serif}.tiny{font:400 18px Arial,sans-serif}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#4f6e69"/></marker>
+  </defs>
+  <rect class="bg" width="1600" height="1000"/>
+  <rect x="56" y="52" width="1488" height="118" rx="28" class="head"/>
+  <text x="90" y="112" class="title" fill="#fff">Persona: Usuario / Trabalhador</text>
+  <text x="92" y="148" class="subtitle" fill="#c8dedb">Da fala inicial ao acompanhamento do retorno da empresa, com protecao de identidade</text>
+
+  <rect x="70" y="230" width="250" height="125" rx="22" class="step"/>
+  <text x="195" y="270" text-anchor="middle" class="label ink">1. Acessa</text>
+  <text x="195" y="304" text-anchor="middle" class="small muted">Cria conta ou entra</text>
+  <text x="195" y="332" text-anchor="middle" class="tiny muted">com login seguro</text>
+
+  <rect x="390" y="230" width="250" height="125" rx="22" class="step"/>
+  <text x="515" y="270" text-anchor="middle" class="label ink">2. Onboarding</text>
+  <text x="515" y="304" text-anchor="middle" class="small muted">Contexto de trabalho</text>
+  <text x="515" y="332" text-anchor="middle" class="tiny muted">e percepcao psicossocial</text>
+
+  <rect x="710" y="230" width="250" height="125" rx="22" class="step"/>
+  <text x="835" y="270" text-anchor="middle" class="label ink">3. Empresa</text>
+  <text x="835" y="304" text-anchor="middle" class="small muted">Busca ou seleciona</text>
+  <text x="835" y="332" text-anchor="middle" class="tiny muted">a organizacao relacionada</text>
+
+  <rect x="1030" y="230" width="250" height="125" rx="22" class="step"/>
+  <text x="1155" y="270" text-anchor="middle" class="label ink">4. Relato</text>
+  <text x="1155" y="304" text-anchor="middle" class="small muted">Conta o ocorrido</text>
+  <text x="1155" y="332" text-anchor="middle" class="tiny muted">em linguagem simples</text>
+
+  <rect x="710" y="450" width="250" height="125" rx="22" class="sys"/>
+  <text x="835" y="490" text-anchor="middle" class="label ink">5. IA revisa</text>
+  <text x="835" y="524" text-anchor="middle" class="small muted">Categoria, risco e</text>
+  <text x="835" y="552" text-anchor="middle" class="tiny muted">dados identificaveis</text>
+
+  <rect x="1030" y="450" width="250" height="125" rx="22" class="safe"/>
+  <text x="1155" y="490" text-anchor="middle" class="label ink">6. Protecao</text>
+  <text x="1155" y="524" text-anchor="middle" class="small muted">Versao anonimizada</text>
+  <text x="1155" y="552" text-anchor="middle" class="tiny muted">antes de qualquer envio</text>
+
+  <rect x="1030" y="675" width="250" height="125" rx="22" class="step"/>
+  <text x="1155" y="715" text-anchor="middle" class="label ink">7. Acompanha</text>
+  <text x="1155" y="749" text-anchor="middle" class="small muted">Ve status, timeline</text>
+  <text x="1155" y="777" text-anchor="middle" class="tiny muted">e resposta da empresa</text>
+
+  <rect x="710" y="675" width="250" height="125" rx="22" class="step"/>
+  <text x="835" y="715" text-anchor="middle" class="label ink">8. Avalia</text>
+  <text x="835" y="749" text-anchor="middle" class="small muted">Retorno util?</text>
+  <text x="835" y="777" text-anchor="middle" class="tiny muted">encerra ou continua</text>
+
+  <path d="M320 292 H390" class="line"/>
+  <path d="M640 292 H710" class="line"/>
+  <path d="M960 292 H1030" class="line"/>
+  <path d="M1155 355 V450" class="line"/>
+  <path d="M1030 512 H960" class="line"/>
+  <path d="M960 512 H1030" opacity="0"/>
+  <path d="M960 512 H1030" class="line"/>
+  <path d="M1155 575 V675" class="line"/>
+  <path d="M1030 737 H960" class="line"/>
+
+  <rect x="70" y="450" width="570" height="350" rx="24" class="panel"/>
+  <text x="105" y="500" class="label ink">O que esta persona precisa sentir</text>
+  <text x="105" y="545" class="small muted">• Posso falar sem expor minha identidade para a empresa.</text>
+  <text x="105" y="585" class="small muted">• Entendo exatamente em que etapa meu caso esta.</text>
+  <text x="105" y="625" class="small muted">• Sei quando existe revisao humana em casos sensiveis.</text>
+  <text x="105" y="665" class="small muted">• Recebo retorno em linguagem clara, sem juridiquês.</text>
+  <text x="105" y="705" class="small muted">• Tenho controle para avaliar e encerrar o acompanhamento.</text>
+  <rect x="105" y="738" width="490" height="38" rx="19" class="warn"/>
+  <text x="350" y="764" text-anchor="middle" class="small ink">Promessa correta: protecao de identidade, nao anonimato absoluto.</text>
+</svg>

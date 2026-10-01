@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Arquitetura geral - Voz Psicossocial</title>
+  <desc id="desc">Diagrama geral da plataforma Voz Psicossocial, com usuario, aplicacao, IA, operacao humana, empresa, dados e pontos criticos.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f5f8f7}.ink{fill:#173d3b}.muted{fill:#5f7773}.panel{fill:#ffffff;stroke:#d9e5e2;stroke-width:2}.dark{fill:#103d3b}.soft{fill:#e6f2ef}.blue{fill:#e8f0ff;stroke:#96afe9}.green{fill:#e8f6ed;stroke:#7ec69a}.yellow{fill:#fff5d8;stroke:#e4bd43}.red{fill:#ffe9e7;stroke:#e88b82}.purple{fill:#f0e9ff;stroke:#b99af0}.line{stroke:#4f6e69;stroke-width:3;fill:none;marker-end:url(#arrow)}.dash{stroke:#c28a00;stroke-width:3;fill:none;stroke-dasharray:8 8;marker-end:url(#arrowWarn)}.small{font:400 22px Arial, sans-serif}.tiny{font:400 18px Arial, sans-serif}.label{font:500 26px Arial, sans-serif}.title{font:500 48px Arial, sans-serif}.subtitle{font:400 24px Arial, sans-serif}.note{font:500 20px Arial, sans-serif}.chip{fill:#0f4c49}.chipText{fill:#fff;font:500 18px Arial, sans-serif}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#4f6e69"/>
+    </marker>
+    <marker id="arrowWarn" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#c28a00"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="1600" height="1000"/>
+  <rect x="56" y="52" width="1488" height="118" rx="28" class="dark"/>
+  <text x="90" y="112" class="title" fill="#fff">Voz Psicossocial</text>
+  <text x="92" y="148" class="subtitle" fill="#c8dedb">Arquitetura geral da plataforma de escuta, anonimização, triagem e acompanhamento</text>
+  <text x="1375" y="112" text-anchor="end" class="small" fill="#fff">Arthur Maciel</text>
+
+  <rect x="70" y="220" width="210" height="145" rx="22" class="blue"/>
+  <text x="175" y="258" text-anchor="middle" class="label ink">Usuario</text>
+  <text x="175" y="293" text-anchor="middle" class="small muted">Trabalhador</text>
+  <text x="175" y="326" text-anchor="middle" class="tiny muted">relata, acompanha</text>
+  <text x="175" y="350" text-anchor="middle" class="tiny muted">e avalia retorno</text>
+
+  <rect x="360" y="205" width="280" height="175" rx="24" class="panel"/>
+  <text x="500" y="247" text-anchor="middle" class="label ink">Aplicacao Web</text>
+  <text x="500" y="285" text-anchor="middle" class="small muted">Login, onboarding,</text>
+  <text x="500" y="316" text-anchor="middle" class="small muted">busca de empresa,</text>
+  <text x="500" y="347" text-anchor="middle" class="small muted">nova manifestacao</text>
+
+  <rect x="740" y="205" width="300" height="175" rx="24" class="purple"/>
+  <text x="890" y="247" text-anchor="middle" class="label ink">Motor de IA</text>
+  <text x="890" y="285" text-anchor="middle" class="small muted">Classifica categoria</text>
+  <text x="890" y="316" text-anchor="middle" class="small muted">detecta identificadores</text>
+  <text x="890" y="347" text-anchor="middle" class="small muted">e sugere mensagem</text>
+
+  <rect x="1135" y="205" width="305" height="175" rx="24" class="yellow"/>
+  <text x="1287" y="247" text-anchor="middle" class="label ink">Operacao humana</text>
+  <text x="1287" y="285" text-anchor="middle" class="small muted">Suporte de OK</text>
+  <text x="1287" y="316" text-anchor="middle" class="small muted">aprova, edita ou</text>
+  <text x="1287" y="347" text-anchor="middle" class="small muted">bloqueia casos</text>
+
+  <rect x="1135" y="510" width="305" height="170" rx="24" class="green"/>
+  <text x="1287" y="552" text-anchor="middle" class="label ink">Empresa</text>
+  <text x="1287" y="590" text-anchor="middle" class="small muted">Recebe relato</text>
+  <text x="1287" y="621" text-anchor="middle" class="small muted">anonimizado e</text>
+  <text x="1287" y="652" text-anchor="middle" class="small muted">responde oficialmente</text>
+
+  <rect x="740" y="510" width="300" height="170" rx="24" class="panel"/>
+  <text x="890" y="552" text-anchor="middle" class="label ink">Acompanhamento</text>
+  <text x="890" y="590" text-anchor="middle" class="small muted">Timeline, status,</text>
+  <text x="890" y="621" text-anchor="middle" class="small muted">resposta da empresa</text>
+  <text x="890" y="652" text-anchor="middle" class="small muted">e feedback do usuario</text>
+
+  <rect x="360" y="510" width="280" height="170" rx="24" class="panel"/>
+  <text x="500" y="552" text-anchor="middle" class="label ink">Dados sensiveis</text>
+  <text x="500" y="590" text-anchor="middle" class="small muted">Usuarios, empresas,</text>
+  <text x="500" y="621" text-anchor="middle" class="small muted">manifestacoes, logs,</text>
+  <text x="500" y="652" text-anchor="middle" class="small muted">historico e auditoria</text>
+
+  <rect x="70" y="510" width="210" height="170" rx="24" class="soft" stroke="#87b8af" stroke-width="2"/>
+  <text x="175" y="552" text-anchor="middle" class="label ink">Indicadores</text>
+  <text x="175" y="590" text-anchor="middle" class="small muted">Responsividade,</text>
+  <text x="175" y="621" text-anchor="middle" class="small muted">tempo medio, casos</text>
+  <text x="175" y="652" text-anchor="middle" class="small muted">tratados e ranking</text>
+
+  <path d="M280 292 H360" class="line"/>
+  <path d="M640 292 H740" class="line"/>
+  <path d="M1040 292 H1135" class="line"/>
+  <path d="M1287 380 V510" class="line"/>
+  <path d="M1135 595 H1040" class="line"/>
+  <path d="M740 595 H640" class="line"/>
+  <path d="M360 595 H280" class="line"/>
+  <path d="M890 510 V390 Q890 380 900 380 H1125" class="dash"/>
+  <path d="M500 380 V510" class="line"/>
+
+  <rect x="92" y="760" width="1416" height="154" rx="24" class="panel"/>
+  <text x="124" y="805" class="label ink">Camada transversal de governanca</text>
+  <text x="124" y="846" class="small muted">LGPD e consentimento • criptografia e controle de acesso • retencao e exclusao de dados • logs imutaveis • revisao juridica • politicas anti-reidentificacao</text>
+  <rect x="125" y="870" width="238" height="32" rx="16" class="chip"/>
+  <text x="244" y="893" text-anchor="middle" class="chipText">Anonimizacao antes do envio</text>
+  <rect x="390" y="870" width="220" height="32" rx="16" class="chip"/>
+  <text x="500" y="893" text-anchor="middle" class="chipText">Human in the loop</text>
+  <rect x="637" y="870" width="242" height="32" rx="16" class="chip"/>
+  <text x="758" y="893" text-anchor="middle" class="chipText">Risco alto nao automatiza</text>
+  <rect x="906" y="870" width="236" height="32" rx="16" class="chip"/>
+  <text x="1024" y="893" text-anchor="middle" class="chipText">Empresa nao ve identidade</text>
+  <rect x="1169" y="870" width="257" height="32" rx="16" class="chip"/>
+  <text x="1298" y="893" text-anchor="middle" class="chipText">Ranking nao e certificacao</text>
+
+  <rect x="70" y="410" width="1370" height="54" rx="16" class="red"/>
+  <text x="100" y="445" class="note ink">Pontos criticos: privacidade real, risco de reidentificacao, integracoes com empresas, casos graves, auditoria da IA e responsabilidade juridica.</text>
+</svg>

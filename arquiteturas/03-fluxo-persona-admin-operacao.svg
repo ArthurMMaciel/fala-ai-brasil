@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Fluxo por persona - Admin e operacao</title>
+  <desc id="desc">Jornada da equipe administrativa e operacao humana na Voz Psicossocial.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f5f8f7}.ink{fill:#173d3b}.muted{fill:#5f7773}.head{fill:#103d3b}.panel{fill:#fff;stroke:#d9e5e2;stroke-width:2}.op{fill:#fff5d8;stroke:#e4bd43;stroke-width:2}.ai{fill:#f0e9ff;stroke:#b99af0;stroke-width:2}.risk{fill:#ffe9e7;stroke:#e88b82;stroke-width:2}.ok{fill:#e8f6ed;stroke:#7ec69a;stroke-width:2}.line{stroke:#4f6e69;stroke-width:3;fill:none;marker-end:url(#arrow)}.title{font:500 48px Arial,sans-serif}.subtitle{font:400 24px Arial,sans-serif}.label{font:500 25px Arial,sans-serif}.small{font:400 21px Arial,sans-serif}.tiny{font:400 18px Arial,sans-serif}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#4f6e69"/></marker>
+  </defs>
+  <rect class="bg" width="1600" height="1000"/>
+  <rect x="56" y="52" width="1488" height="118" rx="28" class="head"/>
+  <text x="90" y="112" class="title" fill="#fff">Persona: Admin / Operacao</text>
+  <text x="92" y="148" class="subtitle" fill="#c8dedb">A camada humana que governa a IA, revisa risco e preserva auditoria</text>
+
+  <rect x="85" y="225" width="260" height="120" rx="22" class="op"/>
+  <text x="215" y="264" text-anchor="middle" class="label ink">1. Painel geral</text>
+  <text x="215" y="299" text-anchor="middle" class="small muted">Recebidas, em analise,</text>
+  <text x="215" y="327" text-anchor="middle" class="tiny muted">aguardando e alto risco</text>
+
+  <rect x="420" y="225" width="260" height="120" rx="22" class="op"/>
+  <text x="550" y="264" text-anchor="middle" class="label ink">2. Filtros</text>
+  <text x="550" y="299" text-anchor="middle" class="small muted">Empresa, status, risco,</text>
+  <text x="550" y="327" text-anchor="middle" class="tiny muted">categoria e periodo</text>
+
+  <rect x="755" y="225" width="260" height="120" rx="22" class="op"/>
+  <text x="885" y="264" text-anchor="middle" class="label ink">3. Abre caso</text>
+  <text x="885" y="299" text-anchor="middle" class="small muted">Resumo, relato, IA,</text>
+  <text x="885" y="327" text-anchor="middle" class="tiny muted">comunicacao e auditoria</text>
+
+  <rect x="1090" y="225" width="330" height="120" rx="22" class="ai"/>
+  <text x="1255" y="264" text-anchor="middle" class="label ink">4. Compara relato</text>
+  <text x="1255" y="299" text-anchor="middle" class="small muted">Original vs. versao</text>
+  <text x="1255" y="327" text-anchor="middle" class="tiny muted">anonimizada sugerida</text>
+
+  <rect x="180" y="455" width="300" height="135" rx="22" class="ai"/>
+  <text x="330" y="495" text-anchor="middle" class="label ink">5. Consulta IA</text>
+  <text x="330" y="530" text-anchor="middle" class="small muted">Categoria, PII, confianca,</text>
+  <text x="330" y="558" text-anchor="middle" class="tiny muted">risco e mensagem sugerida</text>
+
+  <rect x="585" y="455" width="430" height="135" rx="22" class="risk"/>
+  <text x="800" y="495" text-anchor="middle" class="label ink">6. Decide por nivel de risco</text>
+  <text x="800" y="530" text-anchor="middle" class="small muted">Baixo automatiza com regra; medio exige OK;</text>
+  <text x="800" y="558" text-anchor="middle" class="tiny muted">alto bloqueia automacao ate revisao humana</text>
+
+  <rect x="1120" y="455" width="300" height="135" rx="22" class="ok"/>
+  <text x="1270" y="495" text-anchor="middle" class="label ink">7. Encaminha</text>
+  <text x="1270" y="530" text-anchor="middle" class="small muted">Aprova, edita, reprova</text>
+  <text x="1270" y="558" text-anchor="middle" class="tiny muted">ou pede revisao adicional</text>
+
+  <rect x="420" y="710" width="315" height="125" rx="22" class="panel"/>
+  <text x="577" y="750" text-anchor="middle" class="label ink">8. Comunica</text>
+  <text x="577" y="785" text-anchor="middle" class="small muted">Registra resposta, status</text>
+  <text x="577" y="813" text-anchor="middle" class="tiny muted">e timeline do caso</text>
+
+  <rect x="855" y="710" width="315" height="125" rx="22" class="panel"/>
+  <text x="1012" y="750" text-anchor="middle" class="label ink">9. Audita</text>
+  <text x="1012" y="785" text-anchor="middle" class="small muted">Quem fez, quando fez,</text>
+  <text x="1012" y="813" text-anchor="middle" class="tiny muted">decisao e resultado</text>
+
+  <path d="M345 285 H420" class="line"/><path d="M680 285 H755" class="line"/><path d="M1015 285 H1090" class="line"/>
+  <path d="M1255 345 V400 Q1255 430 1225 430 H330 Q300 430 300 455" class="line"/>
+  <path d="M480 522 H585" class="line"/><path d="M1015 522 H1120" class="line"/>
+  <path d="M1270 590 V650 Q1270 680 1240 680 H577 Q547 680 547 710" class="line"/>
+  <path d="M735 772 H855" class="line"/>
+
+  <rect x="88" y="875" width="1424" height="62" rx="18" class="risk"/>
+  <text x="120" y="914" class="small ink">Responsabilidade critica: a operacao nao e detalhe operacional; ela e o controle de seguranca entre IA, usuario, empresa e risco juridico.</text>
+</svg>

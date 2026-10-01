@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Fluxo por persona - Plataforma com IA e suporte de OK</title>
+  <desc id="desc">Fluxo interno da plataforma Voz Psicossocial com IA, regras e suporte humano de OK.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f5f8f7}.ink{fill:#173d3b}.muted{fill:#5f7773}.head{fill:#103d3b}.panel{fill:#fff;stroke:#d9e5e2;stroke-width:2}.ai{fill:#f0e9ff;stroke:#b99af0;stroke-width:2}.ok{fill:#fff5d8;stroke:#e4bd43;stroke-width:2}.safe{fill:#e8f6ed;stroke:#7ec69a;stroke-width:2}.risk{fill:#ffe9e7;stroke:#e88b82;stroke-width:2}.data{fill:#e8f0ff;stroke:#96afe9;stroke-width:2}.line{stroke:#4f6e69;stroke-width:3;fill:none;marker-end:url(#arrow)}.gate{stroke:#c28a00;stroke-width:4;fill:none;marker-end:url(#arrowWarn)}.title{font:500 48px Arial,sans-serif}.subtitle{font:400 24px Arial,sans-serif}.label{font:500 25px Arial,sans-serif}.small{font:400 21px Arial,sans-serif}.tiny{font:400 18px Arial,sans-serif}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#4f6e69"/></marker>
+    <marker id="arrowWarn" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#c28a00"/></marker>
+  </defs>
+  <rect class="bg" width="1600" height="1000"/>
+  <rect x="56" y="52" width="1488" height="118" rx="28" class="head"/>
+  <text x="90" y="112" class="title" fill="#fff">Persona: Plataforma com IA + Suporte de OK</text>
+  <text x="92" y="148" class="subtitle" fill="#c8dedb">Automacao assistida, revisao humana e trilha de decisao para casos sensiveis</text>
+
+  <rect x="85" y="230" width="250" height="120" rx="22" class="data"/>
+  <text x="210" y="269" text-anchor="middle" class="label ink">1. Recebe relato</text>
+  <text x="210" y="303" text-anchor="middle" class="small muted">texto original, empresa,</text>
+  <text x="210" y="330" text-anchor="middle" class="tiny muted">expectativa e contexto</text>
+
+  <rect x="405" y="230" width="250" height="120" rx="22" class="ai"/>
+  <text x="530" y="269" text-anchor="middle" class="label ink">2. Analisa</text>
+  <text x="530" y="303" text-anchor="middle" class="small muted">categoria, sentimento,</text>
+  <text x="530" y="330" text-anchor="middle" class="tiny muted">urgencia e recorrencia</text>
+
+  <rect x="725" y="230" width="250" height="120" rx="22" class="ai"/>
+  <text x="850" y="269" text-anchor="middle" class="label ink">3. Detecta PII</text>
+  <text x="850" y="303" text-anchor="middle" class="small muted">nomes, areas, locais,</text>
+  <text x="850" y="330" text-anchor="middle" class="tiny muted">datas e detalhes unicos</text>
+
+  <rect x="1045" y="230" width="280" height="120" rx="22" class="safe"/>
+  <text x="1185" y="269" text-anchor="middle" class="label ink">4. Anonimiza</text>
+  <text x="1185" y="303" text-anchor="middle" class="small muted">gera versao protegida</text>
+  <text x="1185" y="330" text-anchor="middle" class="tiny muted">e mensagem institucional</text>
+
+  <rect x="615" y="450" width="370" height="150" rx="24" class="risk"/>
+  <text x="800" y="493" text-anchor="middle" class="label ink">5. Classifica risco</text>
+  <text x="800" y="530" text-anchor="middle" class="small muted">baixo = automatizavel</text>
+  <text x="800" y="558" text-anchor="middle" class="small muted">medio = exige OK humano</text>
+  <text x="800" y="586" text-anchor="middle" class="small muted">alto = bloqueia automacao</text>
+
+  <rect x="180" y="705" width="305" height="125" rx="22" class="safe"/>
+  <text x="332" y="746" text-anchor="middle" class="label ink">6A. Baixo risco</text>
+  <text x="332" y="781" text-anchor="middle" class="small muted">prepara envio com</text>
+  <text x="332" y="809" text-anchor="middle" class="tiny muted">regras e auditoria</text>
+
+  <rect x="645" y="705" width="305" height="125" rx="22" class="ok"/>
+  <text x="797" y="746" text-anchor="middle" class="label ink">6B. Medio risco</text>
+  <text x="797" y="781" text-anchor="middle" class="small muted">fila de revisao</text>
+  <text x="797" y="809" text-anchor="middle" class="tiny muted">suporte humano da OK</text>
+
+  <rect x="1110" y="705" width="305" height="125" rx="22" class="risk"/>
+  <text x="1262" y="746" text-anchor="middle" class="label ink">6C. Alto risco</text>
+  <text x="1262" y="781" text-anchor="middle" class="small muted">nenhum contato automatico</text>
+  <text x="1262" y="809" text-anchor="middle" class="tiny muted">antes de revisao humana</text>
+
+  <path d="M335 290 H405" class="line"/><path d="M655 290 H725" class="line"/><path d="M975 290 H1045" class="line"/>
+  <path d="M1185 350 V400 Q1185 430 1155 430 H800 Q770 430 770 450" class="line"/>
+  <path d="M720 600 Q660 650 485 705" class="line"/>
+  <path d="M800 600 V705" class="gate"/>
+  <path d="M880 600 Q940 650 1110 705" class="gate"/>
+
+  <rect x="120" y="880" width="1360" height="60" rx="18" class="panel"/>
+  <text x="152" y="918" class="small ink">Saidas da plataforma: status atualizado, contato com empresa, logs de auditoria, metricas agregadas e ranking de responsividade.</text>
+</svg>
