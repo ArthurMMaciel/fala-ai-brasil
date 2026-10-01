@@ -1,6 +1,6 @@
-# Ecoa Voz / Voz Psicossocial
+# Escuta Aí Brasil
 
-> **Status:** POC local. A direção atual do produto é “Escuta Aí Brasil”, com naming ainda pendente de decisão formal. Para o estado real, prioridades e governança, consulte [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md), [`docs/ROADMAP.md`](docs/ROADMAP.md) e [`docs/tasks/BACKLOG.md`](docs/tasks/BACKLOG.md).
+> **Status:** POC local em evolução para MVP. Para o estado real, prioridades e governança, consulte [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md), [`docs/ROADMAP.md`](docs/ROADMAP.md) e [`docs/tasks/BACKLOG.md`](docs/tasks/BACKLOG.md).
 
 Plataforma de escuta psicossocial para trabalhadores relatarem situacoes do ambiente de trabalho com protecao de identidade, acompanhamento de status, resposta institucional da empresa e indicadores agregados de responsividade.
 

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
-  <title id="title">Arquitetura geral - Voz Psicossocial</title>
-  <desc id="desc">Diagrama geral da plataforma Voz Psicossocial, com usuario, aplicacao, IA, operacao humana, empresa, dados e pontos criticos.</desc>
+  <title id="title">Arquitetura geral - Escuta Aí Brasil</title>
+  <desc id="desc">Diagrama geral da plataforma Escuta Aí Brasil, com usuario, aplicacao, IA, operacao humana, empresa, dados e pontos criticos.</desc>
   <defs>
     <style>
       .bg{fill:#f5f8f7}.ink{fill:#173d3b}.muted{fill:#5f7773}.panel{fill:#ffffff;stroke:#d9e5e2;stroke-width:2}.dark{fill:#103d3b}.soft{fill:#e6f2ef}.blue{fill:#e8f0ff;stroke:#96afe9}.green{fill:#e8f6ed;stroke:#7ec69a}.yellow{fill:#fff5d8;stroke:#e4bd43}.red{fill:#ffe9e7;stroke:#e88b82}.purple{fill:#f0e9ff;stroke:#b99af0}.line{stroke:#4f6e69;stroke-width:3;fill:none;marker-end:url(#arrow)}.dash{stroke:#c28a00;stroke-width:3;fill:none;stroke-dasharray:8 8;marker-end:url(#arrowWarn)}.small{font:400 22px Arial, sans-serif}.tiny{font:400 18px Arial, sans-serif}.label{font:500 26px Arial, sans-serif}.title{font:500 48px Arial, sans-serif}.subtitle{font:400 24px Arial, sans-serif}.note{font:500 20px Arial, sans-serif}.chip{fill:#0f4c49}.chipText{fill:#fff;font:500 18px Arial, sans-serif}
@@ -14,7 +14,7 @@
   </defs>
   <rect class="bg" width="1600" height="1000"/>
   <rect x="56" y="52" width="1488" height="118" rx="28" class="dark"/>
-  <text x="90" y="112" class="title" fill="#fff">Voz Psicossocial</text>
+  <text x="90" y="112" class="title" fill="#fff">Escuta Aí Brasil</text>
   <text x="92" y="148" class="subtitle" fill="#c8dedb">Arquitetura geral da plataforma de escuta, anonimização, triagem e acompanhamento</text>
   <text x="1375" y="112" text-anchor="end" class="small" fill="#fff">Arthur Maciel</text>
 

@@ -1,4 +1,4 @@
-# Engenharia do Produto - Ecoa Voz / Voz Psicossocial
+# Engenharia do Produto — Escuta Aí Brasil
 
 > **Status deste documento:** proposta legada de arquitetura, não descrição do que está implementado nem decisão automaticamente aceita. Consulte `docs/architecture/CURRENT_STATE_AUDIT.md` e os ADRs em `docs/adr/` antes de executar.
 

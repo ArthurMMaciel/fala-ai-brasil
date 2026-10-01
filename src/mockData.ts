@@ -13,8 +13,8 @@ import {
 } from "./models";
 
 export const users: User[] = [
-  { id: "u-worker", name: "Ana", email: "usuario@iterah.demo", role: "worker", createdAt: "2026-09-01T09:00:00" },
-  { id: "u-admin", name: "Equipe Ecoa", email: "admin@iterah.demo", role: "admin", createdAt: "2026-09-01T09:00:00" },
+  { id: "u-worker", name: "Ana", email: "usuario@escutaai.demo", role: "worker", createdAt: "2026-09-01T09:00:00" },
+  { id: "u-admin", name: "Equipe Escuta Aí Brasil", email: "empresa@escutaai.demo", role: "admin", createdAt: "2026-09-01T09:00:00" },
 ];
 
 export const demoPassword = "123456";
@@ -127,7 +127,7 @@ export const aiAnalyses: AiAnalysis[] = complaints.map((complaint, index) => ({
   confidence: 0.72 + ((index % 4) * 0.06),
   sanitizedVersion: complaint.sanitizedContent,
   suggestedMessage:
-    "A Ecoa Voz recebeu uma manifestação anonimizada relacionada ao ambiente de trabalho. Solicitamos retorno institucional sobre como a organização pretende ouvir, apurar e tratar a situação descrita, preservando a identidade da pessoa manifestante.",
+    "A Escuta Aí Brasil recebeu uma manifestação anonimizada relacionada ao ambiente de trabalho. Solicitamos retorno institucional sobre como a organização pretende ouvir, apurar e tratar a situação descrita, preservando a identidade da pessoa manifestante.",
   requiresHumanReview: complaint.riskLevel !== "baixo",
 }));
 
@@ -184,8 +184,8 @@ function statusNote(status: ComplaintStatus): string {
 }
 
 export const auditLogs: AuditLog[] = complaints.slice(0, 12).flatMap((complaint, index) => [
-  { id: `a-${complaint.id}-1`, complaintId: complaint.id, actor: "IA Ecoa", action: "Classificação sugerida", timestamp: plusMinutes(complaint.createdAt, 2), result: complaint.category },
-  { id: `a-${complaint.id}-2`, complaintId: complaint.id, actor: index % 2 ? "Operação" : "IA Ecoa", action: "Mensagem preparada", timestamp: plusMinutes(complaint.createdAt, 5), result: complaint.riskLevel === "baixo" ? "Pronta para envio" : "Aguardando aprovação" },
+  { id: `a-${complaint.id}-1`, complaintId: complaint.id, actor: "IA Escuta Aí Brasil", action: "Classificação sugerida", timestamp: plusMinutes(complaint.createdAt, 2), result: complaint.category },
+  { id: `a-${complaint.id}-2`, complaintId: complaint.id, actor: index % 2 ? "Operação" : "IA Escuta Aí Brasil", action: "Mensagem preparada", timestamp: plusMinutes(complaint.createdAt, 5), result: complaint.riskLevel === "baixo" ? "Pronta para envio" : "Aguardando aprovação" },
 ]);
 
 export const metrics: CompanyReputationMetrics[] = companies.map((company, index) => ({

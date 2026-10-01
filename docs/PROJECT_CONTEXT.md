@@ -2,7 +2,7 @@
 
 ## Produto
 
-Escuta Aí Brasil é a direção atual de uma plataforma de escuta psicossocial que conecta pessoas trabalhadoras e empresas com proteção de identidade, acompanhamento, resposta institucional e indicadores de responsividade. O código ainda usa os nomes “Ecoa Voz” e “Voz Psicossocial”; a consolidação da marca está pendente.
+Escuta Aí Brasil é a identidade oficial da plataforma de escuta psicossocial que conecta pessoas trabalhadoras e empresas com proteção de identidade, acompanhamento, resposta institucional e indicadores de responsividade.
 
 ## Estágio real em 2026-09-30
 

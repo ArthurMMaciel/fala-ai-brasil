@@ -142,6 +142,113 @@ a {
   background: var(--red);
 }
 
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+  transform: none;
+}
+
+.audience-switch-wrap {
+  display: grid;
+  width: min(620px, calc(100% - 40px));
+  gap: 9px;
+  margin: 28px auto 0;
+}
+
+.audience-switch-label {
+  color: #4f666e;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.audience-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  padding: 7px;
+  border: 1px solid rgba(170, 204, 196, 0.8);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 14px 38px rgba(18, 60, 70, 0.1);
+}
+
+.audience-option {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 13px 16px;
+  color: #36545c;
+  background: transparent;
+  text-align: left;
+  transition:
+    color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.audience-option:hover {
+  color: var(--deep);
+  background: #eff7f5;
+}
+
+.audience-option:focus-visible {
+  outline: 3px solid rgba(39, 95, 134, 0.25);
+  outline-offset: 2px;
+}
+
+.audience-option.active {
+  color: #fff;
+  background: linear-gradient(135deg, #123c46 0%, #1f7a78 100%);
+  box-shadow: 0 10px 24px rgba(18, 60, 70, 0.22);
+  transform: translateY(-1px);
+}
+
+.audience-symbol {
+  display: grid;
+  flex: 0 0 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid #cae1dc;
+  border-radius: 12px;
+  color: var(--teal);
+  background: #f4fbf9;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.audience-option.active .audience-symbol {
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.audience-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.audience-copy strong {
+  font-size: 0.98rem;
+}
+
+.audience-copy small {
+  color: #6c8187;
+  font-size: 0.76rem;
+}
+
+.audience-option.active .audience-copy small {
+  color: #cce5e1;
+}
+
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1.03fr) minmax(320px, 0.72fr);
@@ -388,6 +495,13 @@ h3 {
   color: #2b4850;
   font-size: 0.92rem;
   font-weight: 800;
+}
+
+.field-error {
+  margin: 4px 0 16px;
+  color: #982f2f;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 input,
@@ -769,6 +883,14 @@ th {
   }
 
   .btn {
+    width: 100%;
+  }
+
+  .audience-switch {
+    grid-template-columns: 1fr;
+  }
+
+  .audience-option {
     width: 100%;
   }
 

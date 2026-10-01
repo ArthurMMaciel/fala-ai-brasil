@@ -34,6 +34,8 @@ interface AppState {
   landingAudience: "worker" | "company";
   authAudience: "worker" | "company";
   onboardingStep: number;
+  onboardingAnswers: Record<string, string | string[]>;
+  onboardingError: string;
   selectedCompanyId: string;
   caseId: string;
   adminCaseId: string;
@@ -63,6 +65,8 @@ const state: AppState = {
   landingAudience: "worker",
   authAudience: "worker",
   onboardingStep: 0,
+  onboardingAnswers: {},
+  onboardingError: "",
   selectedCompanyId: "c-aurora",
   caseId: "m-001",
   adminCaseId: "m-003",
@@ -120,7 +124,7 @@ function makeAnalysis(complaint: Complaint): AiAnalysis {
     confidence: 0.86,
     sanitizedVersion: complaint.sanitizedContent,
     suggestedMessage:
-      "A Ecoa Voz recebeu uma manifestação anonimizada relacionada ao ambiente de trabalho. Pedimos retorno institucional sobre escuta, apuração e providências gerais, preservando a identidade da pessoa manifestante.",
+      "A Escuta Aí Brasil recebeu uma manifestação anonimizada relacionada ao ambiente de trabalho. Pedimos retorno institucional sobre escuta, apuração e providências gerais, preservando a identidade da pessoa manifestante.",
     requiresHumanReview: complaint.riskLevel !== "baixo",
   };
 }
@@ -155,8 +159,8 @@ function topbar() {
   return `
     <header class="topbar">
       <button class="brand" data-route="landing" aria-label="Ir para início">
-        <span class="brand-mark">EV</span>
-        <span>Ecoa Voz</span>
+        <span class="brand-mark">EA</span>
+        <span>Escuta Aí Brasil</span>
       </button>
       <nav class="nav-actions">
         ${state.user ? `<span class="muted small">${state.user.name} · ${state.user.role === "admin" ? "Empresa" : "Trabalhador"}</span>` : ""}
@@ -204,9 +208,18 @@ function landingPage() {
   const isCompany = state.landingAudience === "company";
   return `
     <main>
-      <div class="audience-switch" role="group" aria-label="Escolha seu perfil">
-        <button class="audience-option ${!isCompany ? "active" : ""}" data-action="set-audience" data-audience="worker" aria-pressed="${!isCompany}">Sou empregado</button>
-        <button class="audience-option ${isCompany ? "active" : ""}" data-action="set-audience" data-audience="company" aria-pressed="${isCompany}">Sou empresa</button>
+      <div class="audience-switch-wrap">
+        <span class="audience-switch-label">Como você quer acessar?</span>
+        <div class="audience-switch" role="group" aria-label="Escolha seu perfil">
+          <button class="audience-option ${!isCompany ? "active" : ""}" data-action="set-audience" data-audience="worker" aria-pressed="${!isCompany}">
+            <span class="audience-symbol" aria-hidden="true">EU</span>
+            <span class="audience-copy"><strong>Sou empregado</strong><small>Quero ser ouvido</small></span>
+          </button>
+          <button class="audience-option ${isCompany ? "active" : ""}" data-action="set-audience" data-audience="company" aria-pressed="${isCompany}">
+            <span class="audience-symbol" aria-hidden="true">RH</span>
+            <span class="audience-copy"><strong>Sou empresa</strong><small>Quero acolher e responder</small></span>
+          </button>
+        </div>
       </div>
       <section class="hero">
         <div>
@@ -239,7 +252,7 @@ function landingPage() {
       <section class="section grid three">
         ${isCompany
           ? `${infoCard("Escute com segurança.", "Receba uma versão protegida do relato, adequada para análise e encaminhamento institucional.")}${infoCard("Responda com rastreabilidade.", "Centralize retornos, prazos e histórico de cada manifestação em uma jornada clara.")}${infoCard("Evolua com evidências.", "Acompanhe responsividade, tempo de resposta e tratamento dos casos com indicadores objetivos.")}`
-          : `${infoCard("Você conta o que aconteceu.", "Escreva do seu jeito, com linguagem humana e sem precisar transformar sua experiência em termos técnicos.")}${infoCard("A Ecoa Voz protege sua identidade.", "A plataforma organiza o relato e prepara uma versão sem dados que facilitem identificação perante a empresa.")}${infoCard("A empresa é convidada a ouvir.", "O retorno, a velocidade e o tratamento recebido compõem indicadores de responsividade observável.")}`}
+          : `${infoCard("Você conta o que aconteceu.", "Escreva do seu jeito, com linguagem humana e sem precisar transformar sua experiência em termos técnicos.")}${infoCard("A Escuta Aí Brasil protege sua identidade.", "A plataforma organiza o relato e prepara uma versão sem dados que facilitem identificação perante a empresa.")}${infoCard("A empresa é convidada a ouvir.", "O retorno, a velocidade e o tratamento recebido compõem indicadores de responsividade observável.")}`}
       </section>
       <section class="section tight">
         <div class="notice">
@@ -265,9 +278,9 @@ function authPage(mode: "login" | "register") {
         <p class="muted">${isCompany ? "Gerencie manifestações protegidas, respostas e indicadores de responsividade." : "Seu cadastro é usado para você acompanhar seus relatos. Seus dados de identificação não são enviados à empresa relacionada."}</p>
         <form data-form="auth">
           ${!isLogin ? (isCompany ? `<div class="field"><label>Nome da empresa</label><input name="name" value="Aurora Tecnologia" required /></div><div class="field"><label>CNPJ</label><input name="cnpj" value="12.345.678/0001-90" required /></div>` : `<div class="field"><label>Nome ou apelido</label><input name="name" value="Ana" required /></div>`) : ""}
-          <div class="field"><label>Email</label><input name="email" type="email" value="${isLogin ? (isCompany ? "admin@iterah.demo" : "usuario@iterah.demo") : ""}" required /></div>
-          <div class="field"><label>Senha</label><input name="password" type="password" value="${isLogin ? demoPassword : ""}" required /></div>
-          ${!isLogin ? `<div class="field"><label>Confirmação de senha</label><input name="confirm" type="password" required /></div>
+          <div class="field"><label>Email</label><input name="email" type="email" value="${isLogin ? (isCompany ? "empresa@escutaai.demo" : "usuario@escutaai.demo") : ""}" required /></div>
+          <div class="field"><label>Senha</label><input name="password" type="password" minlength="6" value="${isLogin ? demoPassword : ""}" required /></div>
+          ${!isLogin ? `<div class="field"><label>Confirmação de senha</label><input name="confirm" type="password" minlength="6" required /></div>
           <label class="small"><input name="terms" type="checkbox" required /> Aceito os termos de uso.</label><br />
           <label class="small"><input name="privacy" type="checkbox" required /> Li a política de privacidade.</label>` : ""}
           <div class="nav-actions" style="margin-top:18px">
@@ -278,7 +291,7 @@ function authPage(mode: "login" | "register") {
       </section>
       <aside class="card">
         <h3>Acessos demo</h3>
-        <p class="muted small">${isCompany ? "Empresa: admin@iterah.demo / 123456" : "Empregado: usuario@iterah.demo / 123456"}</p>
+        <p class="muted small">${isCompany ? "Empresa: empresa@escutaai.demo / 123456" : "Empregado: usuario@escutaai.demo / 123456"}</p>
         <div class="notice">A POC usa dados fictícios e não promete anonimato absoluto na internet. A promessa visual é: sua identidade não é compartilhada com a empresa.</div>
       </aside>
     </main>
@@ -308,7 +321,7 @@ const onboardingSteps = [
   },
   {
     title: "Por que você veio até aqui",
-    intro: "Você pode pular perguntas opcionais. Situações sensíveis recebem revisão com cuidado adicional.",
+    intro: "Situações sensíveis recebem revisão com cuidado adicional.",
     fields: [
       ["O que melhor descreve o motivo de você estar aqui hoje?", ["Quero relatar algo que aconteceu comigo", "Presenciei algo acontecendo com outra pessoa", "É um problema recorrente na equipe", "Quero registrar um alerta antes que piore", "Outro"]],
       ["Isso ainda está acontecendo?", ["Sim", "Não", "Não sei"]],
@@ -324,6 +337,14 @@ const onboardingSteps = [
     ],
   },
 ];
+
+function isMultipleOnboardingQuestion(stepIndex: number, questionIndex: number) {
+  return (stepIndex === 1 && questionIndex === 3) || (stepIndex === 3 && questionIndex === 1);
+}
+
+function onboardingAnswerKey(stepIndex: number, questionIndex: number) {
+  return `${stepIndex}-${questionIndex}`;
+}
 
 function onboardingPage() {
   if (state.onboardingStep > 3) {
@@ -345,19 +366,25 @@ function onboardingPage() {
         <div class="progress"><span style="width:${((state.onboardingStep + 1) / 4) * 100}%"></span></div>
         <p class="muted small" style="margin-top:14px">Etapa ${state.onboardingStep + 1} de 4</p>
         <h2>${step.title}</h2>
-        <p class="muted">${step.intro} Você pode pular perguntas opcionais.</p>
+        <p class="muted">${step.intro} Todas as respostas desta etapa são obrigatórias.</p>
         ${step.fields
-          .map(
-            ([question, options], index) => `
+          .map(([question, options], index) => {
+            const key = onboardingAnswerKey(state.onboardingStep, index);
+            const answer = state.onboardingAnswers[key];
+            const multiple = isMultipleOnboardingQuestion(state.onboardingStep, index);
+            return `
             <div class="field">
-              <label>${question}</label>
-              <div class="option-grid">${(options as string[]).map((option, o) => `<button class="option ${o === 0 ? "selected" : ""}" data-action="select-option" type="button">${option}</button>`).join("")}</div>
+              <label>${question}${multiple ? ` <span class="muted small">(selecione uma ou mais)</span>` : ""}</label>
+              <div class="option-grid">${(options as string[]).map((option) => {
+                const selected = Array.isArray(answer) ? answer.includes(option) : answer === option;
+                return `<button class="option ${selected ? "selected" : ""}" data-action="select-option" data-step="${state.onboardingStep}" data-question="${index}" data-value="${escapeHtml(option)}" aria-pressed="${selected}" type="button">${option}</button>`;
+              }).join("")}</div>
               ${state.onboardingStep === 2 && index === 2 ? `<div class="notice warn small">Obrigado por nos contar. Situações de risco imediato precisam de atenção humana. Sua manifestação poderá receber prioridade e revisão antes de qualquer contato automático.</div>` : ""}
-            </div>`,
-          )
+            </div>`;
+          })
           .join("")}
+        ${state.onboardingError ? `<p class="field-error" role="alert">${state.onboardingError}</p>` : ""}
         <div class="nav-actions">
-          <button class="btn" data-action="skip-onboarding">Pular por enquanto</button>
           <button class="btn primary" data-action="next-onboarding">${state.onboardingStep === 3 ? "Concluir" : "Continuar"}</button>
         </div>
       </section>
@@ -367,6 +394,32 @@ function onboardingPage() {
       </aside>
     </main>
   `;
+}
+
+function selectOnboardingOption(stepIndex: number, questionIndex: number, value: string) {
+  const key = onboardingAnswerKey(stepIndex, questionIndex);
+  const current = state.onboardingAnswers[key];
+  let answer: string | string[] = value;
+  if (isMultipleOnboardingQuestion(stepIndex, questionIndex)) {
+    const selected = Array.isArray(current) ? current : [];
+    answer = selected.includes(value) ? selected.filter((item) => item !== value) : [...selected, value];
+  }
+  state.onboardingAnswers = { ...state.onboardingAnswers, [key]: answer };
+  state.onboardingError = "";
+  render();
+}
+
+function nextOnboardingStep() {
+  const step = onboardingSteps[state.onboardingStep];
+  const unanswered = step.fields.some((_, index) => {
+    const answer = state.onboardingAnswers[onboardingAnswerKey(state.onboardingStep, index)];
+    return !answer || (Array.isArray(answer) && answer.length === 0);
+  });
+  if (unanswered) {
+    state.onboardingError = "Responda todas as perguntas desta etapa para continuar.";
+    return render();
+  }
+  setRoute("onboarding", { onboardingStep: state.onboardingStep + 1, onboardingError: "" });
 }
 
 function workerLayout(content: string) {
@@ -428,7 +481,7 @@ function workerDashboard() {
     </section>
     <section class="card" style="margin-top:24px">
       <h3>O que acontece depois que eu envio?</h3>
-      <p class="muted">A Ecoa Voz revisa o conteúdo, prepara uma versão sem dados identificáveis, convida a empresa a responder e mantém você informado com linguagem simples.</p>
+      <p class="muted">A Escuta Aí Brasil revisa o conteúdo, prepara uma versão sem dados identificáveis, convida a empresa a responder e mantém você informado com linguagem simples.</p>
     </section>
   `;
 }
@@ -506,7 +559,7 @@ function complaintStep() {
     return `
       <h2>Conte o que aconteceu do seu jeito.</h2>
       <p class="muted">Você não precisa escrever de forma perfeita. Explique como se estivesse contando para alguém de confiança.</p>
-      <div class="notice">Evite colocar seu nome, telefone, e-mail ou informações que facilitem sua identificação. Antes de enviar, a Ecoa Voz também fará uma revisão para proteger sua identidade.</div>
+      <div class="notice">Evite colocar seu nome, telefone, e-mail ou informações que facilitem sua identificação. Antes de enviar, a Escuta Aí Brasil também fará uma revisão para proteger sua identidade.</div>
       <div class="field" style="margin-top:16px"><label>Título curto</label><input data-draft="title" value="${state.complaintDraft.title || "Sobrecarga e cobranças fora do horário"}" /></div>
       <div class="field"><label>Relato</label><textarea data-draft="originalContent">${state.complaintDraft.originalContent}</textarea></div>
       <div class="grid two"><div class="field"><label>Quando isso aconteceu?</label><input data-draft="incidentDate" value="${state.complaintDraft.incidentDate}" /></div><div class="field"><label>Isso é recorrente?</label><input data-draft="recurrence" value="${state.complaintDraft.recurrence}" /></div></div>
@@ -516,7 +569,7 @@ function complaintStep() {
   if (state.complaintStep === 2) {
     return `
       <h2>Meio de comunicação</h2>
-      <p class="muted">Informe como a Ecoa Voz pode contatar a empresa sobre esta manifestação. Você pode adicionar mais de um e-mail, telefone fixo ou celular.</p>
+      <p class="muted">Informe como a Escuta Aí Brasil pode contatar a empresa sobre esta manifestação. Você pode adicionar mais de um e-mail, telefone fixo ou celular.</p>
       <div class="contact-entry">
         <div class="field contact-field">
           <label for="communication-channel">E-mail ou telefone da empresa</label>
@@ -730,7 +783,7 @@ function adminCompanies() {
     </tbody></table></div>
     <section class="card" style="margin-top:20px">
       <span class="badge green">Empresa verificada</span>
-      <h2>Índice de Responsividade Iterah</h2>
+      <h2>Índice de Responsividade Escuta Aí Brasil</h2>
       <p class="muted">Este indicador representa como a organização respondeu às manifestações recebidas pela plataforma. Ele não representa diagnóstico do ambiente de trabalho nem certificação de saúde psicossocial.</p>
       <div class="grid four">${metric("Taxa de resposta", "92%")}${metric("Primeira resposta", "1,2 dias")}${metric("Casos com retorno", "84%")}${metric("Volume mínimo", "Atingido")}</div>
     </section>
@@ -799,11 +852,10 @@ function bind() {
         const authAudience = state.authAudience === "company" ? "worker" : "company";
         return setRoute(state.route, { authAudience, landingAudience: authAudience });
       }
-      if (action === "demo-worker") return setRoute("onboarding", { user: users[0], onboardingStep: 0 });
+      if (action === "demo-worker") return setRoute("onboarding", { user: users[0], onboardingStep: 0, onboardingAnswers: {}, onboardingError: "" });
       if (action === "demo-admin") return setRoute("admin", { user: users[1] });
-      if (action === "next-onboarding") return setRoute("onboarding", { onboardingStep: state.onboardingStep + 1 });
-      if (action === "skip-onboarding") return setRoute("worker", { onboardingStep: 4 });
-      if (action === "select-option") return element.classList.toggle("selected");
+      if (action === "next-onboarding") return nextOnboardingStep();
+      if (action === "select-option") return selectOnboardingOption(Number(element.dataset.step), Number(element.dataset.question), element.dataset.value!);
       if (action === "select-company") return setRoute("new-complaint", { selectedCompanyId: element.dataset.company!, complaintStep: 0 });
       if (action === "topic") return setRoute("new-complaint", { complaintDraft: { ...state.complaintDraft, category: element.dataset.value! } });
       if (action === "outcome") {
@@ -833,14 +885,18 @@ function bind() {
     const email = String(form.get("email"));
     const password = String(form.get("password"));
     if (state.route === "register") {
+      if (password !== String(form.get("confirm"))) {
+        alert("A confirmação de senha precisa ser igual à senha informada.");
+        return;
+      }
       const name = String(form.get("name") || (state.authAudience === "company" ? "Empresa" : "Pessoa trabalhadora"));
       const user: User = { id: `demo-${Date.now()}`, name, email, role: state.authAudience === "company" ? "admin" : "worker", createdAt: new Date().toISOString() };
-      return setRoute(user.role === "admin" ? "admin" : "onboarding", { user, onboardingStep: 0 });
+      return setRoute(user.role === "admin" ? "admin" : "onboarding", { user, onboardingStep: 0, onboardingAnswers: {}, onboardingError: "" });
     }
     const user = users.find((item) => item.email === email);
     const expectedRole = state.authAudience === "company" ? "admin" : "worker";
     if (!user || user.role !== expectedRole || password !== demoPassword) {
-      alert(`Credencial demo inválida. Use ${state.authAudience === "company" ? "admin@iterah.demo" : "usuario@iterah.demo"} com senha 123456.`);
+      alert(`Credencial demo inválida. Use ${state.authAudience === "company" ? "empresa@escutaai.demo" : "usuario@escutaai.demo"} com senha 123456.`);
       return;
     }
     setRoute(user.role === "admin" ? "admin" : "worker", { user });

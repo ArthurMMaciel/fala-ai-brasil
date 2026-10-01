@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
   <title id="title">Fluxo por persona - Plataforma com IA e suporte de OK</title>
-  <desc id="desc">Fluxo interno da plataforma Voz Psicossocial com IA, regras e suporte humano de OK.</desc>
+  <desc id="desc">Fluxo interno da plataforma Escuta Aí Brasil com IA, regras e suporte humano de OK.</desc>
   <defs>
     <style>
       .bg{fill:#f5f8f7}.ink{fill:#173d3b}.muted{fill:#5f7773}.head{fill:#103d3b}.panel{fill:#fff;stroke:#d9e5e2;stroke-width:2}.ai{fill:#f0e9ff;stroke:#b99af0;stroke-width:2}.ok{fill:#fff5d8;stroke:#e4bd43;stroke-width:2}.safe{fill:#e8f6ed;stroke:#7ec69a;stroke-width:2}.risk{fill:#ffe9e7;stroke:#e88b82;stroke-width:2}.data{fill:#e8f0ff;stroke:#96afe9;stroke-width:2}.line{stroke:#4f6e69;stroke-width:3;fill:none;marker-end:url(#arrow)}.gate{stroke:#c28a00;stroke-width:4;fill:none;marker-end:url(#arrowWarn)}.title{font:500 48px Arial,sans-serif}.subtitle{font:400 24px Arial,sans-serif}.label{font:500 25px Arial,sans-serif}.small{font:400 21px Arial,sans-serif}.tiny{font:400 18px Arial,sans-serif}

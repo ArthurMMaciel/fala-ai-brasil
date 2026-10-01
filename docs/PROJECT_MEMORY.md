@@ -21,7 +21,7 @@ Aplicação Vite + TypeScript sem framework, renderizada por template strings em
 
 ## Decisões pendentes
 
-- Nome oficial: Escuta Aí Brasil versus Ecoa Voz/Voz Psicossocial.
+- Identidade oficial definida: Escuta Aí Brasil. Os nomes anteriores foram descontinuados em 2026-10-01.
 - Estratégia de autenticação (sessão server-side é preferência inicial, ainda não decidida).
 - Provedor de infraestrutura e regiões de dados.
 - Base legal, consentimentos, retenção e atendimento a direitos do titular.
