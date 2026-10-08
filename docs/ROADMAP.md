@@ -19,6 +19,7 @@
 - Empresa verificada, manifestação persistida, revisão e timeline.
 - Portal da empresa separado e resposta institucional.
 - Comunicação idempotente com destino aprovado.
+- Cobrança de clientes via Stripe (TASK-0018), após fundação segura e validação comercial/da conta; Checkout, assinaturas com cartão, Boleto BRL condicionado à elegibilidade e Pix avulso condicionado à habilitação. Transferência bancária genérica BRL não está confirmada. Planejamento registrado, ainda sem implementação.
 
 ## Fase 3 — Segurança e observabilidade
 

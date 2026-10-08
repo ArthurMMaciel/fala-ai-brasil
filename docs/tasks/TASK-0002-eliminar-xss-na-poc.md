@@ -1,6 +1,7 @@
 # TASK-0002 — Eliminar XSS na POC
 
 - Status: proposta
+- ClickUp: [TASK-0002](https://app.clickup.com/t/86aktn715)
 - Área: Segurança/Frontend
 - Prioridade: P0
 - Estimativa: 1–2 dias

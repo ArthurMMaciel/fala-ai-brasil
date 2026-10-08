@@ -1,6 +1,7 @@
 # TASK-0013 — Refinar seletor de perfil e onboarding obrigatório
 
 - Status: concluída
+- ClickUp: [TASK-0013](https://app.clickup.com/t/86aktn738)
 - Conclusão: 2026-10-01
 - Área: Frontend/Produto/Acessibilidade
 - Prioridade: P1

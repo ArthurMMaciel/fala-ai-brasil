@@ -1,6 +1,7 @@
 # TASK-0010 — Backup, restore e resposta a incidente
 
 - Status: proposta
+- ClickUp: [TASK-0010](https://app.clickup.com/t/86aktn72g)
 - Área: DevOps/SRE/Segurança
 - Prioridade: P1
 - Estimativa: 3–5 dias

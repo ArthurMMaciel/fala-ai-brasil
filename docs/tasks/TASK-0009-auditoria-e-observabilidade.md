@@ -1,6 +1,7 @@
 # TASK-0009 — Implementar auditoria e observabilidade
 
 - Status: proposta
+- ClickUp: [TASK-0009](https://app.clickup.com/t/86aktn72e)
 - Área: SRE/Segurança
 - Prioridade: P1
 - Estimativa: 4–6 dias

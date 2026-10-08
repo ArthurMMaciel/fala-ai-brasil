@@ -1,6 +1,7 @@
 # TASK-0004 — Criar baseline de testes e CI
 
 - Status: proposta
+- ClickUp: [TASK-0004](https://app.clickup.com/t/86aktn71m)
 - Área: QA/DevOps
 - Prioridade: P1
 - Estimativa: 2–3 dias

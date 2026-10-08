@@ -1,6 +1,7 @@
 # TASK-0011 — Verificar contatos empresariais antes de enviar relatos
 
 - Status: proposta
+- ClickUp: [TASK-0011](https://app.clickup.com/t/86aktn72m)
 - Área: Produto/Integrações/Segurança
 - Prioridade: P1
 - Estimativa: 3–5 dias

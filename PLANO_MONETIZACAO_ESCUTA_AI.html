@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plano de Monetização 2026–2028 — Escuta Aí Brasil</title>
+  <style>
+    :root { --ink:#15343b; --muted:#587078; --teal:#176d6a; --mint:#8fd3bd; --paper:#f5faf8; --line:#d7e6e1; --gold:#f2bd5b; --danger:#9c3e3e; --white:#fff; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; color:var(--ink); background:var(--paper); font:16px/1.58 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    a { color:var(--teal); }
+    .cover { min-height:72vh; display:grid; align-items:end; padding:clamp(40px,8vw,100px) max(24px,calc((100vw - 1180px)/2)); color:#fff; background:linear-gradient(135deg,#0c3e43,#176d6a 62%,#4aa38f); }
+    .cover small { display:block; max-width:850px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; opacity:.85; }
+    h1 { max-width:980px; margin:.35em 0 .2em; font-size:clamp(2.7rem,7vw,6.5rem); line-height:.94; letter-spacing:-.055em; }
+    .cover p { max-width:800px; margin:24px 0 0; font-size:clamp(1.1rem,2vw,1.45rem); color:#dff4ee; }
+    .meta { display:flex; flex-wrap:wrap; gap:10px; margin-top:30px; }
+    .pill { display:inline-flex; padding:7px 11px; border:1px solid rgba(255,255,255,.3); border-radius:999px; font-size:.82rem; font-weight:700; }
+    nav { position:sticky; top:0; z-index:5; display:flex; gap:18px; overflow:auto; padding:13px max(20px,calc((100vw - 1180px)/2)); border-bottom:1px solid var(--line); background:rgba(255,255,255,.94); backdrop-filter:blur(10px); white-space:nowrap; }
+    nav a { color:var(--ink); font-size:.86rem; font-weight:750; text-decoration:none; }
+    main { max-width:1180px; margin:auto; padding:54px 20px 90px; }
+    section { margin:0 0 72px; scroll-margin-top:70px; }
+    h2 { margin:0 0 14px; font-size:clamp(1.8rem,3vw,2.7rem); line-height:1.08; letter-spacing:-.035em; }
+    h3 { margin:0 0 8px; font-size:1.15rem; }
+    .lead { max-width:900px; color:var(--muted); font-size:1.1rem; }
+    .eyebrow { color:var(--teal); font-size:.78rem; font-weight:850; letter-spacing:.12em; text-transform:uppercase; }
+    .grid { display:grid; gap:18px; }
+    .g2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .g3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .g4 { grid-template-columns:repeat(4,minmax(0,1fr)); }
+    .card { padding:24px; border:1px solid var(--line); border-radius:17px; background:var(--white); box-shadow:0 10px 30px rgba(17,63,67,.045); }
+    .card p:last-child { margin-bottom:0; }
+    .metric { font-size:2rem; font-weight:850; line-height:1.05; color:var(--teal); }
+    .callout { padding:25px 28px; border-left:5px solid var(--gold); border-radius:5px 16px 16px 5px; background:#fff8e7; }
+    .guardrail { border-color:#edcaca; background:#fff8f8; }
+    .guardrail strong { color:var(--danger); }
+    ul,ol { padding-left:1.2rem; }
+    li + li { margin-top:7px; }
+    .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:16px; background:#fff; }
+    table { width:100%; border-collapse:collapse; min-width:820px; }
+    th,td { padding:14px 16px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { color:#315159; background:#edf7f4; font-size:.78rem; letter-spacing:.05em; text-transform:uppercase; }
+    tr:last-child td { border-bottom:0; }
+    .tag { display:inline-block; margin:2px 4px 2px 0; padding:3px 8px; border-radius:999px; color:#28534d; background:#e4f4ef; font-size:.76rem; font-weight:750; }
+    .timeline { position:relative; display:grid; gap:18px; margin-top:24px; }
+    .phase { display:grid; grid-template-columns:150px 1fr; gap:18px; padding:22px; border:1px solid var(--line); border-radius:16px; background:#fff; }
+    .phase-time { color:var(--teal); font-weight:850; }
+    .formula { padding:15px; border-radius:10px; background:#0f3f45; color:#e8f8f4; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:.9rem; }
+    .decision { border-left:4px solid var(--teal); }
+    .sources { font-size:.9rem; color:var(--muted); }
+    footer { padding:35px 20px; text-align:center; color:#d7ece8; background:#123e43; }
+    @media (max-width:850px) { .g2,.g3,.g4 { grid-template-columns:1fr; } .phase { grid-template-columns:1fr; } nav { display:none; } .cover { min-height:62vh; } }
+    @media print { nav { display:none; } body { background:#fff; font-size:11pt; } .cover { min-height:auto; padding:45px; break-after:page; } main { max-width:none; padding:28px; } section { break-inside:avoid; margin-bottom:38px; } .card,.phase,.table-wrap { box-shadow:none; } a { color:inherit; text-decoration:none; } }
+  </style>
+</head>
+<body>
+  <header class="cover">
+    <div>
+      <small>Plano comercial-técnico · hipótese de execução</small>
+      <h1>Monetizar confiança, não vulnerabilidade.</h1>
+      <p>Estratégia de 18–24 meses para transformar o Escuta Aí Brasil em plataforma, rede de parceiros e produto de inteligência — sem comercializar relatos, identidade ou microdados pessoais.</p>
+      <div class="meta"><span class="pill">Versão 1.2 · 05/10/2026</span><span class="pill">Horizonte 2026–2028</span><span class="pill">Valores são hipóteses para teste</span></div>
+    </div>
+  </header>
+
+  <nav aria-label="Navegação do documento">
+    <a href="#tese">Tese</a><a href="#leitura-critica">Leitura crítica</a><a href="#ofertas">Ofertas</a><a href="#personas">Personas</a><a href="#dados">Produtos de dados</a><a href="#precos">Preços</a><a href="#roadmap">Roadmap</a><a href="#gtm">Go-to-market</a><a href="#metricas">Métricas</a><a href="#governanca">Governança</a>
+  </nav>
+
+  <main>
+    <section id="tese">
+      <span class="eyebrow">Tese executiva</span>
+      <h2>O ativo é a capacidade de transformar sinais protegidos em decisão.</h2>
+      <p class="lead">Empresas não devem comprar “dados de pessoas”. Elas compram redução de incerteza: saber o que está acontecendo, onde, com que frequência, como se comparam e o que priorizar. A receita sustentável combina software recorrente, curadoria do Hub, diagnósticos e análises agregadas.</p>
+      <div class="grid g4">
+        <article class="card"><div class="metric">01</div><h3>Confiança primeiro</h3><p>Proteção da pessoa manifestante é parte do produto e da marca, não obstáculo comercial.</p></article>
+        <article class="card"><div class="metric">02</div><h3>Receita recorrente</h3><p>Assinatura de workflow e inteligência financia operação previsível.</p></article>
+        <article class="card"><div class="metric">03</div><h3>Dados agregados</h3><p>Benchmarks só existem após volume, qualidade e controles anti-reidentificação.</p></article>
+        <article class="card"><div class="metric">04</div><h3>Serviço como ponte</h3><p>Diagnósticos geram caixa e aprendizado antes de o produto de dados escalar.</p></article>
+      </div>
+      <div class="callout guardrail" style="margin-top:20px"><strong>Posicionamento comercial:</strong> “Nós não vendemos relatos. Entregamos sinais agregados, governados e acionáveis sobre riscos psicossociais e capacidade de resposta.” Nunca prometer anonimato absoluto ou diagnóstico clínico/regulatório.</div>
+    </section>
+
+    <section id="leitura-critica">
+      <span class="eyebrow">Leitura crítica da proposta-base</span>
+      <h2>O que foi mantido, ajustado e rejeitado — e por quê.</h2>
+      <p class="lead">Esta síntese registra a visão profissional usada para transformar a proposta inicial em um plano comercial-técnico. Os pontos abaixo são recomendações para validação; não substituem decisões jurídicas, de privacidade ou testes reais de mercado.</p>
+      <div class="grid g3">
+        <article class="card">
+          <span class="tag">Concordamos</span>
+          <h3>Boas teses para preservar</h3>
+          <ul>
+            <li><strong>Múltiplas receitas:</strong> Hub, assinatura, Intelligence, diagnósticos e estudos reduzem dependência de uma única fonte.</li>
+            <li><strong>Receita recorrente:</strong> planos de 6, 12 e 24 meses trazem previsibilidade e sustentam acompanhamento contínuo.</li>
+            <li><strong>Curadoria do Hub:</strong> verificação e especialização criam mais confiança do que uma simples lista de fornecedores.</li>
+            <li><strong>Radar e benchmarks:</strong> temas, tendências, região, setor e porte respondem às principais perguntas executivas.</li>
+            <li><strong>Estudos personalizados:</strong> geram caixa, aprendizado e uma ponte entre serviço e produto escalável.</li>
+            <li><strong>Códigos de desconto:</strong> ajudam a medir interesse e atribuir conversões quando usados com transparência.</li>
+          </ul>
+        </article>
+        <article class="card" style="border-top:4px solid var(--gold)">
+          <span class="tag">Concordamos parcialmente</span>
+          <h3>Ideias válidas que precisam de limites</h3>
+          <ul>
+            <li><strong>Modalidades definidas em 08/10/2026:</strong> todas as personas comerciais podem escolher um mês grátis e mensalidade a partir do segundo, mensal imediato ou anual com 5% de desconto sobre doze mensalidades. Funcionário permanece gratuito; preços-base e políticas operacionais ainda precisam de validação.</li>
+            <li><strong>Ranking e curtidas:</strong> são sinais de interesse, não prova de qualidade. Resultado pago deve ser identificado e não interferir no ranking orgânico.</li>
+            <li><strong>Mídia e patrocínio:</strong> funcionam para conteúdo institucional, mas nunca podem usar relatos, saúde, denúncia ou vulnerabilidade para segmentação.</li>
+            <li><strong>Pesquisas de clima:</strong> podem ser vendidas, desde que tenham metodologia, finalidade e base de dados separadas das manifestações.</li>
+            <li><strong>Contato com proprietário/sócio:</strong> pode ser necessário, mas exige revisão humana por risco de conflito, envolvimento ou retaliação.</li>
+          </ul>
+        </article>
+        <article class="card guardrail">
+          <span class="tag">Não concordamos</span>
+          <h3>Atalhos que colocam o negócio em risco</h3>
+          <ul>
+            <li><strong>Vender relatos ou microdados:</strong> o produto comercializável é a inteligência agregada; identidade, conteúdo individual e combinações reidentificáveis ficam fora.</li>
+            <li><strong>Prometer benchmarks desde o início:</strong> sem densidade, os resultados são frágeis, pouco úteis e podem expor pessoas ou empresas.</li>
+            <li><strong>Cobrar principalmente por hora:</strong> hora técnica serve para calcular custo; comercialmente, projeto fechado e assinatura comunicam melhor o valor.</li>
+            <li><strong>Tratar ausência de recorrência como resolução:</strong> silêncio também pode significar desistência, desligamento ou perda de confiança.</li>
+            <li><strong>Apresentar severidade como diagnóstico:</strong> a classificação apoia triagem, mas não comprova condição clínica, responsabilidade jurídica ou conformidade regulatória.</li>
+          </ul>
+        </article>
+      </div>
+      <div class="callout" style="margin-top:20px"><strong>Resumo da posição:</strong> concordamos com a criação de um ecossistema de parceiros e inteligência. Ajustamos os mecanismos de teste, ranking, mídia e diagnóstico. Rejeitamos qualquer modelo que transforme sofrimento, identidade ou relatos individuais em mercadoria.</div>
+    </section>
+
+    <section id="ofertas">
+      <span class="eyebrow">Arquitetura de receita</span>
+      <h2>Cinco motores, ativados na ordem certa.</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Frente</th><th>Quem paga</th><th>Oferta</th><th>Modelo</th><th>Quando ativar</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Hub de Parceiros</strong></td><td>Psicólogos, consultorias, escritórios, treinamento e saúde ocupacional curados</td><td>Perfil verificado, demanda qualificada, conteúdo, selo de verificação do parceiro — não selo de qualidade da empresa</td><td>Mensalidade + plano de permanência; comissão por negócio apenas com transparência</td><td>0–6 meses</td></tr>
+          <tr><td><strong>Escuta Aí Empresas</strong></td><td>RH, compliance, jurídico e liderança</td><td>Canal, workflow, resposta, trilha, indicadores próprios e governança</td><td>Assinatura por faixa de porte/unidades; anual preferencial</td><td>Após fundação segura do MVP</td></tr>
+          <tr><td><strong>Escuta Aí Intelligence</strong></td><td>Empresas e instituições</td><td>Radar de riscos, tendências e benchmark por setor/região/porte</td><td>Assinatura + módulos premium</td><td>Quando os limiares de base forem atingidos</td></tr>
+          <tr><td><strong>Diagnóstico & Estudos</strong></td><td>Empresas, associações, institutos e patrocinadores</td><td>Pesquisa, análise e plano de ação com metodologia declarada</td><td>Projeto fechado por escopo; manutenção opcional</td><td>3–12 meses</td></tr>
+          <tr><td><strong>Mídia contextual</strong></td><td>Parceiros e patrocinadores aderentes</td><td>Espaços institucionais, eventos, conteúdo e patrocínio de estudos</td><td>Cota fixa, pacote ou patrocínio</td><td>Após política editorial e volume de audiência</td></tr>
+        </tbody>
+      </table></div>
+      <p class="lead"><strong>Não começar por marketplace de dados.</strong> No início haverá pouca densidade para benchmarks confiáveis. O primeiro produto pago deve ser operação + governança; o dado comparativo nasce como consequência da base, não como promessa antecipada.</p>
+    </section>
+
+    <section id="personas">
+      <span class="eyebrow">Personas e visões de produto</span>
+      <h2>Cada participante precisa de uma visão própria — e de limites próprios.</h2>
+      <p class="lead">A experiência comercial não pode continuar reduzida a “trabalhador versus empresa/admin”. A POC deve demonstrar quem recebe valor, quem paga e quais dados cada persona pode acessar. Suporte e operação são funções internas distintas das personas pagantes.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Persona</th><th>Visão necessária</th><th>Modelo comercial exemplificativo</th><th>Limite essencial</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Pessoa trabalhadora</strong></td><td>Relato, revisão protegida, acompanhamento e retorno</td><td>Gratuito; não é fonte direta de receita</td><td>Pagamento nunca prioriza atendimento nem amplia exposição</td></tr>
+          <tr><td><strong>Empresa — RH/People/Compliance/Jurídico</strong></td><td>Fila institucional, responsáveis, prazos, respostas e radar próprio</td><td>Essencial R$ 1,5 mil; Gestão R$ 3,9 mil; Multiunidade a partir de R$ 8 mil/mês</td><td>Acesso somente à versão compartilhável e ao próprio tenant</td></tr>
+          <tr><td><strong>Parceiro do Hub</strong></td><td>Perfil, verificação, oportunidades consentidas, propostas e atribuição</td><td>Presença R$ 249; Profissional R$ 499; Nacional R$ 899/mês</td><td>Sem relatos, identidades ou compra de posição orgânica</td></tr>
+          <tr><td><strong>Cliente Intelligence</strong></td><td>Radar, coortes elegíveis, benchmark e metodologia</td><td>Radar R$ 2,5 mil; Benchmark R$ 5,9 mil; Institucional sob proposta/mês</td><td>Sem microdados; cortes pequenos e coortes identificáveis são suprimidos</td></tr>
+          <tr><td><strong>Contratante de estudos</strong></td><td>Escopo, método, etapas, entregáveis e plano de ação</td><td>Pulso R$ 15 mil; Diagnóstico R$ 45 mil; Programa até R$ 120 mil por projeto</td><td>Bases segregadas, finalidade definida e entrega agregada</td></tr>
+          <tr><td><strong>Patrocinador</strong></td><td>Cota, formato, identificação da marca e alcance agregado</td><td>Conteúdo R$ 5 mil; Evento R$ 15 mil; estudo público sob proposta</td><td>Sem segmentação sensível ou influência em método, conclusão e ranking</td></tr>
+          <tr><td><strong>Suporte da plataforma</strong></td><td>Chamados de acesso, uso, cobrança futura e saúde operacional</td><td>Função interna; custo embutido nas ofertas</td><td>Sem acesso ao relato original ou identidade por padrão</td></tr>
+          <tr><td><strong>Operação humana</strong></td><td>Triagem, revisão de risco, destino e decisões auditáveis</td><td>Função interna; custo operacional por conta/caso</td><td>Separada de suporte e sujeita a mínimo privilégio</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout" style="margin-top:20px"><strong>Decisão de apresentação:</strong> oferecer na POC uma entrada “Soluções e planos” com prévia de painel para cada persona comercial. Os valores permanecem hipóteses de entrevista; cadastro, cobrança, contratos e controles de acesso reais continuam fora do escopo até a fundação segura do MVP.</div>
+      <h3 style="margin-top:32px">Estrutura obrigatória da venda por persona</h3>
+      <div class="grid g3">
+        <article class="card"><div class="metric">01</div><h3>Dor e gatilho</h3><p>Nomear o problema operacional que já consome tempo, orçamento ou confiança e identificar quem tem autoridade para comprar.</p></article>
+        <article class="card"><div class="metric">02</div><h3>Resultado do piloto</h3><p>Definir o que precisa mudar em 90 dias, com baseline, scorecard e revisões executivas — sem tratar hipótese como case comprovado.</p></article>
+        <article class="card"><div class="metric">03</div><h3>Lógica do preço</h3><p>Explicar por que a faixa cresce: complexidade, cobertura, governança, profundidade e serviço. Nunca volume de relatos ou acesso a dados pessoais.</p></article>
+      </div>
+      <div class="callout" style="margin-top:20px"><strong>Roteiro recomendado:</strong> problema caro → transformação desejada → demonstração da visão → scorecard do piloto → plano adequado → compromisso pago. O argumento comercial deve vender redução de incerteza e capacidade de ação, não uma lista de funcionalidades.</div>
+    </section>
+
+    <section id="hub">
+      <span class="eyebrow">Hub de Parceiros</span>
+      <h2>Curadoria, intenção e conversão mensurável.</h2>
+      <div class="grid g3">
+        <article class="card"><h3>Entrada</h3><p>Cadastro, checagem documental, escopo de atuação, regiões, credenciais e código de conduta. Escolha do primeiro plano no cadastro: um mês grátis e pagamento a partir do segundo, mensal imediato ou anual com 5% de desconto. Gestão e upgrade disponíveis na conta; POC demonstra o fluxo sem cobrança real.</p></article>
+        <article class="card"><h3>Valor</h3><p>Presença nacional, selo “Parceiro Verificado”, conteúdo, leads consentidos, demanda por setor/região e condições comerciais exclusivas.</p></article>
+        <article class="card"><h3>Sinais comerciais</h3><p>Favoritar, visualizar perfil, solicitar contato e gerar código. “Curtir” mede interesse, não qualidade; o ranking não pode premiar pagamento nem expor dados sensíveis.</p></article>
+      </div>
+      <div class="callout"><strong>Modelo recomendado:</strong> mensalidade pelo acesso ao ecossistema + add-ons de visibilidade claramente rotulados + taxa de sucesso opcional. Não vender posição “orgânica” no ranking. O código de desconto deve registrar intenção comercial com aviso, finalidade e prazo de retenção.</div>
+    </section>
+
+    <section id="dados">
+      <span class="eyebrow">Intelligence</span>
+      <h2>“Vender dados” significa licenciar respostas agregadas.</h2>
+      <p class="lead">A unidade comercial não é uma linha de banco nem um relato. É um produto de decisão com definição, período, população, qualidade, faixa de confiança, atualização e regras de uso.</p>
+      <div class="grid g2">
+        <article class="card"><h3>Pode comercializar</h3><ul><li>Dashboards agregados e benchmarks elegíveis.</li><li>Relatórios temáticos e séries temporais.</li><li>Índices com metodologia e limitações públicas.</li><li>Estudos sob demanda entregues como resultados agregados.</li><li>Alertas de tendência sem conteúdo original.</li><li>API agregada somente numa fase madura, com contrato e limites.</li></ul></article>
+        <article class="card guardrail"><h3>Nunca comercializar</h3><ul><li>Relato original, versão compartilhável individual ou anexos.</li><li>Nome, CPF, endereço, contato, credenciais ou identificadores.</li><li>Microdados ou exportações que permitam recombinação.</li><li>Segmentos pequenos ou cruzamentos reidentificáveis.</li><li>Listas de empresas/pessoas “problemáticas”.</li><li>Publicidade baseada em risco, saúde, denúncia ou vulnerabilidade.</li></ul></article>
+      </div>
+
+      <h3 style="margin-top:32px">Catálogo inicial de produtos</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Produto</th><th>Conteúdo</th><th>Decisão que habilita</th><th>Frequência</th><th>Gate de privacidade</th></tr></thead>
+        <tbody>
+          <tr><td>Radar Essencial</td><td>Temas, incidência, severidade, tendência e responsividade da própria empresa</td><td>Priorizar investigação e plano de ação</td><td>Mensal</td><td>Acesso por tenant; supressão de cortes pequenos</td></tr>
+          <tr><td>Benchmark Setorial</td><td>Empresa × similares × setor × base</td><td>Entender posição relativa sem expor concorrentes</td><td>Trimestral</td><td>Coortes mínimas e nenhuma empresa identificável</td></tr>
+          <tr><td>Mapa Regional</td><td>Região × setor × categoria × período</td><td>Planejar unidades e ações regionais</td><td>Trimestral</td><td>Generalização geográfica e limiar de volume</td></tr>
+          <tr><td>Estudo Temático</td><td>Recorte de sobrecarga, liderança, assédio, comunicação ou governança</td><td>Apoiar política, orçamento e intervenção</td><td>Sob demanda</td><td>Revisão de finalidade e disclosure control</td></tr>
+          <tr><td>Diagnóstico Organizacional</td><td>Pesquisa própria + manifestações + entrevistas opcionais</td><td>Plano de ação específico</td><td>Projeto</td><td>Separação de bases, consentimentos e relatório agregado</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3 style="margin-top:32px">Dicionário mínimo de indicadores</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Indicador</th><th>Definição comercial</th><th>Cuidado técnico</th></tr></thead>
+        <tbody>
+          <tr><td>Ranking de temas</td><td>Participação de cada categoria entre manifestações elegíveis no período</td><td>Taxonomia versionada; permitir múltiplos temas sem dupla contagem enganosa</td></tr>
+          <tr><td>Tendência temporal</td><td>Variação relativa e absoluta contra janela comparável</td><td>Mostrar volume/base; evitar percentuais explosivos em amostras pequenas</td></tr>
+          <tr><td>Taxa de resposta</td><td>Manifestações elegíveis com primeira resposta válida ÷ manifestações elegíveis</td><td>Excluir spam/teste e definir resposta válida</td></tr>
+          <tr><td>Tempo de resposta</td><td>Mediana entre disponibilização à empresa e primeira resposta válida</td><td>Mediana, percentis e calendário definidos; não só média</td></tr>
+          <tr><td>Recorrência</td><td>Reaparecimento do mesmo tema/coorte após tratamento, em janela definida</td><td>Não inferir causalidade nem ligar pessoas</td></tr>
+          <tr><td>Resolução percebida</td><td>Percentual de avaliações positivas entre respondentes elegíveis</td><td>Exibir taxa de resposta e viés de seleção</td></tr>
+          <tr><td>Severidade</td><td>Distribuição de triagem baixo/moderado/alto/crítico</td><td>Não é diagnóstico; revisão humana e versão do critério</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="precos">
+      <span class="eyebrow">Packaging e pricing</span>
+      <h2>Cobrar pelo valor e previsibilidade — não por hora como padrão.</h2>
+      <p class="lead">Faixas abaixo são hipóteses em reais para entrevistas e pilotos, não tabela definitiva. O preço final depende de porte, unidades, escopo de implantação e custo de revisão humana.</p>
+      <div class="grid g3">
+        <article class="card"><span class="tag">Parceiros</span><h3>Hub Verificado</h3><div class="metric">R$ 249–899/mês</div><p>Por perfil/abrangência, com desconto de 10–20% em 6, 12 ou 24 meses. Add-ons de campanha separados.</p></article>
+        <article class="card"><span class="tag">Empresas</span><h3>Operação + Radar</h3><div class="metric">R$ 1,5k–8k/mês</div><p>Faixas por porte/unidades e volume; anual com implantação. Enterprise sob proposta.</p></article>
+        <article class="card"><span class="tag">Projetos</span><h3>Diagnóstico/Estudo</h3><div class="metric">R$ 15k–120k</div><p>Preço fechado por escopo e entregável. Hora técnica aparece internamente no custo, não como principal narrativa comercial.</p></article>
+      </div>
+      <div class="grid g2" style="margin-top:18px">
+        <article class="card decision"><h3>Modelo híbrido recomendado</h3><p>Base recorrente + faixas de valor (porte/unidades) + add-ons de estudos, implantação e exportações controladas. Previsível para o cliente e expansível para a plataforma.</p></article>
+        <article class="card"><h3>Teste de disposição a pagar</h3><p>Realizar 15–20 entrevistas por ICP, vender 5–10 pilotos pagos e comparar três pacotes. Não perguntar apenas “quanto pagaria”; pedir compromisso, prazo e aprovador.</p></article>
+      </div>
+      <p class="formula">Preço mínimo sustentável = custo variável + revisão humana + suporte + infraestrutura + margem de contribuição alvo</p>
+    </section>
+
+    <section id="roadmap">
+      <span class="eyebrow">Sequenciamento 18–24 meses</span>
+      <h2>Produto de dados só escala depois da fundação.</h2>
+      <div class="timeline">
+        <article class="phase"><div class="phase-time">0–3 meses</div><div><h3>Provar problema e oferta</h3><ul><li>Fechar 10–15 entrevistas com empresas e 15 parceiros.</li><li>Definir ICP inicial: empresas de 100–1.000 pessoas com RH/compliance estruturado.</li><li>Concluir auth, tenancy, separação de identidade/relato, auditoria, retenção e resposta a incidente.</li><li>Landing comercial, CRM simples, catálogo do Hub e contratos-piloto.</li></ul><strong>Gate:</strong> nenhuma operação com dados reais antes dos controles críticos do roadmap técnico.</div></article>
+        <article class="phase"><div class="phase-time">3–6 meses</div><div><h3>Piloto assistido</h3><ul><li>3–5 empresas-design partners e 10–20 parceiros curados.</li><li>Vender workflow + acompanhamento humano; dashboards só de dados próprios.</li><li>Modalidades comerciais: um mês grátis, mensal imediato ou anual com 5% de desconto; medir conversão e custo do período gratuito.</li><li>Instrumentar funil e custo por manifestação sem logar conteúdo sensível.</li></ul><strong>Gate:</strong> renovação/intenção de renovação e evidência de valor operacional.</div></article>
+        <article class="phase"><div class="phase-time">6–12 meses</div><div><h3>Product-market signal</h3><ul><li>Padronizar onboarding, SLA, taxonomia e metodologia.</li><li>Planos anuais, indicação de parceiros e diagnósticos sob demanda.</li><li>Primeiros benchmarks apenas para coortes elegíveis.</li><li>Conteúdo comercial com insights públicos fortemente agregados.</li></ul><strong>Meta indicativa:</strong> 10–25 contas pagantes, retenção bruta forte e margem positiva por conta.</div></article>
+        <article class="phase"><div class="phase-time">12–18 meses</div><div><h3>Escalar inteligência</h3><ul><li>Radar setorial/regional, cohort builder governado e relatórios recorrentes.</li><li>Canal com associações, consultorias e corretores/benefícios — sujeito a conflito de interesse.</li><li>Data contracts, catálogo, qualidade, linhagem e revisão de disclosure.</li><li>Separar patrocinador de metodologia/editorial.</li></ul><strong>Gate:</strong> densidade mínima em pelo menos 2–3 setores sem risco de identificação.</div></article>
+        <article class="phase"><div class="phase-time">18–24 meses</div><div><h3>Expansão seletiva</h3><ul><li>API agregada ou data clean room somente se houver demanda contratada.</li><li>Novos setores/regiões com metodologia comparável.</li><li>Automação assistiva após avaliação, nunca decisão sensível autônoma.</li><li>Revisar internacionalização apenas se unidade econômica e governança estiverem maduras.</li></ul><strong>Gate:</strong> receita recorrente previsível, churn controlado, governança auditável e operação sustentável.</div></article>
+      </div>
+    </section>
+
+    <section id="gtm">
+      <span class="eyebrow">Go-to-market</span>
+      <h2>Vender para uma dor, não para “todo RH”.</h2>
+      <div class="grid g3">
+        <article class="card"><h3>ICP 1 · RH/People</h3><p>Dor: baixa visibilidade e dificuldade de priorizar. Mensagem: “transforme escuta dispersa em plano de ação mensurável”.</p></article>
+        <article class="card"><h3>ICP 2 · Compliance/Jurídico</h3><p>Dor: rastreabilidade e resposta inconsistente. Mensagem: “governança de recebimento e resposta com segregação de identidade”.</p></article>
+        <article class="card"><h3>ICP 3 · Multiunidades</h3><p>Dor: diferenças regionais e concentração de risco. Mensagem: “compare unidades sem expor pessoas nem criar ranking punitivo”.</p></article>
+      </div>
+      <div class="grid g2" style="margin-top:18px">
+        <article class="card"><h3>Motion de vendas</h3><ol><li>Diagnóstico de 30 minutos com 5 perguntas.</li><li>Demonstração com dados sintéticos.</li><li>Cadastro com seleção de plano e modalidade: um mês grátis, mensal imediato ou anual com 5% de desconto.</li><li>Revisão executiva e acompanhamento de valor durante a ativação.</li><li>Gestão de renovação e upgrade na própria conta.</li></ol></article>
+        <article class="card"><h3>Canais</h3><ul><li>Founder-led sales nos primeiros 12 meses.</li><li>Associações setoriais e eventos de RH/compliance.</li><li>Parceiros como canal, com conflito e comissão transparentes.</li><li>Relatório público anual agregado para autoridade de marca.</li><li>Conteúdo sobre governança e responsividade, não medo.</li></ul></article>
+      </div>
+    </section>
+
+    <section id="metricas">
+      <span class="eyebrow">Painel do negócio</span>
+      <h2>Métricas para saber se está deslanchando.</h2>
+      <div class="grid g4">
+        <article class="card"><h3>Receita</h3><p>MRR/ARR, expansão, mix recorrente, ticket por ICP e receita de serviços.</p></article>
+        <article class="card"><h3>Retenção</h3><p>Logo churn, GRR, NRR, renovação de pilotos e tempo para primeiro valor.</p></article>
+        <article class="card"><h3>Marketplace</h3><p>Parceiros ativos, solicitações qualificadas, conversão por código e tempo até primeiro lead.</p></article>
+        <article class="card"><h3>Confiança</h3><p>Incidentes, acessos excepcionais, pedidos de titulares, supressões e violações de política.</p></article>
+      </div>
+      <div class="grid g2" style="margin-top:18px">
+        <div class="formula">LTV:CAC = (ARPA × margem bruta ÷ churn mensal) ÷ CAC</div>
+        <div class="formula">Payback = CAC ÷ (ARPA mensal × margem bruta)</div>
+      </div>
+      <p class="lead">Metas são definidas após 2–3 ciclos reais. Antes disso, acompanhar coortes e aprendizado; evitar “meta bonita” sem amostra.</p>
+    </section>
+
+    <section id="governanca">
+      <span class="eyebrow">Governança comercial e técnica</span>
+      <h2>Regras que protegem receita, pessoas e reputação.</h2>
+      <div class="grid g2">
+        <article class="card"><h3>Gates obrigatórios para Intelligence</h3><ul><li>Base legal, finalidade, retenção e direitos do titular aprovados.</li><li>Separação entre identidade, original, versão compartilhável e analytics.</li><li>Catálogo de métricas com owner, steward, linhagem e qualidade.</li><li>Coorte com, por exemplo, ≥10 organizações e ≥50 manifestações; limites finais validados por privacidade/jurídico.</li><li>Supressão de células pequenas, generalização e teste de ataques de recombinação.</li><li>Contrato proibindo reidentificação e redistribuição.</li><li>Auditoria de consultas, exports e acesso excepcional.</li></ul></article>
+        <article class="card"><h3>Arquitetura-alvo enxuta</h3><ul><li>Banco transacional segregado por finalidade/tenant.</li><li>Eventos minimizados e pseudonimizados para analytics.</li><li>Camada semântica com definições canônicas.</li><li>Views agregadas e controles de linha/coluna.</li><li>Exportação por job auditado, expiração e watermark.</li><li>Data warehouse somente quando volume/consultas justificarem custo.</li><li>Nenhum conteúdo sensível em logs ou ferramentas de marketing.</li></ul></article>
+      </div>
+      <div class="callout guardrail"><strong>Decisões humanas ainda necessárias:</strong> base legal; retenção/exclusão; promessas públicas; provedor de nuvem, identidade, comunicação e IA; critérios finais de anonimização; modelo de comissão e conflitos; política editorial e de patrocínio. Este plano não substitui avaliação jurídica.</div>
+    </section>
+
+    <section id="acoes">
+      <span class="eyebrow">Próximos 30 dias</span>
+      <h2>O que fazer na segunda-feira.</h2>
+      <div class="grid g2">
+        <article class="card"><h3>Comercial</h3><ol><li>Escolher um ICP e listar 30 contas-alvo.</li><li>Entrevistar 10 compradores e 10 parceiros.</li><li>Validar trial de um mês, mensal imediato e anual com 5% de desconto, com três resultados mensuráveis.</li><li>Testar três faixas de preço e ciclo de aprovação.</li><li>Desenhar contrato do Hub e política de comissão.</li></ol></article>
+        <article class="card"><h3>Técnico/produto</h3><ol><li>Fechar tarefas P0/P1 do gate de piloto.</li><li>Definir dicionário v0 de 8–12 indicadores.</li><li>Mapear fonte, sensibilidade, owner e retenção de cada campo.</li><li>Construir demo com dados sintéticos e coortes suprimidas.</li><li>Definir critérios “go/no-go” para qualquer benchmark externo.</li></ol></article>
+      </div>
+    </section>
+
+    <section class="sources">
+      <h2>Referências consultadas</h2>
+      <ul>
+        <li><a href="https://www.gov.br/anpd/pt-br/centrais-de-conteudo/documentos-tecnicos-orientativos">ANPD — documentos técnicos e estudos de anonimização</a>.</li>
+        <li><a href="https://www.gov.br/anpd/pt-br/documentos-e-publicacoes/glossario-anpd">ANPD — Glossário de proteção de dados</a>.</li>
+        <li><a href="https://docs.aws.amazon.com/data-exchange/latest/userguide/product-subscriptions.html">AWS Data Exchange — produtos de dados por assinatura e termos de uso</a>.</li>
+        <li><a href="https://stripe.com/resources/more/usage-based-pricing-strategy-for-saas">Stripe — pricing por uso, medição e modelos híbridos</a>.</li>
+        <li><a href="https://stripe.com/resources/more/saas-subscription-models-101-a-guide-for-getting-started">Stripe — modelos de assinatura SaaS</a>.</li>
+      </ul>
+      <p>As referências apoiam padrões de produto e governança. Faixas de preço, volumes mínimos e metas deste documento são hipóteses do Escuta Aí Brasil e precisam de validação comercial, técnica, de privacidade e jurídica.</p>
+    </section>
+  </main>
+  <footer>Escuta Aí Brasil · plano interno de monetização · 2026</footer>
+</body>
+</html>

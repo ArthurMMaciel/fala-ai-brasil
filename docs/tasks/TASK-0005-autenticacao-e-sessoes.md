@@ -1,6 +1,7 @@
 # TASK-0005 — Implementar autenticação e sessões
 
 - Status: proposta
+- ClickUp: [TASK-0005](https://app.clickup.com/t/86aktn71r)
 - Área: Backend/Segurança
 - Prioridade: P1
 - Estimativa: 5–8 dias

@@ -15,6 +15,8 @@ Escuta Aí Brasil é a identidade oficial da plataforma de escuta psicossocial q
 
 ## Personas e fluxos existentes
 
+Atualização da POC em 2026-10-08: funcionário gratuito; cadastro das cinco personas comerciais com seleção de plano/modalidade; área de assinatura e upgrade demonstrativos, com confirmação de pagamento simulada. Endereço separado em CEP, Rua/Avenida, número e complemento opcional em todos os cadastros. Consulta pontual ViaCEP no blur (ADR-0006), com recuperação manual. Nenhuma cobrança real, backend ou persistência adicionados.
+
 1. Empregado/ex-empregado: landing, login/cadastro demo, onboarding, busca de empresa, manifestação, revisão simulada e acompanhamento.
 2. Empresa/admin: painel operacional, casos, empresas, supervisão de IA e ranking; hoje empresa e administração ainda estão conceitualmente misturadas.
 3. Operação humana: prevista nos diagramas e simulada no mesmo front-end.

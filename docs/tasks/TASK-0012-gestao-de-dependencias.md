@@ -1,6 +1,7 @@
 # TASK-0012 — Implantar gestão de dependências
 
 - Status: proposta
+- ClickUp: [TASK-0012](https://app.clickup.com/t/86aktn72x)
 - Área: Segurança/DevOps
 - Prioridade: P1
 - Estimativa: 1–2 dias

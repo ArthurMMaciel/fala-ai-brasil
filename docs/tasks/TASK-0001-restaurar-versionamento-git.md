@@ -1,6 +1,7 @@
 # TASK-0001 — Restaurar versionamento Git
 
 - Status: concluída
+- ClickUp: [TASK-0001](https://app.clickup.com/t/86aktn70z)
 - Conclusão: 2026-09-30
 - Área: DevOps/Governança
 - Prioridade: P0

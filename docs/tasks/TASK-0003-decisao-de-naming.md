@@ -1,6 +1,7 @@
 # TASK-0003 — Decidir naming do produto
 
 - Status: concluída
+- ClickUp: [TASK-0003](https://app.clickup.com/t/86aktn71b)
 - Conclusão: 2026-10-01
 - Área: Produto/Arquitetura
 - Prioridade: P1

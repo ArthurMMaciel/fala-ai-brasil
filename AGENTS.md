@@ -24,6 +24,7 @@ Evoluir a plataforma com pragmatismo, segurança, privacidade e rastreabilidade.
 - Mudanças de autenticação, autorização, tenancy, retenção, IA ou arquitetura exigem ADR.
 - Evitar novas dependências sem justificar manutenção, segurança e custo.
 - Preservar a POC enquanto a fundação do MVP não estiver pronta; evitar refatoração massiva.
+- Antes de criar, alterar ou priorizar tarefas, consultar o ClickUp para verificar duplicidade, contexto e destino; quando houver documento local em `docs/tasks/`, manter referência cruzada entre ele e a tarefa no ClickUp.
 
 ## Qualidade mínima
 
@@ -48,3 +49,9 @@ Evoluir a plataforma com pragmatismo, segurança, privacidade e rastreabilidade.
 - Base legal, prazos de retenção e política de exclusão.
 - Promessas públicas de anonimato/proteção.
 - Abertura de remoto, deploy público ou uso de credenciais.
+## Diretriz de frontend
+
+- Para solicitações de melhoria visual, redesign, novas telas ou componentes, aplicar a Skill global `frontend-skill` quando disponível.
+- Adaptar seus princípios ao SaaS e aos fluxos operacionais existentes: preservar regras de negócio, integrações, identidade e padrões consistentes do design system.
+- Antes de implementar, registrar uma tese visual, plano de conteúdo e tese de interação; apresentar auditoria e plano de melhorias quando a solicitação exigir aprovação prévia.
+- Em dashboards e ferramentas operacionais, priorizar texto utilitário, orientação, status e ação; não transformar telas de produto em páginas de marketing.

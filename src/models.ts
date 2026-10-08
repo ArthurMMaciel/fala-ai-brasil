@@ -1,4 +1,4 @@
-export type Role = "worker" | "admin";
+export type Role = "worker" | "admin" | "commercial";
 export type RiskLevel = "baixo" | "medio" | "alto";
 export type ComplaintStatus =
   | "Recebida"
@@ -26,6 +26,13 @@ export interface UserProfile {
   workModel: string;
   leadershipRole: string;
   psychologicalContextAnswers: Record<string, string | string[]>;
+}
+
+export interface CompanyContact {
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
 }
 
 export interface Company {
@@ -57,6 +64,8 @@ export interface Complaint {
   incidentDate?: string;
   recurrence?: string;
   communicationChannels?: string[];
+  companyContacts?: CompanyContact[];
+  contextAnswers?: Record<string, string | string[]>;
   usefulFeedback?: "Sim" | "Parcialmente" | "Não";
 }
 

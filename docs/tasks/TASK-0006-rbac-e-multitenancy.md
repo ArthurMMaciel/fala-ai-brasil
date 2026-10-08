@@ -1,6 +1,7 @@
 # TASK-0006 — Implementar RBAC e isolamento por organização
 
 - Status: proposta
+- ClickUp: [TASK-0006](https://app.clickup.com/t/86aktn721)
 - Área: Segurança/Backend
 - Prioridade: P1
 - Estimativa: 5–8 dias

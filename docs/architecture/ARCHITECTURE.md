@@ -16,8 +16,8 @@ Não existem componentes de backend, banco, autenticação, mensageria, cache, s
 ## Fluxo implementado
 
 ```text
-Landing → login/cadastro demo → onboarding → busca empresa
-→ criação de manifestação → “revisão IA” simulada → acompanhamento
+Landing → login/cadastro demo → busca empresa → contexto laboral da manifestação
+→ relato e contatos empresariais sugeridos → “revisão IA” simulada → acompanhamento
 
 Portal administrativo demo → casos → comparação original/protegido
 → supervisão simulada → resposta simulada → métricas/ranking mock

@@ -1,6 +1,7 @@
 # TASK-0008 — Criar fundação da API e PostgreSQL
 
 - Status: proposta
+- ClickUp: [TASK-0008](https://app.clickup.com/t/86aktn72c)
 - Área: Arquitetura/Backend/DBA
 - Prioridade: P1
 - Estimativa: 5–8 dias

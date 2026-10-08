@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Monetização — alinhamento para conversa</title>
+  <style>
+    :root { --ink:#17373a; --muted:#5f7475; --teal:#176d6a; --deep:#0c4548; --mint:#e4f4ee; --gold:#f2bd5b; --paper:#f6faf8; --line:#d6e5df; --white:#fff; --red:#a24d4d; --red-bg:#fff5f4; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; color:var(--ink); background:var(--paper); font:16px/1.6 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    a { color:var(--teal); }
+    .hero { padding:clamp(48px,8vw,100px) max(24px,calc((100vw - 1120px)/2)); color:#fff; background:linear-gradient(135deg,var(--deep),var(--teal) 65%,#4a9b88); }
+    .hero small, .eyebrow { font-weight:800; letter-spacing:.12em; text-transform:uppercase; font-size:.76rem; }
+    h1 { max-width:900px; margin:14px 0 20px; font-size:clamp(2.5rem,6vw,5.4rem); line-height:.98; letter-spacing:-.055em; }
+    .hero p { max-width:820px; margin:0; color:#dff4ed; font-size:clamp(1.05rem,2vw,1.3rem); }
+    .meta { display:flex; flex-wrap:wrap; gap:9px; margin-top:28px; }
+    .pill { padding:6px 11px; border:1px solid #ffffff55; border-radius:999px; font-size:.82rem; font-weight:750; }
+    nav { position:sticky; top:0; z-index:2; display:flex; gap:20px; overflow:auto; padding:13px max(20px,calc((100vw - 1120px)/2)); background:#fffffff2; border-bottom:1px solid var(--line); white-space:nowrap; }
+    nav a { color:var(--ink); font-size:.87rem; font-weight:750; text-decoration:none; }
+    main { max-width:1120px; margin:auto; padding:55px 20px 90px; }
+    section { margin-bottom:72px; scroll-margin-top:70px; }
+    h2 { margin:0 0 14px; font-size:clamp(1.9rem,3vw,2.8rem); line-height:1.08; letter-spacing:-.035em; }
+    h3 { margin:0 0 7px; font-size:1.12rem; }
+    .lead { max-width:850px; color:var(--muted); font-size:1.08rem; }
+    .grid { display:grid; gap:18px; }
+    .g2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .g3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .card { padding:24px; border:1px solid var(--line); border-radius:17px; background:var(--white); box-shadow:0 10px 26px #103e430b; }
+    .card p:last-child { margin-bottom:0; }
+    .status { display:inline-flex; align-items:center; gap:7px; padding:5px 10px; border-radius:999px; background:var(--mint); color:var(--teal); font-size:.78rem; font-weight:850; }
+    .status::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; }
+    .status.pending { background:#fff4d9; color:#896312; }
+    .status.future { background:var(--red-bg); color:var(--red); }
+    .callout { padding:24px 27px; border-left:5px solid var(--gold); border-radius:5px 16px 16px 5px; background:#fff8e8; }
+    .persona-card { position:relative; overflow:hidden; }
+    .persona-card::before { content:""; position:absolute; inset:0 0 auto; height:5px; background:var(--teal); }
+    .persona-card h3 { margin-top:10px; font-size:1.3rem; }
+    .persona-card .buyer { color:var(--muted); font-size:.9rem; }
+    .gain { margin:17px 0 0; padding-top:14px; border-top:1px solid var(--line); }
+    .gain strong { display:block; color:var(--teal); font-size:.82rem; text-transform:uppercase; letter-spacing:.08em; }
+    .price { margin:12px 0 4px; color:var(--deep); font-size:1.8rem; font-weight:850; letter-spacing:-.04em; }
+    .price small { color:var(--muted); font-size:.8rem; font-weight:600; letter-spacing:0; }
+    .before-after td:first-child { width:23%; font-weight:800; color:var(--deep); }
+    .quote { margin:0; padding:22px 25px; border-left:4px solid var(--teal); background:var(--mint); font-size:1.14rem; }
+    .quote small { display:block; margin-top:10px; color:var(--muted); font-size:.84rem; }
+    .timeline { display:grid; grid-template-columns:36px 1fr; gap:14px; }
+    .step { display:grid; place-items:center; width:36px; height:36px; border-radius:50%; color:#fff; background:var(--teal); font-weight:850; }
+    .flow { display:flex; flex-wrap:wrap; align-items:center; gap:9px; margin-top:22px; }
+    .flow span { padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:#fff; font-weight:750; }
+    .flow b { color:var(--teal); }
+    table { width:100%; border-collapse:collapse; overflow:hidden; border:1px solid var(--line); border-radius:14px; background:#fff; }
+    th, td { padding:14px 15px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { color:var(--deep); background:#edf7f3; font-size:.84rem; }
+    tr:last-child td { border-bottom:0; }
+    ul, ol { padding-left:1.25rem; }
+    li + li { margin-top:8px; }
+    .footer { padding-top:28px; border-top:1px solid var(--line); color:var(--muted); font-size:.9rem; }
+    @media (max-width:760px) { .g2,.g3 { grid-template-columns:1fr; } th,td { padding:11px 10px; font-size:.9rem; } .flow { align-items:stretch; flex-direction:column; } .flow b { transform:rotate(90deg); align-self:center; } }
+    @media print { nav { display:none; } .hero { color:#000; background:#fff; padding:30px 0; border-bottom:2px solid var(--teal); } .hero p { color:#333; } main { padding:25px 0; } section { margin-bottom:38px; } .card { box-shadow:none; break-inside:avoid; } }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <small>Escuta Aí Brasil · conversa de alinhamento</small>
+    <h1>Como estamos pensando a monetização</h1>
+    <p>Resumo para abrir a discussão com a sócia: o que o áudio propõe, o que já foi estruturado na plataforma e quais decisões ainda precisam ser compartilhadas.</p>
+    <div class="meta"><span class="pill">Base: áudio de 08/10/2026</span><span class="pill">Estado: POC local</span><span class="pill">Sem cobrança real</span></div>
+  </header>
+  <nav aria-label="Seções da apresentação">
+    <a href="#audio">O áudio</a><a href="#implementado">Implementado</a><a href="#valor">Valor por persona</a><a href="#fluxo">Fluxo</a><a href="#pendencias">Em aberto</a><a href="#conversa">Pauta</a>
+  </nav>
+  <main>
+    <section id="audio">
+      <span class="eyebrow">Ponto de partida</span>
+      <h2>O que foi dito no áudio</h2>
+      <p class="lead">O áudio não aprova um modelo de negócio específico. Ele propõe que a monetização seja colocada em discussão, estruturada dentro da plataforma e depois compartilhada com as demais pessoas.</p>
+      <blockquote class="quote">“O nosso tema é a monetização, em como é que a gente pensa, estrutura isso dentro da plataforma, se a gente estrutura, algo nesse sentido. Então, a gente precisa abrir essa discussão de algum modo e depois compartilhar com os demais.”<small>— Síntese fiel do trecho sobre monetização</small></blockquote>
+      <div class="callout" style="margin-top:20px"><strong>Leitura para a reunião:</strong> o áudio está alinhado com a existência desta apresentação e com a necessidade de estruturar a conversa. Os detalhes comerciais abaixo são hipóteses de trabalho construídas depois e devem ser validados, não apresentados como decisões da conversa gravada.</div>
+    </section>
+
+    <section id="implementado">
+      <span class="eyebrow">Estado atual</span>
+      <h2>O que já está implementado na POC</h2>
+      <div class="grid g3">
+        <article class="card"><span class="status">Demonstrado</span><h3 style="margin-top:14px">Personas comerciais</h3><p>Empresa, Parceiro do Hub, Intelligence, Estudos e Patrocínio aparecem como visões comerciais separadas.</p></article>
+        <article class="card"><span class="status">Demonstrado</span><h3 style="margin-top:14px">Escolha no cadastro</h3><p>Personas comerciais escolhem um plano e uma modalidade no primeiro cadastro. Funcionário permanece gratuito.</p></article>
+        <article class="card"><span class="status">Demonstrado</span><h3 style="margin-top:14px">Área da conta</h3><p>A conta mostra plano, situação, próxima cobrança ou renovação e permite solicitar alteração de plano.</p></article>
+        <article class="card"><span class="status">Demonstrado</span><h3 style="margin-top:14px">Três modalidades</h3><p>Trial de um mês de calendário, mensal imediato ou anual com desconto de 5% sobre doze mensalidades.</p></article>
+        <article class="card"><span class="status">Demonstrado</span><h3 style="margin-top:14px">Estados comerciais</h3><p>O fluxo diferencia período grátis, pagamento pendente, pagante ativo e mudança de plano pendente.</p></article>
+        <article class="card"><span class="status">Demonstrado</span><h3 style="margin-top:14px">Proteções de escopo</h3><p>Pagamento não compra prioridade de atendimento nem acesso a identidades ou relatos originais.</p></article>
+      </div>
+    </section>
+
+    <section id="valor">
+      <span class="eyebrow">O argumento comercial</span>
+      <h2>O que cada persona ganha por estar conosco</h2>
+      <p class="lead">A plataforma não deve vender “funcionalidades”. Deve vender uma mudança concreta na operação, na decisão ou na aquisição de cada cliente.</p>
+      <div class="grid g3">
+        <article class="card persona-card"><span class="status">Assinatura</span><h3>Empresa</h3><p class="buyer">RH, Compliance, Jurídico e liderança</p><p><strong>Problema:</strong> relatos espalhados, resposta lenta e dificuldade de provar o que foi feito.</p><p class="gain"><strong>Ganho esperado</strong>Um fluxo único para receber, atribuir responsável, cumprir prazo e mostrar à liderança a responsividade da organização.</p><p><strong>Por que paga:</strong> reduz retrabalho, risco de resposta inconsistente e tempo gasto coordenando áreas.</p><div class="price">R$ 1.500–8.000+ <small>/mês, conforme complexidade</small></div></article>
+        <article class="card persona-card"><span class="status">Assinatura</span><h3>Parceiro do Hub</h3><p class="buyer">Consultoria, especialista ou rede</p><p><strong>Problema:</strong> aquisição cara, pouca diferenciação e leads sem contexto.</p><p class="gain"><strong>Ganho esperado</strong>Presença verificada e oportunidades consentidas mais aderentes à especialidade, com funil de proposta e conversão.</p><p><strong>Por que paga:</strong> uma única oportunidade convertida pode recuperar vários meses de mensalidade.</p><div class="price">R$ 249–899 <small>/mês, conforme cobertura</small></div></article>
+        <article class="card persona-card"><span class="status">Assinatura</span><h3>Intelligence</h3><p class="buyer">Estratégia, riscos, instituto ou associação</p><p><strong>Problema:</strong> orçamento decidido por percepção, pesquisa isolada ou benchmark frágil.</p><p class="gain"><strong>Ganho esperado</strong>Uma linha de base comparável, com método, limites e contexto para priorizar investimento e intervenção.</p><p><strong>Por que paga:</strong> evita financiar a resposta errada por falta de leitura confiável.</p><div class="price">R$ 2.500–5.900 <small>/mês, conforme coortes</small></div></article>
+        <article class="card persona-card"><span class="status pending">Projeto</span><h3>Estudos</h3><p class="buyer">Diretoria, associação ou líder de transformação</p><p><strong>Problema:</strong> uma pergunta urgente sem método, capacidade interna ou base confiável.</p><p class="gain"><strong>Ganho esperado</strong>Sair de opiniões dispersas para uma resposta executiva, com método declarado, prioridades, responsáveis e plano de ação.</p><p><strong>Por que paga:</strong> compra velocidade e decisão utilizável, não apenas um relatório.</p><div class="price">R$ 15–120 mil <small>/projeto, conforme escopo</small></div></article>
+        <article class="card persona-card"><span class="status pending">Cota/projeto</span><h3>Patrocínio</h3><p class="buyer">Marca empregadora ou instituição aderente</p><p><strong>Problema:</strong> quer autoridade e alcance sem explorar vulnerabilidade ou fazer publicidade invasiva.</p><p class="gain"><strong>Ganho esperado</strong>Associação transparente a uma agenda relevante, conteúdo contextual e prestação de contas agregada.</p><p><strong>Por que paga:</strong> financia reputação e conhecimento público sem comprar microdados, leads ou influência editorial.</p><div class="price">R$ 5–15 mil <small>/cota; estudo sob proposta</small></div></article>
+        <article class="card persona-card"><span class="status">Gratuito</span><h3>Funcionário</h3><p class="buyer">Pessoa que relata ou acompanha uma situação</p><p><strong>Problema:</strong> precisa ser ouvido sem expor sua identidade e sem se perder no processo.</p><p class="gain"><strong>Ganho esperado</strong>Relato protegido, acompanhamento do tratamento e retorno institucional compreensível.</p><p><strong>Por que não paga:</strong> o acesso da pessoa trabalhadora não pode depender de capacidade de pagamento nem criar prioridade artificial.</p><div class="price">R$ 0 <small>para relatar e acompanhar</small></div></article>
+      </div>
+    </section>
+
+    <section>
+      <span class="eyebrow">Antes e depois</span>
+      <h2>A transformação que a venda precisa comunicar</h2>
+      <table class="before-after">
+        <thead><tr><th>Persona</th><th>Antes da plataforma</th><th>Depois de estar conosco</th></tr></thead>
+        <tbody>
+          <tr><td>Empresa</td><td>Planilhas, e-mails, responsáveis difusos e pouca evidência.</td><td>Fila, dono, prazo, retorno e indicadores próprios de responsividade.</td></tr>
+          <tr><td>Parceiro</td><td>Marketing genérico e leads frios difíceis de qualificar.</td><td>Perfil verificado, descoberta contextual e conversão atribuível.</td></tr>
+          <tr><td>Intelligence</td><td>Decisões baseadas no caso mais recente ou em amostra frágil.</td><td>Radar agregado, comparável e acompanhado de metodologia e limites.</td></tr>
+          <tr><td>Estudos</td><td>Pesquisa que termina em apresentação sem dono ou prazo.</td><td>Pergunta delimitada, síntese executiva e plano de ação assumido.</td></tr>
+          <tr><td>Patrocínio</td><td>Visibilidade difícil de diferenciar de publicidade invasiva.</td><td>Presença identificada, contextual e independente da metodologia.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="fluxo">
+      <span class="eyebrow">Experiência proposta</span>
+      <h2>Como a monetização vira uma jornada de valor</h2>
+      <p class="lead">A proposta é que o plano seja uma camada comercial separada dos relatos psicossociais. O acesso é liberado por confirmação do pagamento no servidor quando a integração real existir.</p>
+      <div class="flow" aria-label="Fluxo de contratação"><span>1 · Escolher persona</span><b>→</b><span>2 · Selecionar plano</span><b>→</b><span>3 · Escolher modalidade</span><b>→</b><span>4 · Confirmar pagamento</span><b>→</b><span>5 · Liberar recursos comerciais</span></div>
+      <div class="grid g2" style="margin-top:22px">
+        <article class="card"><h3>Trial</h3><p><strong>Hoje:</strong> acesso demonstrativo sem receita paga.</p><p><strong>Depois de um mês:</strong> cobrança mensal a partir do segundo mês, conforme regras que ainda precisam ser aprovadas.</p></article>
+        <article class="card"><h3>Mensal ou anual</h3><p><strong>Mensal:</strong> primeiro pagamento imediato.</p><p><strong>Anual:</strong> doze mensalidades com 5% de desconto. O cálculo está demonstrado em centavos, mas os preços finais ainda são hipóteses.</p></article>
+      </div>
+    </section>
+
+    <section id="pendencias">
+      <span class="eyebrow">O que falta validar</span>
+      <h2>Implementado, planejado e em aberto</h2>
+      <table>
+        <thead><tr><th>Tema</th><th>Situação</th><th>Próxima decisão</th></tr></thead>
+        <tbody>
+          <tr><td>Personas e ofertas</td><td><span class="status">Estruturado</span></td><td>Confirmar quais entram no primeiro lançamento e quais ficam sob proposta.</td></tr>
+          <tr><td>Preços e benefícios</td><td><span class="status pending">Hipótese</span></td><td>Validar preço, limites, implantação e valor percebido por persona.</td></tr>
+          <tr><td>Estudos e Patrocínios</td><td><span class="status pending">Em aberto</span></td><td>Decidir se coexistem assinatura e projeto/cota avulsa ou se haverá um único modelo.</td></tr>
+          <tr><td>Stripe</td><td><span class="status pending">Planejado</span></td><td>Implementar Checkout, webhooks, Customer Portal, inadimplência, reembolso e conciliação.</td></tr>
+          <tr><td>Usuários pagantes</td><td><span class="status pending">Planejado</span></td><td>Separar usuário, organização, titular financeiro, assinatura, pagamento e direitos.</td></tr>
+          <tr><td>Políticas comerciais</td><td><span class="status future">Não decidido</span></td><td>Definir conversão do trial, elegibilidade, cancelamento, carência, prorrata e reembolso.</td></tr>
+          <tr><td>Produção</td><td><span class="status future">Fora da POC</span></td><td>Backend, autenticação, autorização, persistência, auditoria e aprovação do piloto.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="conversa">
+      <span class="eyebrow">Pauta sugerida</span>
+      <h2>Decisões para compartilhar com as demais pessoas</h2>
+      <div class="grid g2">
+        <article class="card"><h3>1. Qual é o valor vendido?</h3><p>Empresa compra coordenação e responsividade; Hub compra presença e demanda consentida; Intelligence compra leitura agregada; Estudos compram método; Patrocínio compra apoio institucional identificado.</p></article>
+        <article class="card"><h3>2. Quem paga e por quê?</h3><p>Confirmar comprador, orçamento, problema urgente e evidência de que o benefício vale a mensalidade ou o projeto.</p></article>
+        <article class="card"><h3>3. Onde a assinatura termina?</h3><p>Separar recurso recorrente, serviço sob proposta, projeto avulso, cota de evento e eventual patrocínio público.</p></article>
+        <article class="card"><h3>4. Como o trial se sustenta?</h3><p>Medir custo de ativação, conversão no segundo mês, limite de uso, elegibilidade e impacto do desconto anual na margem.</p></article>
+        <article class="card"><h3>5. Qual é o limite ético?</h3><p>Pagamento não pode comprar prioridade, identidade, relato original, microdados ou influência sobre conclusões e ranking.</p></article>
+        <article class="card"><h3>6. Qual é o próximo experimento?</h3><p>Escolher uma persona inicial, conversar com compradores e testar uma oferta com critérios de valor antes de ativar cobrança real.</p></article>
+      </div>
+    </section>
+
+    <section>
+      <div class="callout"><strong>Mensagem para fechar a apresentação:</strong> a plataforma já consegue demonstrar como uma assinatura poderia nascer, ser escolhida e administrada. A conversa com a sócia deve validar se esse desenho representa o negócio antes de transformar hipóteses em catálogo, contrato e cobrança.</div>
+      <p class="footer">Documento de alinhamento · Escuta Aí Brasil · 08/10/2026 · POC local, sem cobrança real ou persistência.</p>
+    </section>
+  </main>
+</body>
+</html>
