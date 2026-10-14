@@ -59,6 +59,8 @@ Aplicação Vite + TypeScript sem framework, renderizada por template strings em
 
 ## Alterações recentes
 
+- Em 2026-10-14 foi corrigida corrupção de codificação no JavaScript executado pela POC e nos textos dos testes. A varredura de textos versionados e o teste da mensagem da Empresa passam a integrar `npm.cmd test`, prevenindo regressão de acentos/travessão em PT-BR (TASK-0019, PR #1).
+
 - Em 2026-10-14 o responsável definiu Trabalhador como nomenclatura da persona gratuita. Interface, rótulos acessíveis, materiais comerciais e documentação foram padronizados; identificador interno `worker`, gratuidade e regras comerciais preservados (TASK-0019).
 
 - Em 2026-10-08 o responsável determinou usar somente a API oficial do ClickUp com `CLICKUP_API_TOKEN` no `.env`; não utilizar o plugin/conector ClickUp. Preferência persistente para consultas e alterações de tarefas. Sem imprimir chave ou enviar dados pessoais.

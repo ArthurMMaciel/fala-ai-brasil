@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
@@ -16,7 +16,7 @@ test('anual aplica 5% a doze mensalidades em centavos', () => {
   assert.equal(commercial.annualAmount(101), 1151);
 });
 
-test('trial dura um mÃªs de calendÃ¡rio e vence sem receita paga', () => {
+test('trial dura um mês de calendário e vence sem receita paga', () => {
   const now = new Date('2026-01-31T12:00:00.000Z');
   const subscription = commercial.createDemoSubscription('demo', 'company-essential', 'trial', now);
   assert.equal(subscription.nextBillingAt, '2026-02-28T12:00:00.000Z');
@@ -25,11 +25,11 @@ test('trial dura um mÃªs de calendÃ¡rio e vence sem receita paga', () => {
   assert.equal(commercial.hasDemoCommercialAccess(subscription, new Date('2026-02-28T12:00:00Z')), false);
 });
 
-test('vencimento anual respeita fevereiro em ano nÃ£o bissexto', () => {
+test('vencimento anual respeita fevereiro em ano não bissexto', () => {
   assert.equal(commercial.addCalendarMonths(new Date('2024-02-29T10:00:00Z'), 12).toISOString(), '2025-02-28T10:00:00.000Z');
 });
 
-test('cadastro pago aguarda confirmaÃ§Ã£o e confirmaÃ§Ã£o duplicada nÃ£o altera receita', () => {
+test('cadastro pago aguarda confirmação e confirmação duplicada não altera receita', () => {
   const now = new Date('2026-10-08T12:00:00Z');
   const pending = commercial.createDemoSubscription('demo', 'partner-presence', 'monthly', now);
   assert.equal(pending.status, 'pending');
@@ -41,7 +41,7 @@ test('cadastro pago aguarda confirmaÃ§Ã£o e confirmaÃ§Ã£o duplicada nÃ�
   assert.throws(() => commercial.confirmDemoPayment(paid, now), /pagamento pendente/);
 });
 
-test('upgrade pendente preserva o plano e sÃ³ muda apÃ³s pagamento', () => {
+test('upgrade pendente preserva o plano e só muda após pagamento', () => {
   const now = new Date('2026-10-08T12:00:00Z');
   const current = commercial.createDemoSubscription('demo', 'company-essential', 'trial', now);
   current.pendingChange = { planId: 'company-management', mode: 'annual' };
@@ -54,7 +54,7 @@ test('upgrade pendente preserva o plano e sÃ³ muda apÃ³s pagamento', () => {
   assert.equal(upgraded.nextBillingAt, '2027-10-08T12:00:00.000Z');
 });
 
-test('oferta sob proposta tem trial gratuito, mas pagamento exige preÃ§o aprovado', () => {
+test('oferta sob proposta tem trial gratuito, mas pagamento exige preço aprovado', () => {
   const subscription = commercial.createDemoSubscription('demo', 'intelligence-project', 'trial');
   assert.equal(subscription.status, 'trialing');
   assert.equal(subscription.paidCents, 0);
@@ -67,13 +67,13 @@ test('oferta sob proposta tem trial gratuito, mas pagamento exige preÃ§o aprov
   assert.throws(() => commercial.createDemoSubscription('demo', 'company-essential', 'constructor'));
 });
 
-test('alteraÃ§Ã£o para plano de outra persona Ã© rejeitada', () => {
+test('alteração para plano de outra persona é rejeitada', () => {
   const subscription = commercial.createDemoSubscription('demo', 'company-essential', 'trial');
   subscription.pendingChange = { planId: 'partner-presence', mode: 'monthly' };
   assert.throws(() => commercial.confirmDemoPayment(subscription), /proposta/);
 });
 
-test('CEP vÃ¡lido aceita mÃ¡scara, sem converter letras em dÃ­gitos', async () => {
+test('CEP válido aceita máscara, sem converter letras em dígitos', async () => {
   assert.equal(address.isValidPostalCode('01001-000'), true);
   assert.equal(address.isValidPostalCode('01001000'), true);
   for (const code of ['01001a000', '010010000', '0100100', '', '01001 000']) assert.equal(address.isValidPostalCode(code), false);
@@ -95,7 +95,7 @@ test('consulta transmite somente CEP e retorna logradouro como texto', async () 
   assert.equal(street, '<script>alert(1)</script>');
 });
 
-test('CEP inexistente, genÃ©rico e erro HTTP permitem mensagem de recuperaÃ§Ã£o', async () => {
+test('CEP inexistente, genérico e erro HTTP permitem mensagem de recuperação', async () => {
   for (const data of [{ erro: true }, { erro: 'true' }]) {
     await assert.rejects(address.lookupPostalCode('99999999', new AbortController().signal, async () => new Response(JSON.stringify(data))), /CEP/);
   }
@@ -114,9 +114,9 @@ function fakeAddressForm(lookup) {
 }
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
-test('blur consulta uma vez, mantÃ©m nÃºmero fora da API e CEP invÃ¡lido nÃ£o consulta', async () => {
+test('blur consulta uma vez, mantém número fora da API e CEP inválido não consulta', async () => {
   let calls = 0;
-  const form = fakeAddressForm(async code => { calls++; assert.equal(code, '01001000'); return 'PraÃ§a da SÃ©'; });
+  const form = fakeAddressForm(async code => { calls++; assert.equal(code, '01001000'); return 'Praça da Sé'; });
   form.input.value = '01001a000';
   form.input.dispatchEvent(new Event('blur'));
   assert.equal(calls, 0);
@@ -125,13 +125,13 @@ test('blur consulta uma vez, mantÃ©m nÃºmero fora da API e CEP invÃ¡lido n
   form.input.dispatchEvent(new Event('input'));
   form.input.dispatchEvent(new Event('blur'));
   await tick();
-  assert.equal(form.street.value, 'PraÃ§a da SÃ©');
+  assert.equal(form.street.value, 'Praça da Sé');
   assert.equal(form.input.value, '01001-000');
   form.input.dispatchEvent(new Event('blur'));
   assert.equal(calls, 1);
 });
 
-test('resposta antiga de CEP nÃ£o sobrescreve uma consulta mais recente', async () => {
+test('resposta antiga de CEP não sobrescreve uma consulta mais recente', async () => {
   const pending = [];
   const form = fakeAddressForm((code, signal) => new Promise(resolve => pending.push({ code, signal, resolve })));
   form.input.value = '01001000';
@@ -147,7 +147,7 @@ test('resposta antiga de CEP nÃ£o sobrescreve uma consulta mais recente', asyn
   assert.equal(form.street.value, 'Rua nova');
 });
 
-test('ediÃ§Ã£o manual durante consulta Ã© preservada e falha permite recuperaÃ§Ã£o', async () => {
+test('edição manual durante consulta é preservada e falha permite recuperação', async () => {
   let resolveLookup;
   const form = fakeAddressForm(() => new Promise(resolve => { resolveLookup = resolve; }));
   form.input.value = '01001000';

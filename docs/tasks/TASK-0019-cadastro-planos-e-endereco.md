@@ -49,3 +49,11 @@ Reverter somente alterações desta tarefa; preservar POC anterior e tarefas de 
 - Aceite: ausência da nomenclatura anterior nos arquivos de texto versionados e build aprovado.
 - Validação: `npm.cmd run build` aprovado; `npm.cmd test` com 13 testes aprovados; `git diff --check` sem erros; busca nos arquivos versionados sem ocorrências da nomenclatura anterior.
 - Rollback: reverter o commit desta correção. A tarefa continua em andamento pelos itens pendentes já registrados.
+
+## Correção urgente de codificação em 2026-10-14
+- Pedido do responsável: revisar os textos em PT-BR e corrigir acentos corrompidos, incluindo a mensagem da persona Empresa.
+- Nova consulta ao ClickUp sem tarefa duplicada; correção vinculada a esta tarefa e à PR #1: https://github.com/ArthurMMaciel/fala-ai-brasil/pull/1.
+- Varredura dos arquivos de texto versionados encontrou 1.251 sequências de UTF-8 interpretadas como Windows-1252 em `src/main.js` e 34 nos textos de `scripts/test-commercial-address.mjs`. Sequências recuperadas sem alterar os textos já corretos.
+- Verificação automática adicionada ao comando de testes: UTF-8 válido, ausência de sinais de corrupção nos textos versionados e conferência da mensagem da Empresa com acentos e travessão corretos.
+- Risco baixo: correção textual, sem novas dependências, integrações, dados persistidos ou alterações nos controles de acesso. Rollback por reversão do commit.
+- Validação: build aprovado e 15 testes aprovados, incluindo a varredura completa dos arquivos de texto versionados e a frase reportada pelo responsável.
