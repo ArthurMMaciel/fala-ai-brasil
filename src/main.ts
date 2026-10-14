@@ -158,9 +158,8 @@ function topbar() {
   const audience = state.landingAudience;
   return `
     <header class="topbar">
-      <button class="brand" data-route="landing" aria-label="Ir para início">
-        <span class="brand-mark">EA</span>
-        <span>Escuta Aí Brasil</span>
+      <button class="brand" data-route="landing" aria-label="Escuta Aí Brasil — página inicial">
+        <img class="brand-logo" src="/brand/escuta-ai-brasil.svg" alt="Escuta Aí Brasil" width="225" height="45" />
       </button>
       <nav class="nav-actions">
         ${state.user ? `<span class="muted small">${state.user.name} · ${state.user.role === "admin" ? "Empresa" : "Trabalhador"}</span>` : ""}

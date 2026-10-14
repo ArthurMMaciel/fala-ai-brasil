@@ -21,6 +21,7 @@
 | 17 | [TASK-0017](TASK-0017-governanca-e-manutencao-tecnica.md) Governança e manutenção técnica ([ClickUp](https://app.clickup.com/t/86aktn6eh)) | P1 | proposta |
 | 18 | [TASK-0018](TASK-0018-integracao-stripe-pagamentos.md) Integração Stripe: planos e pacotes ([ClickUp](https://app.clickup.com/t/86aktngf0)) — 7 subtarefas | P1 | proposta |
 | 19 | [TASK-0019](TASK-0019-cadastro-planos-e-endereco.md) Cadastro comercial, assinatura e endereço estruturado ([ClickUp](https://app.clickup.com/t/86aktwda1)) | P1 | em-andamento |
+| 20 | [TASK-0020](TASK-0020-usabilidade-navegacao-planos-e-marca.md) Usabilidade, navegação contextual e marca oficial ([ClickUp](https://app.clickup.com/t/17tu7rp3wa5)) | P1 | em-andamento |
 
 ## Acompanhamento no ClickUp
 

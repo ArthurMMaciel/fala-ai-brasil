@@ -59,6 +59,8 @@ Aplicação Vite + TypeScript sem framework, renderizada por template strings em
 
 ## Alterações recentes
 
+- Em 2026-10-14 a TASK-0020 integra soluções e planos à landing conforme a persona escolhida no topo, usa a logo oficial extraída do PDF fornecido e corrige a transição entre React e as telas HTML. Catálogo de planos compartilhado com o cadastro, seleção preservada e sessão demonstrativa reconhecida na landing. Avaliação/finalização do caso respondem em memória; ações operacionais ainda ausentes aparecem indisponíveis. Nenhum envio externo ou controle real de acesso adicionado. Testes de navegação/renderização sem navegador cobrem regressões; revisão visual/mobile em navegador permanece pendente por indisponibilidade da ferramenta na sessão. Vercel mantém o deploy existente; CI adiado pelo responsável.
+
 - Em 2026-10-14 foi corrigida corrupção de codificação no JavaScript executado pela POC e nos textos dos testes. A varredura de textos versionados e o teste da mensagem da Empresa passam a integrar `npm.cmd test`, prevenindo regressão de acentos/travessão em PT-BR (TASK-0019, PR #1).
 
 - Em 2026-10-14 o responsável definiu Trabalhador como nomenclatura da persona gratuita. Interface, rótulos acessíveis, materiais comerciais e documentação foram padronizados; identificador interno `worker`, gratuidade e regras comerciais preservados (TASK-0019).
