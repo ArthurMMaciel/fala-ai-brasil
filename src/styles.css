@@ -1510,3 +1510,47 @@ body { color: var(--brand-ink); background: var(--brand-paper); }
 @media (prefers-reduced-motion: reduce) { .brand-app .home-hero { animation: none; } .persona-choice { transition: none; } }
 @media (max-width: 1180px) { .react-topbar { grid-template-columns: auto 1fr; } .react-topbar .persona-selector { grid-column: 1 / -1; grid-row: 2; order: 3; justify-content: flex-start; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; } .react-topbar .nav-actions { justify-self: end; } }
 @media (max-width: 640px) { .react-topbar { gap: 10px 14px; } .react-topbar .persona-selector { margin-inline: -4px; } .persona-choice { min-width: 116px; padding-inline: 9px; } .persona-choice span { font-size: .64rem; } }
+
+/* Navegação contextual e aplicação da marca oficial. */
+.brand { border: 0; background: transparent; padding: 0; cursor: pointer; }
+.brand-logo { display: block; width: 205px; height: auto; object-fit: contain; }
+.topbar { gap: 20px; padding-block: 14px; }
+.brand-app .home-hero { width: 100%; max-width: none; margin: 0; padding: 58px max(24px, calc((100vw - 1320px) / 2)); grid-template-columns: minmax(0, 1.4fr) minmax(260px, .6fr); gap: 54px; min-height: 520px; background: #f8f9f5; }
+.brand-app .home-hero h1 { max-width: 790px; font-size: clamp(2.5rem, 4.5vw, 4.6rem); line-height: 1.05; letter-spacing: -.045em; margin-block: 18px 22px; }
+.brand-app .home-hero .lead { max-width: 690px; font-size: 1.08rem; line-height: 1.65; }
+.hero-context { font-size: .82rem; margin-top: 20px; color: #5a625d; }
+.brand-app .home-hero-art { min-height: 330px; border-radius: 0; background: transparent; box-shadow: none; }
+.hero-brand-symbol { width: min(100%, 250px); height: auto; }
+.brand-app .art-label { right: 0; left: 0; bottom: 0; max-width: none; text-align: center; padding: 20px 0; border-radius: 0; background: transparent; box-shadow: none; border-top: 1px solid var(--brand-line); }
+.landing-pricing { width: min(1320px, calc(100% - 48px)); margin: 0 auto; padding: 70px 0; scroll-margin-top: 160px; }
+.landing-pricing-heading { max-width: 720px; margin-bottom: 32px; }
+.landing-pricing h2 { color: var(--brand-ink); font-size: clamp(2rem, 3.5vw, 3.2rem); letter-spacing: -.04em; margin: 12px 0; }
+.landing-pricing-heading p { color: #59615d; line-height: 1.7; }
+.landing-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); border-block: 1px solid var(--brand-line); }
+.landing-plan { display: flex; flex-direction: column; padding: 30px 25px; border-right: 1px solid var(--brand-line); }
+.landing-plan:last-child { border-right: 0; }
+.landing-plan h3 { font-size: 1.35rem; margin: 0 0 12px; color: var(--brand-ink); }
+.landing-plan-fit { min-height: 3.1em; font-size: .95rem; line-height: 1.55; color: #59615d; margin: 0; }
+.landing-plan-price { font-size: 1.65rem; font-weight: 750; color: var(--brand-ink); margin: 26px 0 18px; }
+.landing-plan-price span { font-size: .88rem; font-weight: 450; color: #59615d; }
+.landing-plan ul { padding: 0 0 0 19px; margin: 0 0 30px; color: #465049; line-height: 1.7; flex: 1; }
+.landing-plan .btn { align-self: flex-start; }
+.landing-plan-note { font-size: .85rem; color: #59615d; line-height: 1.6; margin-top: 24px; }
+.worker-free-access { display: flex; gap: 28px; align-items: center; justify-content: space-between; padding-block: 30px; border-block: 1px solid var(--brand-line); }
+.worker-free-access strong { font-size: 2.7rem; color: var(--brand-ink); }
+.worker-free-access span { display: block; font-weight: 450; font-size: .95rem; color: #59615d; }
+.landing-footer { width: min(1320px, calc(100% - 48px)); margin: auto; padding-block: 28px; border-top: 1px solid var(--brand-line); display: flex; gap: 24px; flex-wrap: wrap; align-items: center; }
+.landing-footer > span { font-weight: 750; color: var(--brand-ink); }
+.landing-footer p { flex: 1; font-size: .82rem; color: #59615d; }
+.brand-app .btn { min-height: 44px; }
+.btn:disabled, .side-link:disabled { opacity: .6; cursor: not-allowed; }
+.landing-pricing:focus-visible, main:focus-visible { outline: 3px solid var(--brand-blue); outline-offset: 8px; }
+.landing-plan .btn, .brand-logo { transition: transform .16s ease; }
+.landing-plan .btn:hover { transform: translateY(-2px); }
+.brand:hover .brand-logo { transform: translateY(-1px); }
+@media (max-width: 1180px) { .brand-app .home-hero { gap: 30px; padding-block: 40px; } .brand-logo { width: 190px; } }
+@media (max-width: 850px) { .brand-app .home-hero { grid-template-columns: 1fr; min-height: auto; } .brand-app .home-hero-art { display: none; } .landing-plans { grid-template-columns: repeat(2, minmax(0, 1fr)); } .landing-plan { border-bottom: 1px solid var(--brand-line); } .landing-plan:nth-child(2n) { border-right: 0; } }
+@media (max-width: 640px) { .brand-logo { width: 158px; } .topbar { gap: 12px; } .brand-app .home-hero { padding: 32px 16px; } .brand-app .home-hero h1 { font-size: 2.5rem; } .landing-pricing, .landing-footer { width: calc(100% - 32px); } .landing-pricing { padding-block: 42px; scroll-margin-top: 150px; } .landing-plans { grid-template-columns: 1fr; } .landing-plan { border-right: 0; padding-inline: 0; } .landing-plan:last-child { border-bottom: 0; } .worker-free-access { align-items: flex-start; flex-direction: column; } .landing-footer p { flex-basis: 100%; } }
+@media (prefers-reduced-motion: reduce) { .landing-plan .btn, .brand-logo { transition: none; } .landing-plan .btn:hover, .brand:hover .brand-logo { transform: none; } }
+@media (max-width: 380px) { .brand-logo { width: 132px; } }
+@media (max-width: 640px) { .topbar:not(.react-topbar) > .nav-actions { grid-column: 1 / -1; justify-self: start; flex-wrap: wrap; } }
