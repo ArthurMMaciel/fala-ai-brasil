@@ -1,6 +1,6 @@
 # Memória permanente do projeto
 
-Atualizado em: 2026-10-08
+Atualizado em: 2026-10-14
 
 ## Visão
 
@@ -59,12 +59,14 @@ Aplicação Vite + TypeScript sem framework, renderizada por template strings em
 
 ## Alterações recentes
 
+- Em 2026-10-14 o responsável definiu Trabalhador como nomenclatura da persona gratuita. Interface, rótulos acessíveis, materiais comerciais e documentação foram padronizados; identificador interno `worker`, gratuidade e regras comerciais preservados (TASK-0019).
+
 - Em 2026-10-08 o responsável determinou usar somente a API oficial do ClickUp com `CLICKUP_API_TOKEN` no `.env`; não utilizar o plugin/conector ClickUp. Preferência persistente para consultas e alterações de tarefas. Sem imprimir chave ou enviar dados pessoais.
-- Regras comerciais atualizadas pelo responsável: funcionário gratuito; demais personas escolhem primeiro plano no cadastro e gerenciam upgrade na conta. Modalidades: um mês de calendário grátis e mensal a partir do segundo, mensal imediato ou anual com 5% de desconto sobre doze mensalidades (ADR-0005/TASK-0019). Substitui a recomendação anterior de piloto pago e gratuidade de 30 dias exclusiva do Hub. Preços finais permanecem pendentes.
+- Regras comerciais atualizadas pelo responsável: trabalhador gratuito; demais personas escolhem primeiro plano no cadastro e gerenciam upgrade na conta. Modalidades: um mês de calendário grátis e mensal a partir do segundo, mensal imediato ou anual com 5% de desconto sobre doze mensalidades (ADR-0005/TASK-0019). Substitui a recomendação anterior de piloto pago e gratuidade de 30 dias exclusiva do Hub. Preços finais permanecem pendentes.
 - Regra comercial corrigida pelo responsável em 2026-10-08: um mês de calendário grátis e mensalidade a partir do segundo; mensal imediato ou anual com 5% de desconto. A regra de três meses foi substituída em código, apresentação e documentos.
 - Boleto foi incluído no estudo de cobrança. Documentação Stripe consultada indica suporte no Brasil/BRL, geração de voucher/PDF, confirmação até 1 dia útil, liquidação até T+2, recorrência, Checkout/Billing/Invoicing/Subscriptions/Customer Portal, limite de R$ 5 a R$ 49.999,99 e ausência de reembolso padrão. Transferência bancária genérica não aparece na matriz oficial para BRL/conta brasileira; não prometer sem validação da conta (ADR-0007).
 - POC demonstra cadastro das cinco personas comerciais, área própria de assinatura, estado pendente/trial/pagante e confirmação simulada. Novas personas não empresariais usam papel demonstrativo `commercial`, sem herdar painel de administrador. Pagamentos, autenticação, autorização e persistência reais continuam ausentes.
-- Interface usa funcionário no lugar de empregado. Todos os cadastros exibem CEP, Rua/Avenida e número obrigatórios, complemento opcional. Pedido explícito de API CEP autoriza integração pontual: ViaCEP escolhido como decisão técnica (ADR-0006), com timeout, recuperação manual e proteção contra resposta obsoleta. Somente CEP enviado na aplicação; conexão direta expõe IP ao provedor. Relação de assinaturas com estudos/patrocínios avulsos permanece pendente.
+- Interface usa trabalhador no lugar de empregado. Todos os cadastros exibem CEP, Rua/Avenida e número obrigatórios, complemento opcional. Pedido explícito de API CEP autoriza integração pontual: ViaCEP escolhido como decisão técnica (ADR-0006), com timeout, recuperação manual e proteção contra resposta obsoleta. Somente CEP enviado na aplicação; conexão direta expõe IP ao provedor. Relação de assinaturas com estudos/patrocínios avulsos permanece pendente.
 
 - Stripe escolhida pelo responsável para pagamentos dos clientes em 2026-10-07 (ADR-0004). TASK-0018 criada no ClickUp com 7 subtarefas e levantamento de cartão, Pix avulso, recorrência, webhooks, ciclo comercial e conciliação. Integração ainda não implementada; conta, preços finais e políticas comerciais pendentes. Pix Automático não disponível para contas brasileiras segundo documentação consultada; habilitação de Pix e limites exigem validação da conta antes de lançamento.
 - Gestão técnica pelo ClickUp autorizada pelo responsável: lista Escuta Aí Brasil (`901329218347`) no Arthur Workspace e TASK-0001 a TASK-0017 registradas em 2026-10-07, com links em cada documento local. São 11 pendentes (`to do`) e 6 concluídas (`complete`), preservando prioridades e histórico documentado. Consultar duplicatas antes de criar tarefas e manter vínculos locais. A rotina de manutenção da TASK-0017 ainda é proposta.

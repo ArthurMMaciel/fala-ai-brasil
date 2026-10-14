@@ -16,7 +16,7 @@ A POC apresenta planos comerciais e pacotes com valores hipotéticos, mas não p
 Permitir contratar planos recorrentes e pacotes avulsos, confirmar pagamentos com rastreabilidade e atualizar os direitos comerciais da própria organização sem ampliar acesso a dados sensíveis.
 
 ## Refinamento do responsável em 2026-10-08
-- Funcionário gratuito. Demais personas escolhem primeiro plano no cadastro e têm gestão de plano/pagamento/upgrade na própria conta.
+- Trabalhador gratuito. Demais personas escolhem primeiro plano no cadastro e têm gestão de plano/pagamento/upgrade na própria conta.
 - Três opções: um mês de calendário gratuito e mensalidade a partir do segundo; mensal imediato; anual com 5% de desconto sobre doze mensalidades.
 - Substitui piloto pago obrigatório e 30 dias grátis apenas no Hub. Valores-base continuam hipotéticos; estudos/patrocínios não devem converter preços avulsos em mensalidades sem definição comercial.
 - ST-01 deve fechar preços, trial (método exigido/conversão/elegibilidade), cancelamento e relação com avulsos. ST-02 modela usuário, vínculo organizacional, assinante e direitos separadamente. ST-03 inclui cadastro e área da conta; ST-04 confirma pagamentos e trial no servidor; ST-05 cobre upgrades sem reaplicar gratuidade; ST-06 acompanha pagantes, receita e pendências com acesso financeiro autorizado; ST-07 testa estes fluxos.
