@@ -3,6 +3,7 @@
 - Status: em-andamento
 - Prioridade: P1
 - ClickUp: [TASK-0020](https://app.clickup.com/t/17tu7rp3wa5)
+- PR: [#2 — Navegação, planos e marca oficial](https://github.com/ArthurMMaciel/fala-ai-brasil/pull/2)
 - Área: Frontend/UX
 
 ## Pedido e contexto
