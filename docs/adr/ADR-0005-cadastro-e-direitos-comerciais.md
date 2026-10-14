@@ -5,7 +5,7 @@
 - Tarefas: [TASK-0019](../tasks/TASK-0019-cadastro-planos-e-endereco.md), [TASK-0018](../tasks/TASK-0018-integracao-stripe-pagamentos.md)
 
 ## Decisão
-Funcionário permanece gratuito. Demais personas selecionam plano no cadastro: um mês de calendário gratuito e cobrança mensal a partir do segundo, mensal imediato ou anual com 5% de desconto sobre doze mensalidades. Seleção/upgrade também disponíveis na própria conta. A relação de assinaturas com estudos e patrocínios avulsos continua pendente de esclarecimento.
+Trabalhador permanece gratuito. Demais personas selecionam plano no cadastro: um mês de calendário gratuito e cobrança mensal a partir do segundo, mensal imediato ou anual com 5% de desconto sobre doze mensalidades. Seleção/upgrade também disponíveis na própria conta. A relação de assinaturas com estudos e patrocínios avulsos continua pendente de esclarecimento.
 
 ## Desenho proposto
 Identidade/usuário, vínculo organizacional, assinatura, pagamento e direitos comerciais são estados distintos. Servidor valida catálogo, organização e confirmação Stripe; navegador não libera acesso real. Trial é acesso temporário, sem receita paga. Mensal/anual requerem pagamento confirmado; upgrade pendente mantém direitos atuais até confirmação. Benefícios pagos nunca ampliam permissões de relatos ou prioridade de atendimento.

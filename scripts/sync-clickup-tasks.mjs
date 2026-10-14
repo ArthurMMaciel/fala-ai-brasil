@@ -39,6 +39,6 @@ console.log('TASK-0018 atualizada.');
 for (const section of stripeText.split(/(?=^### ST-\d+)/m).slice(1)) {
   const id = section.match(/https:\/\/app\.clickup\.com\/t\/([a-z0-9]+)/)?.[1];
   if (!id || !tasks.some(item => item.id === id)) throw new Error('Subtarefa não encontrada na lista consultada.');
-  await api(`task/${id}`, 'PUT', { markdown_description: `Documento local: ${stripeFile}\nRegras atualizadas: trial de um mês, mensal imediato, anual com 5%; funcionário gratuito; cadastro e gestão na própria conta; Boleto em estudo para BRL; transferência bancária genérica BRL não confirmada; cobrança real pendente.\n\n${section}` });
+  await api(`task/${id}`, 'PUT', { markdown_description: `Documento local: ${stripeFile}\nRegras atualizadas: trial de um mês, mensal imediato, anual com 5%; trabalhador gratuito; cadastro e gestão na própria conta; Boleto em estudo para BRL; transferência bancária genérica BRL não confirmada; cobrança real pendente.\n\n${section}` });
 }
 console.log('Sete subtarefas Stripe sincronizadas.');

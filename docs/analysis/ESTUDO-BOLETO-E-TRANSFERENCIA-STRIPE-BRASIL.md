@@ -1,7 +1,7 @@
 # Estudo — boleto e transferência bancária na Stripe para o Brasil
 
 - Data da verificação: 2026-10-08
-- Escopo: cobrança de empresas, parceiros, Intelligence, Estudos e Patrocínio; funcionário permanece gratuito.
+- Escopo: cobrança de empresas, parceiros, Intelligence, Estudos e Patrocínio; trabalhador permanece gratuito.
 - Regra comercial atual: 1 mês de calendário grátis; depois cobrança mensal; mensal imediato; anual com 5% de desconto sobre doze mensalidades.
 - Decisão: boleto entra como método elegível para investigação da integração Stripe. Transferência bancária genérica não entra como promessa até confirmação específica da conta brasileira e da moeda BRL.
 
@@ -86,7 +86,7 @@ Antes de ligar Boleto, decidir:
 - quem pode reemitir, conceder desconto ou marcar pagamento manual;
 - como a plataforma trata pagamento após vencimento, pagamento a maior, duplicidade e boleto de valor errado.
 
-Minha recomendação de primeira política: boleto vence em prazo curto aprovado pelo financeiro; o plano fica `pending` antes do primeiro pagamento; renovações entram em carência limitada; vencido o prazo, suspende-se o direito comercial novo sem apagar dados nem afetar o acesso gratuito do funcionário; reemissão cria uma nova tentativa vinculada à mesma fatura ou a uma nova fatura conforme a regra contábil.
+Minha recomendação de primeira política: boleto vence em prazo curto aprovado pelo financeiro; o plano fica `pending` antes do primeiro pagamento; renovações entram em carência limitada; vencido o prazo, suspende-se o direito comercial novo sem apagar dados nem afetar o acesso gratuito do trabalhador; reemissão cria uma nova tentativa vinculada à mesma fatura ou a uma nova fatura conforme a regra contábil.
 
 ## Reembolso e risco operacional
 

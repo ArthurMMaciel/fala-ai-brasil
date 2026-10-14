@@ -6,7 +6,7 @@
 - Estudo: [ESTUDO-BOLETO-E-TRANSFERENCIA-STRIPE-BRASIL](../analysis/ESTUDO-BOLETO-E-TRANSFERENCIA-STRIPE-BRASIL.md)
 
 ## Decisão comercial relacionada
-O período gratuito das personas comerciais passa a ser de um mês de calendário. A cobrança mensal começa no segundo mês; continuam disponíveis mensal imediato e anual com 5% de desconto sobre doze mensalidades. Funcionário permanece gratuito.
+O período gratuito das personas comerciais passa a ser de um mês de calendário. A cobrança mensal começa no segundo mês; continuam disponíveis mensal imediato e anual com 5% de desconto sobre doze mensalidades. Trabalhador permanece gratuito.
 
 ## Decisão técnica
 Boleto entra no desenho de cobrança para conta brasileira em BRL. A Stripe documenta elegibilidade BR, Checkout, Billing, Invoicing, Subscriptions e Customer Portal; confirmação é assíncrona e o boleto exige ação do cliente em cada ciclo. O sistema não libera direito pago por redirect ou geração de boleto, somente após webhook validado e conciliação interna.

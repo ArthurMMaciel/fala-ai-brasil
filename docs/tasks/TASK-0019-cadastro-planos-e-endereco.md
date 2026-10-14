@@ -6,10 +6,10 @@
 - Dependência: [TASK-0018](TASK-0018-integracao-stripe-pagamentos.md) para cobrança real; TASK-0005/0006/0008 para usuários, autorização e persistência.
 
 ## Decisão do responsável em 2026-10-08
-Funcionário usa o canal gratuitamente. Demais personas devem escolher plano no cadastro e poderão gerenciá-lo na conta: um mês gratuito, pagando a partir do segundo; mensal imediato; anual com desconto inicial de 5% sobre doze mensalidades. Preços-base continuam hipotéticos. Estudos/patrocínios exigem esclarecer a relação entre assinatura e projeto/cota avulsa.
+Trabalhador usa o canal gratuitamente. Demais personas devem escolher plano no cadastro e poderão gerenciá-lo na conta: um mês gratuito, pagando a partir do segundo; mensal imediato; anual com desconto inicial de 5% sobre doze mensalidades. Preços-base continuam hipotéticos. Estudos/patrocínios exigem esclarecer a relação entre assinatura e projeto/cota avulsa.
 
 ## Escopo da POC
-- Trocar empregado por funcionário na interface.
+- Trocar empregado por trabalhador na interface.
 - Cadastro de todas as personas comerciais com plano/modalidade, separado do cadastro gratuito.
 - Área de conta para seleção de upgrade e visualização do estado comercial; confirmação de pagamento explicitamente simulada.
 - Controle demonstrativo de assinantes em memória, distinguindo período gratuito, pagamento pendente e pagante ativo.
@@ -17,7 +17,7 @@ Funcionário usa o canal gratuitamente. Demais personas devem escolher plano no 
 - Consulta ViaCEP no blur com validação, timeout, tratamento de falhas e proteção contra respostas antigas ([ADR-0006](../adr/ADR-0006-consulta-cep-viacep.md)). Pedido de API CEP autoriza esta integração; produção com dados pessoais ainda depende do gate do piloto.
 
 ## Aceite
-- Funcionário não recebe seleção de assinatura.
+- Trabalhador não recebe seleção de assinatura.
 - Três modalidades estão disponíveis por persona comercial; um mês grátis, mensal imediato ou anual = mensal × 12 × 0,95.
 - O mês grátis é mês de calendário; não equivale automaticamente a 30 dias. A cobrança começa no segundo mês conforme a política aprovada.
 - Cadastro mensal/anual entra como pendente; acesso comercial depende de confirmação. Trial de um mês libera demonstração sem classificar como receita paga.
@@ -40,3 +40,20 @@ Reverter somente alterações desta tarefa; preservar POC anterior e tarefas de 
 - Navegador integrado sem conexão disponível; revisão visual/interação ponta a ponta pendente.
 - Consulta ViaCEP ativada dentro da autorização para API CEP, com decisão e avaliação de dados registradas no ADR-0006. Endereço permite preenchimento manual em falha ou CEP sem logradouro.
 - Relação entre assinaturas e projetos/cotas avulsas pendente. Produção e cobrança real dependem da TASK-0018 e da fundação técnica; não há controle real de usuários pagantes ainda.
+
+## Correção de nomenclatura em 2026-10-14
+- Pedido do responsável: padronizar a persona como Trabalhador em toda a interface e nos materiais comerciais/documentação.
+- Consulta à lista oficial do ClickUp confirmou esta tarefa como destino, sem tarefa duplicada para a correção.
+- Inclui o cabeçalho executado por `src/main.js`, o seletor React e o rótulo acessível de benefícios; mantém identificadores internos `worker`.
+- Riscos: baixo impacto de apresentação; sem alteração de segurança, privacidade, dados, operação ou custo.
+- Aceite: ausência da nomenclatura anterior nos arquivos de texto versionados e build aprovado.
+- Validação: `npm.cmd run build` aprovado; `npm.cmd test` com 13 testes aprovados; `git diff --check` sem erros; busca nos arquivos versionados sem ocorrências da nomenclatura anterior.
+- Rollback: reverter o commit desta correção. A tarefa continua em andamento pelos itens pendentes já registrados.
+
+## Correção urgente de codificação em 2026-10-14
+- Pedido do responsável: revisar os textos em PT-BR e corrigir acentos corrompidos, incluindo a mensagem da persona Empresa.
+- Nova consulta ao ClickUp sem tarefa duplicada; correção vinculada a esta tarefa e à PR #1: https://github.com/ArthurMMaciel/fala-ai-brasil/pull/1.
+- Varredura dos arquivos de texto versionados encontrou 1.251 sequências de UTF-8 interpretadas como Windows-1252 em `src/main.js` e 34 nos textos de `scripts/test-commercial-address.mjs`. Sequências recuperadas sem alterar os textos já corretos.
+- Verificação automática adicionada ao comando de testes: UTF-8 válido, ausência de sinais de corrupção nos textos versionados e conferência da mensagem da Empresa com acentos e travessão corretos.
+- Risco baixo: correção textual, sem novas dependências, integrações, dados persistidos ou alterações nos controles de acesso. Rollback por reversão do commit.
+- Validação: build aprovado e 15 testes aprovados, incluindo a varredura completa dos arquivos de texto versionados e a frase reportada pelo responsável.

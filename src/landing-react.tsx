@@ -20,7 +20,7 @@ type LandingProps = {
 };
 
 const personas: Array<[Audience, string, string]> = [
-  ["worker", "Funcionário", "Quero ser ouvido"],
+  ["worker", "Trabalhador", "Quero ser ouvido"],
   ["company", "Empresa", "Quero responder"],
   ["partner", "Parceiro", "Quero crescer"],
   ["intelligence", "Intelligence", "Quero decidir melhor"],
@@ -89,7 +89,7 @@ function Landing({ audience, selected, story, onAudienceChange, onOpenAuth, onRo
         </section>
 
         {worker ? (
-          <section className="home-value-grid" aria-label="Benefícios para funcionários">
+          <section className="home-value-grid" aria-label="Benefícios para trabalhadores">
             <article><span className="value-number">01</span><h3>Conte do seu jeito</h3><p>Uma jornada simples para registrar o que aconteceu sem precisar traduzir sua experiência.</p></article>
             <article><span className="value-number">02</span><h3>Identidade protegida</h3><p>A plataforma prepara uma versão compartilhável sem expor quem você é para a empresa.</p></article>
             <article><span className="value-number">03</span><h3>Acompanhe o retorno</h3><p>Você consegue acompanhar o status e a resposta ao longo de toda a jornada.</p></article>
