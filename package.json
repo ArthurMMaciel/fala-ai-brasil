@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test scripts/test-commercial-address.mjs scripts/test-text-encoding.mjs scripts/test-navigation.mjs",
+    "test": "node --test scripts/test-commercial-address.mjs scripts/test-text-encoding.mjs scripts/test-navigation.mjs scripts/test-editorial.mjs",
+    "test:editorial:browser": "node scripts/test-editorial-browser.mjs",
     "dev": "vite --host 127.0.0.1",
     "build": "tsc && vite build",
     "preview": "vite preview --host 127.0.0.1"
