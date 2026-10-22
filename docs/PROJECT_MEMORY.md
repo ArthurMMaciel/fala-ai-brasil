@@ -1,6 +1,6 @@
 # Memória permanente do projeto
 
-Atualizado em: 2026-10-14
+Atualizado em: 2026-10-21
 
 ## Visão
 
@@ -8,7 +8,7 @@ Permitir que uma pessoa relate situações psicossociais do trabalho, preserve s
 
 ## Arquitetura atual
 
-Aplicação Vite + TypeScript sem framework, renderizada por template strings em um único processo de navegador. Todo estado é volátil e os dados são simulados. Não existe servidor nem persistência.
+Aplicação Vite + TypeScript com landing e percursos editoriais em React, integrados ao renderer HTML legado. Todo estado é volátil e os dados são simulados. Os exemplos editoriais e os mocks legados têm estado separado. Não existe servidor de aplicação nem persistência.
 
 ## Direção técnica vigente
 
@@ -47,7 +47,7 @@ Aplicação Vite + TypeScript sem framework, renderizada por template strings em
 - Credenciais demo e autorização existem apenas no cliente.
 - Não há isolamento entre organizações nem separação real de dados sensíveis.
 - A promessa de proteção de identidade ainda não é sustentada por controles técnicos.
-- Não há testes, logs, backups, deploy reproduzível ou resposta a incidentes.
+- Há testes locais de regras, navegação, codificação e roteiro de navegador; não há logs operacionais, backups ou resposta a incidentes implementados. A validação da POC não substitui controles de produção.
 
 ## Regras permanentes
 
@@ -58,6 +58,10 @@ Aplicação Vite + TypeScript sem framework, renderizada por template strings em
 - Alterações estruturais exigem ADR; trabalho relevante exige tarefa.
 
 ## Alterações recentes
+
+- Em 2026-10-21 foram concluídos os cinco pontos da retomada da TASK-0021: confirmação/acompanhamento ajustados ao Figma; cópia explícita de dados fictícios com recuperação manual; complemento com revisão/edição/confirmação; pendências empresariais separadas por responsável, com lista própria e atualização após envio à revisão; validação em navegador e organização da entrega em commit local. Os 25 testes passam. Navegação com teclado, erros, ausência de execução de HTML digitado, preservação de escolhas, filtros/estados vazios e mobile em 320/390 px foram verificados. Assets/fontes locais foram carregados e as capturas revisadas. Nenhum serviço, dependência, publicação de resposta, merge ou deploy novo. O protótipo continua exclusivo para dados fictícios.
+
+- Em 2026-10-21 foi retomada e auditada a TASK-0021 na branch local `feat/figma-escuta-editorial`. A implementação editorial permanece sem commit e a branch não está publicada. Os 24 testes e o build passaram; roteiro de navegador executou manifestação, acompanhamento e revisão empresarial sem erros de JavaScript, com inicial/assunto sem overflow em 390 px. Contexto Figma de confirmação/acompanhamento voltou a ficar disponível: há diferenças de composição e ausência de revisão do complemento a resolver. Auditoria e demais pendências registradas na TASK-0021. A base versionada da branch tem conteúdo idêntico a `origin/main` após PR #2, com históricos distintos. Nenhum merge, push ou deploy realizado nesta retomada.
 
 - Em 2026-10-14 a TASK-0020 integra soluções e planos à landing conforme a persona escolhida no topo, usa a logo oficial extraída do PDF fornecido e corrige a transição entre React e as telas HTML. Catálogo de planos compartilhado com o cadastro, seleção preservada e sessão demonstrativa reconhecida na landing. Avaliação/finalização do caso respondem em memória; ações operacionais ainda ausentes aparecem indisponíveis. Nenhum envio externo ou controle real de acesso adicionado. Testes de navegação/renderização sem navegador cobrem regressões; revisão visual/mobile em navegador permanece pendente por indisponibilidade da ferramenta na sessão. Vercel mantém o deploy existente; CI adiado pelo responsável.
 

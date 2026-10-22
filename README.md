@@ -6,6 +6,8 @@ Plataforma de escuta psicossocial para trabalhadores relatarem situacoes do ambi
 
 Este repositorio hoje contem uma POC front-end em TypeScript/Vite com dados simulados. O objetivo deste documento e orientar a evolucao para um MVP real, com backend em Go, arquitetura preparada para seguranca, auditoria, privacidade e crescimento.
 
+Atualização de 21/10/2026: a proposta editorial do Figma está na branch `feat/figma-escuta-editorial`, com landing e percursos React integrados às telas HTML anteriores. Execute `npm run dev` para explorar; use apenas dados fictícios. Regras, testes de navegador e limites estão na [TASK-0021](docs/tasks/TASK-0021-figma-direcao-editorial.md). A arquitetura de produção continua pendente de decisões registradas; a POC não implementa autenticação, persistência ou encaminhamento reais.
+
 ## Estado Atual
 
 Implementado atualmente:
