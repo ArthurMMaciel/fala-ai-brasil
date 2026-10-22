@@ -53,6 +53,8 @@ function Landing({ audience, selected, story, user, onAudienceChange, onOpenAuth
  const plans = commercialCatalog.filter(plan => plan.audience === audience);
  const userRoute = user?.role === 'worker' ? 'worker' : user?.role === 'admin' ? 'company-portal' : 'commercial-account';
  const participate = () => onOpenAuth('register', 'company');
+ const navigate = onRoute;
+ if (worker) onRoute = route => route === 'report' ? onOpenAuth('register', 'worker') : route === 'tracking' ? onOpenAuth('login', 'worker') : navigate(route);
  return <div className="app-shell editorial-app">
   <a className="skip-link" href="#main-content">Ir para o conteúdo principal</a>
   <PrototypeBar label={worker ? 'Inicial' : selected?.short} />

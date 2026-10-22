@@ -61,6 +61,28 @@ Reverter os commits desta tarefa e restaurar a versão anterior. Não há migra�
 - ClickUp: tarefa `17tu7rp6397` sincronizada como `complete` pela API oficial em 2026-10-21, com referência ao documento local.
 - Comparação: a branch contém a proposta nova; a versão anterior permanece na `main`. Nenhum seletor de versões foi adicionado ao produto.
 
+## Ajuste de integração com a jornada oficial — 2026-10-22
+
+- A entrada do trabalhador na landing editorial voltou a abrir cadastro ou login antes de qualquer manifestação.
+- Após o acesso, a área do trabalhador permanece responsável por listar relatos e iniciar o percurso oficial: contexto, categoria, relato, formas de comunicação, expectativa e revisão protegida antes da aprovação.
+- O layout editorial continua sendo usado na landing; a jornada oficial legada permanece com a mesma fundação visual da branch.
+- No painel administrativo, o seletor de persona e o identificador da equipe foram removidos visualmente do navbar; os controles permanecem alinhados à direita e o menu lateral usa verde escuro para manter contraste.
+- Validação: `npm.cmd test` (25 testes) e `npm.cmd run build` aprovados. Nenhuma autenticação, persistência ou IA real foi adicionada.
+
+## Ações da manifestação — 2026-10-22
+
+- A área do trabalhador agora exibe `Cancelar manifestação`, `Excluir manifestação` e `Finalizar` na tela de detalhes.
+- Cancelar e excluir ficam bloqueados após o encaminhamento; excluir remove o registro local e prepara a operação `DELETE` com `id` e status `canceled`.
+- Finalizar fica disponível após resposta/ mediação e abre confirmação de satisfação; a alternativa cria uma nova manifestação ligada ao protocolo de origem no fluxo local.
+- A implementação permanece demonstrativa e sem persistência externa nesta POC.
+
+## Ajuste do Hub de parceiros — 2026-10-22
+
+- `Empresas` passou a representar o diretório de organizações cadastradas na plataforma.
+- `Possíveis clientes` representa somente empresas que sinalizaram interesse pelo botão de contato da vitrine.
+- `Clientes` representa a carteira manual do parceiro; o vínculo é criado por `Marcar como cliente` no diretório.
+- Botões de criação foram removidos dessas três listas. Ações de edição permanecem apenas em `Meu perfil` e `Conteúdos`.
+
 ### Reproduzir as verificações
 
 1. Executar `npm.cmd test` e `npm.cmd run build`.
