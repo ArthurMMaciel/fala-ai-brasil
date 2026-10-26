@@ -1,3 +1,6 @@
+import { PrototypeBar, Journey, EditorialFooter } from './editorial-ui';
+import { WorkerStory, CompanyStory } from './editorial-landing';
+import { Experience } from './editorial-experience';
 import { StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { commercialCatalog, type CommercialPlan } from "./commercial";
@@ -45,35 +48,32 @@ function Plan({ plan, onChoose }: { plan: CommercialPlan; onChoose: () => void }
     <button className="btn primary" onClick={onChoose} aria-label={`Escolher plano ${plan.name}`}>Escolher {plan.name}</button></article>;
 }
 function Landing({ audience, selected, story, user, onAudienceChange, onOpenAuth, onChoosePlan, onRoute, onLogout }: LandingProps) {
-  const worker = audience === "worker";
-  const plans = commercialCatalog.filter(plan => plan.audience === audience);
-  const userRoute = user?.role === "worker" ? "worker" : user?.role === "admin" ? "admin" : "commercial-account";
-  return <div className="app-shell brand-app">
-    <a className="skip-link" href="#main-content">Ir para o conteúdo principal</a>
-    <header className="topbar react-topbar">
-      <button className="brand" onClick={() => onRoute("landing")} aria-label="Escuta Aí Brasil — página inicial"><img className="brand-logo" src="/brand/escuta-ai-brasil.svg" alt="Escuta Aí Brasil" width="225" height="45" /></button>
-      <nav className="persona-selector" aria-label="Escolha uma persona">{personas.map(([key, label, note]) => <button key={key} className={`persona-choice ${audience === key ? "selected" : ""}`} aria-pressed={audience === key} onClick={() => onAudienceChange(key)}><strong>{label}</strong><span>{note}</span></button>)}</nav>
-      <nav className="nav-actions" aria-label="Navegação principal">{user ? <><button className="btn ghost" onClick={() => onRoute(userRoute)}>Minha área</button><button className="btn" onClick={onLogout}>Sair</button></> : <><button className="btn ghost" onClick={() => onOpenAuth("login", audience)}>Entrar</button><button className="btn primary" onClick={() => onOpenAuth("register", audience)}>Cadastrar</button></>}</nav>
-    </header>
-    <main id="main-content" className="brand-home" tabIndex={-1}>
-      <section className="home-hero" key={audience}>
-        <div className="home-hero-copy"><span className="brand-eyebrow">{worker ? "Escuta para quem trabalha" : selected?.title}</span>
-          <h1>{worker ? "Sua voz pode ser ouvida sem expor quem você é." : story?.headline}</h1>
-          <p className="lead">{worker ? "Relate situações do ambiente de trabalho e acompanhe o retorno da empresa em um só lugar." : story?.promise}</p>
-          <div className="nav-actions hero-actions"><button className="btn primary" onClick={() => worker ? (user?.role === "worker" ? onRoute("companies") : onOpenAuth("register", audience)) : scrollToPlans()}>{worker ? "Quero fazer uma manifestação" : "Ver soluções e planos"}</button><button className="btn home-secondary" onClick={() => user ? onRoute(userRoute) : onOpenAuth("login", audience)}>{user ? "Ir para minha área" : "Já tenho uma conta"}</button></div>
-          <p className="hero-context">{worker ? "Acesso gratuito · acompanhe no seu ritmo" : "Conheça a solução e escolha como começar"}</p>
-        </div>
-        <div className="home-hero-art" aria-hidden="true"><img className="hero-brand-symbol" src="/brand/escuta-ai-simbolo.svg" alt="" width="230" height="132" /><div className="art-label"><strong>{worker ? "Escuta. Resposta. Acompanhamento." : selected?.short}</strong><small>{worker ? "Uma jornada para ser ouvido" : selected?.subtitle}</small></div></div>
-      </section>
-      {worker ? <section className="home-value-grid" aria-label="Benefícios para trabalhadores"><article><span className="value-number">01</span><h3>Conte do seu jeito</h3><p>Registre o que aconteceu e o retorno que você espera.</p></article><article><span className="value-number">02</span><h3>Revise antes de enviar</h3><p>Confira a versão compartilhável destinada à empresa.</p></article><article><span className="value-number">03</span><h3>Acompanhe o retorno</h3><p>Consulte o andamento e a resposta institucional.</p></article></section> : <section className="persona-highlight" aria-labelledby="solution-title"><div><span className="brand-eyebrow">A solução para você</span><h2 id="solution-title">{selected?.title}</h2><p>{story?.problem}</p></div><div className="highlight-list">{story?.outcomes.map((item, index) => <article key={item.title}><span>0{index + 1}</span><div><strong>{item.title}</strong><p>{item.copy}</p></div></article>)}</div></section>}
-      <section id="solucoes-e-planos" className="landing-pricing" aria-labelledby="landing-plans-title" tabIndex={-1}>
-        <div className="landing-pricing-heading"><span className="brand-eyebrow">{worker ? "Seu acesso" : `Planos para ${selected?.short}`}</span><h2 id="landing-plans-title">{worker ? "Para você, o acesso é gratuito." : "Escolha como começar."}</h2><p>{worker ? "Você não precisa contratar um plano para relatar e acompanhar. O pagamento não define prioridade de atendimento." : "Um mês de calendário grátis e mensal a partir do segundo, mensal imediato ou anual com 5% de desconto."}</p></div>
-        {worker ? <div className="worker-free-access"><strong>R$ 0 <span>para relatar e acompanhar</span></strong><button className="btn primary" onClick={() => user?.role === "worker" ? onRoute("worker") : onOpenAuth("register", "worker")}>{user?.role === "worker" ? "Acessar minha área" : "Criar conta gratuita"}</button></div> : <><div className="landing-plans" key={audience}>{plans.map(plan => <Plan key={plan.id} plan={plan} onChoose={() => onChoosePlan(plan.id, audience)} />)}</div><p className="landing-plan-note">Demonstração comercial: preços e funcionalidades são hipóteses para validação. Não há cobrança real. Ofertas sob proposta dependem de preço e escopo aprovados.</p></>}
-      </section>
-    </main>
-    <footer className="landing-footer"><span>Escuta Aí Brasil</span><p>Demonstração com dados fictícios. Evite inserir dados pessoais reais.</p><button className="btn ghost" onClick={() => onRoute("landing")}>Voltar ao início</button></footer>
-  </div>;
+ const worker = audience === 'worker';
+ const company = audience === 'company';
+ const plans = commercialCatalog.filter(plan => plan.audience === audience);
+ const userRoute = user?.role === 'worker' ? 'worker' : user?.role === 'admin' ? 'company-portal' : 'commercial-account';
+ const participate = () => onOpenAuth('register', 'company');
+ const navigate = onRoute;
+ if (worker) onRoute = route => route === 'report' ? onOpenAuth('register', 'worker') : route === 'tracking' ? onOpenAuth('login', 'worker') : navigate(route);
+ return <div className="app-shell editorial-app">
+  <a className="skip-link" href="#main-content">Ir para o conteúdo principal</a>
+  <PrototypeBar label={worker ? 'Inicial' : selected?.short} />
+  <header className="editorial-header"><button className="editorial-wordmark" aria-label="Escuta Aí Brasil — página inicial" onClick={() => onRoute('landing')}>Escuta Aí Brasil</button><nav className="editorial-personas" aria-label="Escolha uma persona">{personas.map(([key, label]) => <button key={key} aria-pressed={audience === key} onClick={() => onAudienceChange(key)}>{key === 'partner' ? 'Parceiros' : key === 'sponsor' ? 'Patrocínio' : label}</button>)}</nav></header>
+  <main id="main-content" tabIndex={-1}>
+   <section className={`editorial-hero${worker ? ' photographic' : ''}`} key={audience}>
+    <div className="editorial-hero-copy"><span className="editorial-eyebrow">{worker ? 'Trabalhador no centro · Acesso gratuito' : company ? 'Para empresas / Responsabilidade na continuidade' : selected?.title}</span><h1>{worker ? 'Sua experiência no trabalho merece ser ouvida' : company ? 'Escutar é o começo. Responder faz parte' : story?.headline}</h1><p className="lead">{worker ? 'Um espaço de escuta psicossocial para contar o que acontece no trabalho, escolher o que compartilhar e acompanhar os próximos passos.' : company ? 'Organize a escuta, o tratamento responsável e os retornos. Sem transformar a experiência de quem trabalha em um indicador de vitrine.' : story?.promise}</p><div className="editorial-actions"><button className="btn primary" onClick={() => worker ? onRoute('report') : company ? participate() : scrollToPlans()}>{worker ? 'Relatar uma situação' : company ? 'Conversar sobre participação' : 'Ver soluções e planos'}</button>{worker && <button className="btn" onClick={() => onRoute('tracking')}>Acompanhar manifestação</button>}</div>{worker && <p className="hero-disclosure">Você decide o que pode seguir adiante. Nesta demonstração, nada é enviado à empresa.</p>}</div>
+    {worker && <figure className="editorial-photo"><img src="/figma/retrato-documental.png" alt="Pessoa em pé junto à entrada de um estabelecimento, olhando para a rua." width="420" height="475" fetchPriority="high" /><figcaption>Fotografia ilustrativa. Não representa usuários reais ou evidência.</figcaption></figure>}
+   </section>
+   {(worker || company) && <div className="editorial-path"><div><h2>A escuta precisa ter continuidade.</h2><p>{worker ? 'Do que você conta ao retorno que acompanha.' : 'A empresa recebe somente a versão compartilhável autorizada. O trabalhador mantém um caminho próprio de acompanhamento.'}</p></div><Journey /></div>}
+   {worker ? <WorkerStory onRoute={onRoute} onCompany={() => { onAudienceChange('company'); window.scrollTo({ top: 0 }); }} /> : company ? <CompanyStory onParticipate={participate} /> : <section className="editorial-section"><div><span className="editorial-eyebrow">A solução para você</span><h2>{selected?.title}</h2><p>{story?.problem}</p></div><div className="editorial-section-body">{story?.outcomes.map(item => <article key={item.title}><h3>{item.title}</h3><p>{item.copy}</p></article>)}</div></section>}
+   <section className="editorial-final"><div><span className="editorial-eyebrow">10 / {worker ? 'O próximo passo é seu' : 'Responsabilidade compartilhada'}</span><h2>{worker ? 'Você não precisa ter todas as palavras para começar.' : company ? 'O retorno também faz parte da escuta.' : 'Escolha como começar.'}</h2></div><button className="btn primary" onClick={() => worker ? onRoute('report') : company ? participate() : scrollToPlans()}>{worker ? 'Relatar uma situação' : company ? 'Conversar sobre participação' : 'Ver soluções e planos'}</button></section>
+   <details className="editorial-commercial" key={`plans-${audience}`} open={!worker && !company}><summary>Soluções, planos e acesso à conta</summary><section id="solucoes-e-planos" className="landing-pricing" tabIndex={-1}><div className="landing-pricing-heading"><span className="editorial-eyebrow">{worker ? 'Seu acesso' : `Planos para ${selected?.short}`}</span><h2>{worker ? 'Para você, o acesso é gratuito.' : 'Escolha como começar.'}</h2><p>{worker ? 'Você não precisa contratar um plano para relatar e acompanhar. O pagamento não define prioridade de atendimento.' : 'Um mês de calendário grátis e mensal a partir do segundo, mensal imediato ou anual com 5% de desconto.'}</p></div>{worker ? <div className="worker-free-access"><strong>R$ 0 <span>para relatar e acompanhar</span></strong><button className="btn primary" onClick={() => user?.role === 'worker' ? onRoute('worker') : onOpenAuth('register', 'worker')}>{user?.role === 'worker' ? 'Acessar minha área' : 'Criar conta gratuita'}</button></div> : <><div className="landing-plans">{plans.map(plan => <Plan key={plan.id} plan={plan} onChoose={() => onChoosePlan(plan.id, audience)} />)}</div><p className="small">Demonstração comercial: preços e funcionalidades são hipóteses para validação. Não há cobrança real. Ofertas sob proposta dependem de preço e escopo aprovados.</p></>}</section></details>
+  </main>
+  <EditorialFooter onRoute={onRoute}>{user ? <><button onClick={() => onRoute(userRoute)}>Minha área</button><button onClick={onLogout}>Sair</button></> : <><button onClick={() => onOpenAuth('login', audience)}>Entrar</button><button onClick={() => onOpenAuth('register', audience)}>Cadastrar</button></>}<button onClick={() => onRoute('company-portal')}>Área da empresa · demo</button><img className="footer-official-logo" src="/brand/escuta-ai-brasil.svg" alt="Marca oficial Escuta Aí Brasil" width="225" height="45" /></EditorialFooter>
+ </div>;
 }
+
 let root: Root | undefined;
 export function mountLanding(element: HTMLElement, props: LandingProps) { root ??= createRoot(element); root.render(<StrictMode><Landing {...props} /></StrictMode>); }
+export function mountExperience(element: HTMLElement, props: { route: string; onRoute: (route: string) => void }) { root ??= createRoot(element); root.render(<StrictMode><Experience {...props} /></StrictMode>); }
 export function unmountLanding() { root?.unmount(); root = undefined; }

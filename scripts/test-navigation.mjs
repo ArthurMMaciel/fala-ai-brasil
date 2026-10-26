@@ -15,7 +15,12 @@ function compile(file, extra = '', customRequire = require) {
   return module.exports;
 }
 const catalog = compile('src/commercial.ts').commercialCatalog;
-const landing = compile('src/landing-react.tsx', '\nexport { Landing };', name => name === './commercial' ? { commercialCatalog: catalog } : require(name));
+const model = compile('src/editorial-model.ts');
+const ui = compile('src/editorial-ui.tsx');
+const stories = compile('src/editorial-landing.tsx', '', name => name === './editorial-ui' ? ui : require(name));
+const tracking = compile('src/editorial-tracking.tsx', '', name => name === './editorial-ui' ? ui : name === './editorial-model' ? model : require(name));
+const experience = compile('src/editorial-experience.tsx', '', name => name === './editorial-ui' ? ui : name === './editorial-model' ? model : name === './editorial-tracking' ? tracking : require(name));
+const landing = compile('src/landing-react.tsx', '\nexport { Landing };', name => ({ './commercial': { commercialCatalog: catalog }, './editorial-ui': ui, './editorial-landing': stories, './editorial-experience': experience }[name] ?? require(name)));
 
 // Minimal host for the legacy renderer: checks transitions and bound actions without a browser.
 function app() {
@@ -36,6 +41,8 @@ function app() {
   };
   const context = vm.createContext({
     commercialCatalog: catalog,
+    experienceRoutes: experience.experienceRoutes,
+    mountExperience() { reactMounted = true; },
     mountLanding(_, next) { reactMounted = true; props = next; },
     unmountLanding() { reactMounted = false; },
     document: { createElement() { return { relList: { supports: () => true } }; }, querySelector: () => element },
@@ -105,7 +112,7 @@ test('avaliação e finalização do caso respondem e não duplicam o encerramen
 
 test('desmontagem descarta a raiz React antes de remontar a landing', () => {
   let created = 0, unmounted = 0;
-  const lifecycle = compile('src/landing-react.tsx', '', name => name === './commercial' ? { commercialCatalog: catalog } : name === 'react-dom/client' ? { createRoot() { created++; return { render() {}, unmount() { unmounted++; } }; } } : require(name));
+  const lifecycle = compile('src/landing-react.tsx', '', name => name === 'react-dom/client' ? { createRoot() { created++; return { render() {}, unmount() { unmounted++; } }; } } : ({ './commercial': { commercialCatalog: catalog }, './editorial-ui': ui, './editorial-landing': stories, './editorial-experience': experience }[name] ?? require(name)));
   lifecycle.mountLanding({}, {});
   lifecycle.mountLanding({}, {});
   assert.equal(created, 1);

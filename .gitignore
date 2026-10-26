@@ -9,3 +9,11 @@ coverage/
 Thumbs.db
 .vscode/
 .idea/
+
+# Capturas, contextos de design e scripts locais de trabalho.
+/.codex-tmp-*
+/artifacts/
+/.codex/figma-context.json
+/.codex/figma-inspecao-*.png
+# Originais locais da marca; a versão usada pelo produto está em public/brand/.
+/logo/

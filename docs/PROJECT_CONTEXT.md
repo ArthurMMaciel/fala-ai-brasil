@@ -30,6 +30,8 @@ Atualização da POC em 2026-10-08: trabalhador gratuito; cadastro das cinco per
 
 ## Fontes de verdade
 
+Atualização da POC em 2026-10-21 (TASK-0021): landing e percursos editoriais do Figma em React/CSS local, integrados ao renderer HTML existente. Manifestação, consulta, complemento com revisão e fila empresarial funcionam com exemplos voláteis separados dos mocks legados. Há testes automatizados de regras/navegação e roteiro de navegador reproduzível. Isso não implementa backend, autenticação, revisão humana, publicação empresarial ou persistência reais.
+
 - Estado atual: código em `src/` e este documento.
 - Direção arquitetural: `docs/TECHNICAL_VISION.md` e ADRs aceitos.
 - Prioridade: `docs/ROADMAP.md` e `docs/tasks/BACKLOG.md`.
