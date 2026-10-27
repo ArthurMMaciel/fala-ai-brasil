@@ -69,3 +69,16 @@ test('papéis da aplicação e contas demo', () => {
   assert.equal(rules.isDemoEmail('Usuario@EscutaAi.demo'), true);
   assert.equal(rules.authErrorMessage('email_not_confirmed').startsWith('Confirme seu e-mail'), true);
 });
+
+test('campanha: tipo vem do plano e período é validado', () => {
+  assert.equal(rules.campaignKindForPlan('sponsor-event'), 'event');
+  assert.equal(rules.campaignKindForPlan('company-essential'), null);
+  const base = { title: 'Semana do cuidado', description: 'Evento aberto sobre saúde no trabalho.', startsAt: '2026-10-28', endsAt: '2026-11-04' };
+  assert.equal(rules.validateCampaign(base, '2026-10-27'), null);
+  assert.match(rules.validateCampaign({ ...base, startsAt: '2026-10-26' }, '2026-10-27'), /hoje ou depois/);
+  assert.match(rules.validateCampaign({ ...base, endsAt: '2026-10-27' }, '2026-10-27'), /posterior/);
+  assert.match(rules.validateCampaign({ ...base, ctaUrl: 'http://site' }, '2026-10-27'), /https/);
+  assert.equal(rules.isActiveCampaign({ status: 'submitted', endsAt: '2026-11-01' }, '2026-10-27'), true);
+  assert.equal(rules.isActiveCampaign({ status: 'rejected', endsAt: '2026-11-01' }, '2026-10-27'), false);
+  assert.equal(rules.isActiveCampaign({ status: 'approved', endsAt: '2026-10-20' }, '2026-10-27'), false);
+});

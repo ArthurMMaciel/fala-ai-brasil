@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { appRoleFor, authErrorMessage, buildProfilePayload, type ProfileType, type RegistrationInput } from "./account-rules";
+import { appRoleFor, authErrorMessage, buildProfilePayload, type CampaignInput, type CampaignKind, type CampaignStatus, type ProfileType, type RegistrationInput } from "./account-rules";
 
 // ADR-0009: somente a chave pública no navegador; o acesso real é controlado por RLS.
 const url = import.meta.env.VITE_SUPABASE_URL;
@@ -179,4 +179,48 @@ export function readRedirectError(): string | null {
   return code === "otp_expired"
     ? "O link de confirmação expirou ou já foi usado. Entre com seu e-mail para receber um novo."
     : "Não foi possível confirmar sua conta por este link. Tente entrar novamente.";
+}
+
+export interface Campaign {
+  id: string;
+  kind: CampaignKind;
+  title: string;
+  description: string;
+  ctaUrl: string | null;
+  startsAt: string;
+  endsAt: string;
+  status: CampaignStatus;
+  reviewNote: string | null;
+}
+
+export async function listCampaigns(): Promise<Campaign[]> {
+  const { data, error } = await supabase()
+    .from("campaigns")
+    .select("id, kind, title, description, cta_url, starts_at, ends_at, status, review_note, created_at")
+    .order("created_at", { ascending: false });
+  if (error || !data) return [];
+  return data.map(row => ({ id: row.id, kind: row.kind, title: row.title, description: row.description, ctaUrl: row.cta_url, startsAt: row.starts_at, endsAt: row.ends_at, status: row.status, reviewNote: row.review_note }));
+}
+
+// Regras (tipo pelo plano, assinatura vigente, uma ativa por vez) são aplicadas no banco; a mensagem vem de lá.
+function campaignError(error: { code?: string; message: string }): string {
+  return error.code === "P0001" ? error.message : "Não foi possível salvar a campanha agora. Tente novamente.";
+}
+
+export async function createCampaign(input: CampaignInput, submit: boolean): Promise<AuthResult<string>> {
+  const { data, error } = await supabase().rpc("create_campaign", {
+    p: { title: input.title.trim(), description: input.description.trim(), cta_url: input.ctaUrl?.trim() || null, starts_at: input.startsAt, ends_at: input.endsAt },
+    p_submit: submit,
+  });
+  return error ? { ok: false, message: campaignError(error) } : { ok: true, value: data as string };
+}
+
+export async function submitCampaign(id: string): Promise<AuthResult<null>> {
+  const { error } = await supabase().rpc("submit_campaign", { p_id: id });
+  return error ? { ok: false, message: campaignError(error) } : { ok: true, value: null };
+}
+
+export async function deleteCampaignDraft(id: string): Promise<AuthResult<null>> {
+  const { error } = await supabase().from("campaigns").delete().eq("id", id).eq("status", "draft");
+  return error ? { ok: false, message: "Não foi possível descartar o rascunho." } : { ok: true, value: null };
 }

@@ -45,6 +45,14 @@ O modelo inicial com tabela única `profiles` e coluna `persona` foi substituíd
 - CNPJ de empresa é único: um segundo RH da mesma empresa recebe orientação para pedir acesso (convite ainda não implementado). Sem verificação de titularidade (TASK-0011).
 - Teste de fumaça de trigger e RLS em `supabase/tests/rls_smoke.sql` (executa e desfaz).
 
+## Campanhas de patrocinador (2026-10-27, aprovado pelo responsável)
+
+- Tabela `campaigns` ligada a `sponsors` e à assinatura que a autoriza; tipo (`content`, `event`, `study`) definido pelo plano (Conteúdo, Evento, Estudo público).
+- Criação e envio só por `create_campaign()` e `submit_campaign()`: exigem assinatura em trial ou ativa e permitem uma campanha ativa por vez (rascunho, em revisão ou aprovada, até o fim do período). Datas pelo calendário de São Paulo.
+- Toda campanha passa por revisão da plataforma antes de publicar; o patrocinador não aprova a própria campanha e só descarta rascunhos. Ainda não há perfil de revisor: aprovação manual pelo banco na demo.
+- Sem campo de segmentação de público e sem acesso a relatos.
+- Teste de fumaça: `supabase/tests/campaigns_smoke.sql` (8 verificações).
+
 ## Motivo
 
 Atende ao prazo e ao custo, entrega autenticação e isolamento reais em PostgreSQL e preserva o caminho para uma API própria: o esquema e as políticas podem migrar para uma API que use o mesmo banco.

@@ -1601,3 +1601,17 @@ body { color: var(--brand-ink); background: var(--brand-paper); }
 @media (max-width: 1100px) { .sponsors-strip { grid-template-columns: 30% minmax(0, 1fr); gap: 36px; } .sponsors-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .sponsors-strip { grid-template-columns: 1fr; gap: 20px; padding: 36px 24px; } .sponsors-note { grid-column: 1; } }
 @media (max-width: 420px) { .sponsors-grid { grid-template-columns: 1fr; } }
+
+/* Conta do patrocinador: abas Planos/Campanhas e lista de campanhas. */
+.account-tabs { display: flex; gap: 4px; margin: 14px 0 18px; border-bottom: 1px solid var(--line); }
+.account-tab { padding: 10px 16px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer; }
+.account-tab[aria-current="page"] { color: var(--deep); border-bottom-color: var(--deep); }
+.account-tab:focus-visible { outline: 2px solid var(--deep); outline-offset: 2px; }
+.campaign-form { display: grid; gap: 4px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+.campaign-form h3 { margin: 0 0 8px; }
+.campaign-list-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.campaign-list { display: grid; }
+.campaign-card { display: grid; gap: 8px; padding: 18px 0; border-top: 1px solid var(--line); }
+.campaign-card p { margin: 0; }
+.campaign-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.campaign-card-head > div { display: grid; gap: 4px; }

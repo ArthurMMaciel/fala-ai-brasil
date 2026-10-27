@@ -11,6 +11,7 @@ const tables = [
   { id: 'sponsors', name: 'sponsors', x: 600, y: 380, rows: ['PK id', 'FK user_id (unique)', 'name · cnpj', 'FK address_id'] },
   { id: 'cu', name: 'company_users', x: 40, y: 620, rows: ['PK FK company_id', 'PK FK user_id', 'role (owner|member)'] },
   { id: 'subs', name: 'subscriptions', x: 600, y: 580, color: ['#d5e8d4', '#82b366'], rows: ['PK id', 'FK company_id | partner_id | sponsor_id', '(exatamente um preenchido)', 'FK plan_id · mode · status', 'next_billing_at · paid_cents'] },
+  { id: 'campaigns', name: 'campaigns', x: 880, y: 300, color: ['#fff2cc', '#d6b656'], rows: ['PK id', 'FK sponsor_id', 'FK subscription_id', 'kind (content|event|study)', 'title · description · cta_url', 'starts_at · ends_at', 'status (draft|submitted|approved|rejected)'] },
   { id: 'plans', name: 'plans', x: 880, y: 580, color: ['#d5e8d4', '#82b366'], rows: ['PK id', 'audience · name · monthly_cents'] },
 ];
 // [origem tabela, linha, destino tabela, linha, início, fim]
@@ -19,6 +20,7 @@ const relations = [
   ['cu', 1, 'users', 0, 'ERzeroToMany'], ['cu', 0, 'companies', 0, 'ERzeroToMany'], ['media', 1, 'partners', 0, 'ERzeroToMany'],
   ['workers', 4, 'addresses', 0, 'ERzeroToOne'], ['companies', 3, 'addresses', 0, 'ERzeroToOne'], ['partners', 8, 'addresses', 0, 'ERzeroToOne'], ['sponsors', 3, 'addresses', 0, 'ERzeroToOne'],
   ['subs', 1, 'sponsors', 0, 'ERzeroToMany'], ['subs', 3, 'plans', 0, 'ERzeroToMany'],
+  ['campaigns', 1, 'sponsors', 0, 'ERzeroToMany'], ['campaigns', 2, 'subs', 0, 'ERzeroToMany'],
 ];
 const esc = value => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const cells = ['<mxCell id="title" value="Escuta Aí Brasil — Banco do MVP v2 (entidades por tipo)" style="text;html=1;fontSize=20;fontStyle=1;align=left;" vertex="1" parent="1"><mxGeometry x="40" y="0" width="900" height="36" as="geometry"/></mxCell>'];

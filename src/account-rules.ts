@@ -194,3 +194,36 @@ export const profileLabels: Record<ProfileType, string> = {
 export function isDemoEmail(email: string): boolean {
   return email.trim().toLowerCase().endsWith("@escutaai.demo");
 }
+
+// Campanhas de patrocínio: o tipo vem do plano contratado (migration mvp_campanhas_patrocinador).
+export type CampaignKind = "content" | "event" | "study";
+export type CampaignStatus = "draft" | "submitted" | "approved" | "rejected";
+export const campaignKindLabels: Record<CampaignKind, string> = { content: "Conteúdo patrocinado", event: "Evento", study: "Estudo público" };
+export const campaignStatusLabels: Record<CampaignStatus, string> = { draft: "Rascunho", submitted: "Em revisão", approved: "Aprovada", rejected: "Recusada" };
+
+export function campaignKindForPlan(planId: string | undefined): CampaignKind | null {
+  return planId === "sponsor-content" ? "content" : planId === "sponsor-event" ? "event" : planId === "sponsor-study" ? "study" : null;
+}
+
+export interface CampaignInput {
+  title: string;
+  description: string;
+  ctaUrl?: string;
+  startsAt: string;
+  endsAt: string;
+}
+
+export function isActiveCampaign(campaign: { status: CampaignStatus; endsAt: string }, today: string): boolean {
+  return campaign.status !== "rejected" && campaign.endsAt >= today;
+}
+
+export function validateCampaign(input: CampaignInput, today: string): string | null {
+  if (input.title.trim().length < 3) return "Dê um título com pelo menos 3 caracteres.";
+  if (input.description.trim().length < 10) return "Descreva a campanha com pelo menos 10 caracteres.";
+  if (input.description.length > 2000) return "A descrição pode ter até 2.000 caracteres.";
+  if (input.ctaUrl?.trim() && !/^https:\/\/\S+$/.test(input.ctaUrl.trim())) return "O link precisa começar com https://.";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.startsAt) || !/^\d{4}-\d{2}-\d{2}$/.test(input.endsAt)) return "Informe início e fim da campanha.";
+  if (input.startsAt < today) return "O início precisa ser hoje ou depois.";
+  if (input.endsAt < input.startsAt) return "O fim precisa ser igual ou posterior ao início.";
+  return null;
+}

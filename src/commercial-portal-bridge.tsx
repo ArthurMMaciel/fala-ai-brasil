@@ -44,6 +44,8 @@ if (app) {
   if (partner) { event.preventDefault(); event.stopImmediatePropagation(); mount('partner'); return; }
   if (operator && active) { unmount(); }
  }, true);
+ // Conta real de empresa abre direto o portal da empresa (TASK-0022).
+ app.addEventListener('escuta:open-portal', event => { const persona = (event as CustomEvent<'company' | 'partner'>).detail; mount(persona); });
  const observer = new MutationObserver(() => { if (!active) addPartnerShortcut(); });
  observer.observe(app, { childList: true, subtree: true });
  requestAnimationFrame(addPartnerShortcut);
