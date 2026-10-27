@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { closeWorkerComplaint, createWorkerComplaint, listCompanyDirectory, listWorkerComplaints, loadWorkerComplaintDetail, shareWorkerComplaint, type ComplaintFeedback, type ComplaintStatusDb, type DirectoryCompany, type WorkerComplaint, type WorkerComplaintDetail } from './data';
-import { topics } from './editorial-model';
-import { showToast } from './toast';
+import { closeWorkerComplaint, createWorkerComplaint, listCompanyDirectory, listWorkerComplaints, loadWorkerComplaintDetail, shareWorkerComplaint, type ComplaintFeedback, type ComplaintStatusDb, type DirectoryCompany, type WorkerComplaint, type WorkerComplaintDetail } from '../services/data';
+import { topics } from '../editorial/editorial-model';
+import { showToast } from '../app/toast';
 
 // Portal do trabalhador com dados reais (modelo v3). O relato original nunca sai daqui; a empresa recebe só a versão revisada.
 type View = 'dashboard' | 'list' | 'detail' | 'new';

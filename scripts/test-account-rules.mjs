@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 
-const output = ts.transpileModule(readFileSync('src/account-rules.ts', 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2021, module: ts.ModuleKind.ES2022 } }).outputText;
+const output = ts.transpileModule(readFileSync('src/domain/account-rules.ts', 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2021, module: ts.ModuleKind.ES2022 } }).outputText;
 const rules = await import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}`);
 
 const address = { zipCode: '01310-100', streetType: 'avenue', streetName: 'Paulista', number: '1000', city: 'São Paulo', state: 'sp' };

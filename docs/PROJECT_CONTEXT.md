@@ -37,4 +37,4 @@ Atualização da POC em 2026-10-21 (TASK-0021): landing e percursos editoriais d
 - Direção arquitetural: `docs/TECHNICAL_VISION.md` e ADRs aceitos.
 - Prioridade: `docs/ROADMAP.md` e `docs/tasks/BACKLOG.md`.
 - Memória: `docs/PROJECT_MEMORY.md`.
-- Material legado útil: `README.md`, `ENGENHARIA.md` e `arquiteturas/`.
+- Material legado útil: `README.md`, `docs/ENGENHARIA.md`, `docs/arquitetura/diagramas/` e `docs/apresentacoes/`.

@@ -23,7 +23,7 @@ Cadastrar Trabalhador, Empresa, Parceiro e Patrocinador no Supabase, com confirm
 - Integração `@supabase/supabase-js` no cadastro/login existentes.
 - Confirmação de senha, tela "verifique seu e-mail", reenvio e tratamento de e-mail não confirmado.
 - Modelo de templates de e-mail em PT-BR.
-- Diagramas de banco e arquitetura em `arquiteturas/`.
+- Diagramas de banco e arquitetura em `docs/arquitetura/diagramas/mvp/`.
 ## Fora de escopo
 Manifestações persistidas, pagamento real, verificação de CNPJ/contato, auditoria, recuperação de senha, convite de membros, tela para adicionar segundo perfil, upload de vídeo.
 ## Critérios de aceite

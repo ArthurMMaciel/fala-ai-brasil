@@ -21,7 +21,7 @@ Toda tela acessível por conta real mostra dados do banco, com exemplos suficien
 - Percursos editoriais anônimos (relatar/acompanhar por protocolo e chave) e botão "Acompanhamento" da landing: ligar ao banco ou retirar do MVP.
 - Tela para adicionar um segundo perfil à conta (`add_profile()` já existe) e convite de outros usuários de RH (`company_users`).
 - Alteração de plano e pagamento persistidos (hoje simulados; Stripe na TASK-0018).
-- Limpeza do legado sem uso: `src/worker-portal.tsx`, `src/mockData.ts`, `src/main.ts` desatualizado e rotas de Operação/IA ocultas.
+- Limpeza do legado sem uso: feita em 2026-10-27 (removidos `main.ts`, `worker-portal.tsx`, `commercial-portal.tsx`, `mockData.ts` e `models.ts`); restam as rotas ocultas de Operação/IA dentro de `src/app/main.js`.
 ## Fora de escopo
 IA, pagamento real e operação humana de casos.
 ## Critérios de aceite

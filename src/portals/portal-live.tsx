@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { listPartnerDirectory, loadCompanyContext, type CompanyContext, type DirectoryPartner } from './account';
-import { listCompanyComplaints, listPartnerCompanies, loadCompanyRanking, loadCompanyTimeline, loadPartnerProfile, requestPartner, respondCompanyComplaint, setPartnerConnection, type CompanyComplaint, type ComplaintStatusDb, type PartnerCompany, type PartnerProfileData, type RankingRow, type TimelineItem } from './data';
-import { showToast } from './toast';
+import { listPartnerDirectory, loadCompanyContext, type CompanyContext, type DirectoryPartner } from '../services/account';
+import { listCompanyComplaints, listPartnerCompanies, loadCompanyRanking, loadCompanyTimeline, loadPartnerProfile, requestPartner, respondCompanyComplaint, setPartnerConnection, type CompanyComplaint, type ComplaintStatusDb, type PartnerCompany, type PartnerProfileData, type RankingRow, type TimelineItem } from '../services/data';
+import { showToast } from '../app/toast';
 
 // Portais de empresa e parceiro com dados reais (modelo v3). A empresa lê apenas versões compartilhadas, sem identidade.
 type CompanyView = 'dashboard' | 'complaints' | 'ranking' | 'partners';

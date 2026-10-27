@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { appRoleFor, authErrorMessage, buildProfilePayload, type CampaignInput, type CampaignKind, type CampaignStatus, type ProfileType, type RegistrationInput } from "./account-rules";
+import { appRoleFor, authErrorMessage, buildProfilePayload, type CampaignInput, type CampaignKind, type CampaignStatus, type ProfileType, type RegistrationInput } from "../domain/account-rules";
 
 // ADR-0009: somente a chave pública no navegador; o acesso real é controlado por RLS.
 const url = import.meta.env.VITE_SUPABASE_URL;

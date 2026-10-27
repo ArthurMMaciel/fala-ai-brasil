@@ -1,9 +1,9 @@
-import { PrototypeBar, Journey, EditorialFooter } from './editorial-ui';
-import { WorkerStory, CompanyStory } from './editorial-landing';
-import { Experience } from './editorial-experience';
+import { PrototypeBar, Journey, EditorialFooter } from '../editorial/editorial-ui';
+import { WorkerStory, CompanyStory } from '../editorial/editorial-landing';
+import { Experience } from '../editorial/editorial-experience';
 import { StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { commercialCatalog, type CommercialPlan } from "./commercial";
+import { commercialCatalog, type CommercialPlan } from "../domain/commercial";
 
 type Audience = "worker" | "company" | "partner" | "intelligence" | "sponsor";
 type LandingStory = { headline: string; promise: string; problem: string; outcomes: Array<{ title: string; copy: string }> };

@@ -6,7 +6,7 @@ import ts from 'typescript';
 
 function model() {
  const module = { exports: {} };
- vm.runInNewContext(ts.transpileModule(readFileSync('src/editorial-model.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2021 } }).outputText, { module, exports: module.exports, Date });
+ vm.runInNewContext(ts.transpileModule(readFileSync('src/editorial/editorial-model.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2021 } }).outputText, { module, exports: module.exports, Date });
  return module.exports;
 }
 test('manifestação exige assunto, descrição e decisão explícita; recusa continua válida', () => {

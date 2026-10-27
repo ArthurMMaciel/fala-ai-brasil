@@ -20,3 +20,6 @@ Thumbs.db
 
 # Credenciais de contas de teste do ambiente de demonstração.
 /supabase/test-users.local.md
+
+# Arquivos locais temporários (PDFs, exportações).
+/tmp/

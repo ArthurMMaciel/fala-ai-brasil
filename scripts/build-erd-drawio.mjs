@@ -1,6 +1,6 @@
 import { writeFileSync } from 'node:fs';
 
-// Gera arquiteturas/06-banco-de-dados-mvp.drawio a partir da migration v2 (manter em sincronia ao mudar o esquema).
+// Gera docs/arquitetura/diagramas/mvp/06-banco-de-dados-mvp.drawio a partir da migration v2 (manter em sincronia ao mudar o esquema).
 const tables = [
   { id: 'users', name: 'auth.users', x: 320, y: 60, color: ['#ffe6cc', '#d79b00'], rows: ['PK id', 'email · email_confirmed_at'] },
   { id: 'workers', name: 'workers', x: 40, y: 60, rows: ['PK id', 'FK user_id (unique)', 'full_name', 'cpf', 'FK address_id'] },
@@ -31,5 +31,5 @@ for (const table of tables) {
 }
 relations.forEach(([from, fromRow, to, toRow, start], i) => cells.push(`<mxCell id="rel-${i}" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=${start};endArrow=ERmandOne;" edge="1" parent="1" source="${from}-${fromRow}" target="${to}-${toRow}"><mxGeometry relative="1" as="geometry"/></mxCell>`));
 cells.push('<mxCell id="note" value="RLS em todas as tabelas. Uma conta pode ter vários perfis (workers, partners, sponsors, company_users); o portal vem de current_profiles(). Cadastro via trigger e add_profile() chamando private.create_profile(). Fotos no bucket partner-media; vídeos só por link. Assinatura liga a exatamente um de company/partner/sponsor." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;spacingLeft=8;" vertex="1" parent="1"><mxGeometry x="40" y="760" width="1060" height="50" as="geometry"/></mxCell>');
-writeFileSync('arquiteturas/06-banco-de-dados-mvp.drawio', `<mxGraphModel adaptiveColors="auto"><root><mxCell id="0"/><mxCell id="1" parent="0"/>${cells.join('')}</root></mxGraphModel>\n`, 'utf8');
-console.log('arquiteturas/06-banco-de-dados-mvp.drawio atualizado');
+writeFileSync('docs/arquitetura/diagramas/mvp/06-banco-de-dados-mvp.drawio', `<mxGraphModel adaptiveColors="auto"><root><mxCell id="0"/><mxCell id="1" parent="0"/>${cells.join('')}</root></mxGraphModel>\n`, 'utf8');
+console.log('docs/arquitetura/diagramas/mvp/06-banco-de-dados-mvp.drawio atualizado');

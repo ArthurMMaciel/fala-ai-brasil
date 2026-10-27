@@ -1,5 +1,5 @@
 import { isAccountServiceConfigured, supabase, type AuthResult } from "./account";
-import type { CampaignKind } from "./account-rules";
+import type { CampaignKind } from "../domain/account-rules";
 
 // Acesso aos dados do modelo v3 (manifestações, Hub, landing). Regras e privacidade ficam no banco (RLS e funções).
 export type ComplaintStatusDb = "received" | "shared" | "answered" | "closed" | "canceled";

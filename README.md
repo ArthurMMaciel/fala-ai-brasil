@@ -10,14 +10,27 @@ Atualização de 21/10/2026: a proposta editorial do Figma está na branch `feat
 
 ## Estado Atual
 
-Implementado atualmente:
+Implementado atualmente (MVP de demonstração, ADR-0009):
 
-- Front-end em Vite + TypeScript puro.
-- Estado em memoria no navegador.
-- Dados simulados em `src/mockData.ts`.
-- Fluxos navegaveis de trabalhador e administrador.
-- Modelos de dominio em `src/models.ts`.
-- Diagramas de arquitetura e fluxos por persona em `arquiteturas/`.
+- Front-end em Vite + TypeScript + React, com Supabase (Auth, Postgres com RLS e Storage).
+- Cadastro e login de trabalhador, empresa, parceiro e patrocinador; manifestações, respostas, ranking, Hub de parceiros e campanhas no banco.
+- Diagramas em `docs/arquitetura/diagramas/` (`poc/` para os fluxos da POC, `mvp/` para banco e arquitetura atuais).
+
+Organização do código:
+
+```text
+src/
+  app/        entrada (main.js), pontes React dos portais e toasts
+  portals/    portais com dados reais: trabalhador, empresa e parceiro
+  landing/    landing React e seção de patrocinadores
+  editorial/  percursos e componentes da direção editorial
+  services/   acesso ao Supabase (account.ts, data.ts)
+  domain/     regras puras e testadas (cadastro, endereço, catálogo comercial)
+  styles/     styles.css e editorial.css
+supabase/     migrations, testes de fumaça SQL e modelo de e-mail
+scripts/      testes, seed de demonstração e geradores de diagrama
+docs/         contexto, ADRs, tarefas, arquitetura e apresentações
+```
 
 Ainda nao existe:
 
@@ -504,4 +517,4 @@ A proxima etapa recomendada e criar a fundacao do backend Go em `services/api`, 
 
 Depois disso, a POC deixa de ser apenas navegavel e passa a ter o primeiro nucleo real de produto.
 
-Para o plano tecnico detalhado de engenharia, stack, instalacao, infraestrutura, requisitos funcionais e nao funcionais, consulte `ENGENHARIA.md`.
+Para o plano tecnico detalhado de engenharia, stack, instalacao, infraestrutura, requisitos funcionais e nao funcionais, consulte [`docs/ENGENHARIA.md`](docs/ENGENHARIA.md).

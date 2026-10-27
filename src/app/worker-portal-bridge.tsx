@@ -1,5 +1,5 @@
 import { createRoot, type Root } from 'react-dom/client';
-import { WorkerPortalLive } from './worker-portal-live';
+import { WorkerPortalLive } from '../portals/worker-portal-live';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 let root: Root | undefined;
