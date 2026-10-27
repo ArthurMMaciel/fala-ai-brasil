@@ -17,3 +17,6 @@ Thumbs.db
 /.codex/figma-inspecao-*.png
 # Originais locais da marca; a versão usada pelo produto está em public/brand/.
 /logo/
+
+# Credenciais de contas de teste do ambiente de demonstração.
+/supabase/test-users.local.md

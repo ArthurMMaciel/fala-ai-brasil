@@ -45,6 +45,12 @@ function app() {
     mountExperience() { reactMounted = true; },
     mountLanding(_, next) { reactMounted = true; props = next; },
     unmountLanding() { reactMounted = false; },
+    // Cadastro real (ADR-0009) fica desligado no host de teste; contas demo seguem locais.
+    isAccountServiceConfigured: () => false, loadAccount: async () => null, readRedirectError: () => null,
+    registerAccount: async () => ({ ok: false, message: 'indisponível' }), resendConfirmation: async () => ({ ok: true, value: null }),
+    signIn: async () => ({ ok: false, message: 'indisponível' }), signOut: async () => {}, loadPartnerPhoto: async () => ({ url: null }), uploadPartnerPhoto: async () => ({ ok: false, message: 'indisponível' }),
+    isDemoEmail: email => email.endsWith('@escutaai.demo'), minPasswordLength: 8, validateRegistration: () => null,
+    brazilianStates: ['SP'], showToast() {}, profileLabels: {}, splitStreet: () => null, streetTypeLabels: { street: 'Rua' },
     document: { createElement() { return { relList: { supports: () => true } }; }, querySelector: () => element },
     window: { scrollTo() {}, matchMedia: () => ({ matches: true }) },
     requestAnimationFrame: callback => callback(), console, URL, Intl, Date, AbortController,

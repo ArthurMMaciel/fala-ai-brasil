@@ -1,6 +1,6 @@
 # Memória permanente do projeto
 
-Atualizado em: 2026-10-21
+Atualizado em: 2026-10-26
 
 ## Visão
 
@@ -8,7 +8,7 @@ Permitir que uma pessoa relate situações psicossociais do trabalho, preserve s
 
 ## Arquitetura atual
 
-Aplicação Vite + TypeScript com landing e percursos editoriais em React, integrados ao renderer HTML legado. Todo estado é volátil e os dados são simulados. Os exemplos editoriais e os mocks legados têm estado separado. Não existe servidor de aplicação nem persistência.
+Aplicação Vite + TypeScript com landing e percursos editoriais em React, integrados ao renderer HTML legado. Todo estado é volátil e os dados são simulados. Os exemplos editoriais e os mocks legados têm estado separado. Não existe servidor de aplicação próprio. Desde 2026-10-26 (ADR-0009), contas, perfis, organizações e assinatura inicial persistem no Supabase (Auth + PostgreSQL com RLS, `sa-east-1`), acessado pelo front com chave pública; manifestações e demais fluxos seguem voláteis.
 
 ## Direção técnica vigente
 
@@ -58,6 +58,12 @@ Aplicação Vite + TypeScript com landing e percursos editoriais em React, integ
 - Alterações estruturais exigem ADR; trabalho relevante exige tarefa.
 
 ## Alterações recentes
+
+- Em 2026-10-27 (TASK-0022): mensagens de login/cadastro e alert() viraram toasts acessíveis (`src/toast.ts`, sucesso verde, erro vermelho); botão de exibir senha; reenvio de confirmação só após cadastro ou e-mail não confirmado; aviso "A POC…" removido da tela de acesso; seção fixa "Nossos patrocinadores" na landing com marcas fictícias (`public/sponsors/`). Quatro usuários de teste confirmados (trabalhador, empresa, parceiro, patrocinador) criados direto no banco com e-mails `@example.com`; credenciais só em `supabase/test-users.local.md` (ignorado pelo Git). Diagnóstico: cadastro real falhava com `Error sending confirmation email` — SMTP do Resend recusando o remetente/destinatário; exige domínio verificado no Resend ou remetente `onboarding@resend.dev` enviando só ao e-mail do dono da conta Resend.
+
+- Em 2026-10-27 o responsável rejeitou o modelo com coluna `persona` e aprovou o modelo v2 (ADR-0009, revisão v2): entidades por tipo (`workers`, `companies` + `company_users`, `partners`, `sponsors`), `addresses` separado, `media` com fotos no bucket `partner-media` e vídeos só por link, vários perfis por conta (`current_profiles()`, `add_profile()`), especialidade do parceiro em texto livre e nomes de banco em inglês. Migration `20261027002812_mvp_entidades_por_tipo.sql` aplicada; `supabase/tests/rls_smoke.sql` passou nas 12 verificações. Lição: mudanças de modelo de dados devem ser apresentadas ao responsável antes de aplicar.
+
+- Em 2026-10-26 o responsável redirecionou o projeto de POC para MVP de demonstração (2026-10-30) com custo mínimo (Vercel, Supabase e Resend gratuitos), sem backend próprio. ADR-0009 e TASK-0022 registram: Supabase Auth com confirmação de e-mail via SMTP Resend; migration `supabase/migrations/20261026235534_mvp_cadastro_inicial.sql` aplicada (profiles, organizations, organization_members, plans, subscriptions, RLS, grants mínimos e trigger de cadastro que remove CPF/CNPJ/endereço do user_metadata); cadastro real de Trabalhador, Empresa, Parceiro e Patrocinador com confirmação de senha (mínimo 8) e validação de CPF/CNPJ; Intelligence/Estudos fora do cadastro por decisão do responsável. Contas `@escutaai.demo` continuam locais. Figma deixado de lado; conectores Figma/Supabase indisponíveis na conta corporativa, migrations aplicadas via CLI com login pessoal. Diagramas `arquiteturas/06-banco-de-dados-mvp.drawio` e `07-arquitetura-mvp.drawio`. A variável de ambiente `SUPABASE_ACCESS_TOKEN` do Windows pertence a outra conta e precisa ser ignorada nos comandos da CLI. O app em execução é `src/main.js` (JS minificado mantido manualmente), não `src/main.ts`.
 
 - Em 2026-10-21 foram concluídos os cinco pontos da retomada da TASK-0021: confirmação/acompanhamento ajustados ao Figma; cópia explícita de dados fictícios com recuperação manual; complemento com revisão/edição/confirmação; pendências empresariais separadas por responsável, com lista própria e atualização após envio à revisão; validação em navegador e organização da entrega em commit local. Os 25 testes passam. Navegação com teclado, erros, ausência de execução de HTML digitado, preservação de escolhas, filtros/estados vazios e mobile em 320/390 px foram verificados. Assets/fontes locais foram carregados e as capturas revisadas. Nenhum serviço, dependência, publicação de resposta, merge ou deploy novo. O protótipo continua exclusivo para dados fictícios.
 

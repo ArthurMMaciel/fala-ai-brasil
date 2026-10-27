@@ -9,6 +9,7 @@ Escuta Aí Brasil é a identidade oficial da plataforma de escuta psicossocial q
 - POC front-end local e navegável.
 - Dados, credenciais, análises e respostas são mocks em memória.
 - Não há backend, API, banco, autenticação real, autorização, multi-tenancy, integrações, telemetria, CI/CD ou deploy configurado.
+- Atualização 2026-10-26 (ADR-0009/TASK-0022): autenticação real e cadastro persistido via Supabase (Auth + PostgreSQL com RLS); manifestações continuam voláteis; sem API própria.
 - O build de produção compila com TypeScript estrito e Vite.
 - O repositório Git foi inicializado em `main` e conectado a `https://github.com/ArthurMMaciel/fala-ai-brasil.git`.
 - A baseline, incluindo as alterações de landing por persona e meios de comunicação, foi publicada no remoto.
