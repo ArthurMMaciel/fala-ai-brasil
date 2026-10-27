@@ -538,3 +538,11 @@ button:disabled { cursor: not-allowed; opacity: .55; }
  @keyframes editorial-arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
+
+/* Portal da empresa com dados reais (TASK-0022). */
+.company-facts { display: grid; gap: 12px; margin: 14px 0 0; }
+.company-facts div { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.company-facts dt { color: var(--muted); }
+.company-facts dd { margin: 0; color: var(--ink); font-weight: 600; }
+.partner-photo { object-fit: cover; background: var(--soft); }
+@media (max-width: 520px) { .company-facts div { grid-template-columns: 1fr; gap: 2px; } }
