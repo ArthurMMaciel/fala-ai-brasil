@@ -13,13 +13,13 @@ begin
   ('00000000-0000-0000-0000-000000000000', w, 'authenticated', 'authenticated', 'w@teste.invalid',
    '{"full_name":"Worker Teste","signup_type":"worker","signup":{"full_name":"Worker Teste","cpf":"52998224725","address":{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1000","city":"São Paulo","state":"SP"}}}', now(), now()),
   ('00000000-0000-0000-0000-000000000000', c, 'authenticated', 'authenticated', 'c@teste.invalid',
-   '{"full_name":"Empresa Teste","signup_type":"company","signup":{"legal_name":"Empresa Teste Ltda","cnpj":"11222333000181","plan_id":"company-essential","subscription_mode":"trial","address":{"zip_code":"01310100","street_type":"street","street_name":"Augusta","number":"10","city":"São Paulo","state":"sp"}}}', now(), now()),
+   '{"full_name":"Empresa Teste","signup_type":"company","signup":{"legal_name":"Empresa Teste Ltda","cnpj":"45723174000110","plan_id":"company-essential","subscription_mode":"trial","address":{"zip_code":"01310100","street_type":"street","street_name":"Augusta","number":"10","city":"São Paulo","state":"sp"}}}', now(), now()),
   ('00000000-0000-0000-0000-000000000000', p, 'authenticated', 'authenticated', 'p@teste.invalid',
    '{"full_name":"Parceira Teste","signup_type":"partner","signup":{"display_name":"Parceira Teste","document_type":"cpf","document":"52998224725","specialty":"Psicologia organizacional","plan_id":"partner-presence","subscription_mode":"monthly","address":{"zip_code":"80010000","street_type":"street","street_name":"XV de Novembro","number":"1","city":"Curitiba","state":"PR"}}}', now(), now());
 
   ok := not exists (select 1 from auth.users where id in (w, c, p) and (raw_user_meta_data ? 'signup' or raw_user_meta_data ? 'signup_type'));
   res := res || jsonb_build_object('metadata sem documento', ok);
-  ok := exists (select 1 from public.subscriptions s join public.companies co on co.id = s.company_id where co.cnpj = '11222333000181' and s.status = 'trialing');
+  ok := exists (select 1 from public.subscriptions s join public.companies co on co.id = s.company_id where co.cnpj = '45723174000110' and s.status = 'trialing');
   res := res || jsonb_build_object('empresa em trial', ok);
   ok := exists (select 1 from public.subscriptions s join public.partners pa on pa.id = s.partner_id where pa.user_id = p and s.status = 'pending');
   res := res || jsonb_build_object('parceira mensal pendente', ok);
@@ -57,7 +57,7 @@ begin
   ok := (select count(*) from public.companies) = 1 and (select count(*) from public.subscriptions) = 1 and (select count(*) from public.workers) = 0;
   res := res || jsonb_build_object('empresa vê só a própria empresa', ok);
   select string_agg(display_name || '/' || city || '/' || state, '; ') into detail from public.list_partner_directory();
-  res := res || jsonb_build_object('diretório: ' || coalesce(detail, '-'), (select count(*) from public.list_partner_directory()) = 2);
+  res := res || jsonb_build_object('diretório inclui os parceiros do teste', (select count(*) from public.list_partner_directory() where display_name in ('Parceira Teste', 'Worker também parceira')) >= 2);
 
   execute 'reset role';
   raise exception 'RESULTADOS %', res;

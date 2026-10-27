@@ -1,10 +1,10 @@
 import { createRoot, type Root } from 'react-dom/client';
-import { WorkerPortal } from './worker-portal';
-import type { Complaint } from './models';
+import { WorkerPortalLive } from './worker-portal-live';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 let root: Root | undefined;
 let mounted = false;
+let mountedContainer: HTMLElement | null = null;
 let activeView: 'dashboard' | 'list' | null = null;
 let pendingRelatedId: string | null = null;
 
@@ -13,14 +13,14 @@ function workerSidebar() { return workerShell()?.querySelector<HTMLElement>('.si
 function normalizeSidebar() {
  const sidebar = workerSidebar();
  if (!sidebar || !sidebar.querySelector('[data-route="worker"]')) return;
- sidebar.querySelectorAll<HTMLElement>('[data-route="new-complaint"], [data-route="case"]').forEach(element => { element.hidden = true; });
+ sidebar.querySelectorAll<HTMLElement>('[data-route="new-complaint"], [data-route="case"], [data-route="companies"]').forEach(element => { element.hidden = true; });
  let manifestations = sidebar.querySelector<HTMLButtonElement>('[data-worker-view="manifestations"]');
  if (!manifestations) { manifestations = document.createElement('button'); manifestations.className = 'side-link'; manifestations.type = 'button'; manifestations.dataset.workerView = 'manifestations'; manifestations.textContent = 'Manifestações'; sidebar.append(manifestations); }
  manifestations.classList.toggle('active', activeView === 'list');
  sidebar.querySelector<HTMLElement>('[data-route="worker"]')?.classList.toggle('active', activeView === 'dashboard');
 }
 function workerContent() { return workerShell()?.querySelector<HTMLElement>('.content'); }
-function clickCompanies(complaint?: Complaint) {
+function clickCompanies(complaint?: { id: string }) {
  pendingRelatedId = complaint?.id ?? null;
  activeView = null;
  root?.unmount();
@@ -49,10 +49,12 @@ function mount(view: 'dashboard' | 'list') {
  activeView = view;
  normalizeSidebar();
  addRelatedNote();
- if (mounted) { root?.render(<WorkerPortal initialView={view} onNew={clickCompanies} />); return; }
+ if (mounted && mountedContainer !== content) { root?.unmount(); root = undefined; mounted = false; }
+ if (mounted) { root?.render(<WorkerPortalLive initialView={view} />); return; }
  root = createRoot(content);
  mounted = true;
- root.render(<WorkerPortal initialView={view} onNew={clickCompanies} />);
+ mountedContainer = content;
+ root.render(<WorkerPortalLive initialView={view} />);
 }
 
 if (app) {
@@ -67,7 +69,10 @@ if (app) {
   const dashboard = isWorkerDashboard();
   const hasPortal = Boolean(workerContent()?.querySelector('.worker-portal-content'));
   if (dashboard && !hasPortal) { root?.unmount(); root = undefined; mounted = false; mount('dashboard'); }
-  if (!hasPortal && mounted && !dashboard) { root?.unmount(); root = undefined; mounted = false; activeView = null; }
+  // Só desmonta quando outra tela ocupa a área (container trocado ou com outro conteúdo); vazio = render do React pendente.
+  const content = workerContent();
+  const replaced = mounted && (content !== mountedContainer || Boolean(content?.childElementCount && !hasPortal));
+  if (replaced && !dashboard) { root?.unmount(); root = undefined; mounted = false; mountedContainer = null; activeView = null; }
  });
  observer.observe(app, { childList: true, subtree: true });
  requestAnimationFrame(() => { normalizeSidebar(); if (isWorkerDashboard()) mount('dashboard'); });

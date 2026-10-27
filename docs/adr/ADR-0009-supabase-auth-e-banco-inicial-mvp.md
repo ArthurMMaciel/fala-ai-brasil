@@ -53,6 +53,16 @@ O modelo inicial com tabela única `profiles` e coluna `persona` foi substituíd
 - Sem campo de segmentação de público e sem acesso a relatos.
 - Teste de fumaça: `supabase/tests/campaigns_smoke.sql` (8 verificações).
 
+## Manifestações e Hub no banco (modelo v3, 2026-10-27, aprovado pelo responsável)
+
+- `complaints` com `complaint_originals` (só o trabalhador lê), `complaint_shared_versions` (versão revisada e confirmada pelo próprio trabalhador; única que a empresa recebe), `complaint_events` e `company_responses`. Protocolo `EAB-AAAA-NNNN`.
+- Empresa não lê as tabelas: acessa por `list_company_complaints()` e `get_company_complaint_timeline()`, que omitem original e identificador do trabalhador; responde por `respond_complaint()`. Manifestação guardada sem compartilhar nunca chega à empresa.
+- Ranking calculado por `company_ranking()` apenas para empresas com 3 ou mais manifestações compartilhadas.
+- `partner_connections` (interesse da empresa, contato do parceiro, cliente) via `company_request_partner()` e `partner_set_connection()`.
+- Landing pública lista patrocinadores com campanha aprovada e vigente (`list_public_sponsors()`, único acesso anônimo além do catálogo).
+- Contas `@escutaai.demo` em memória removidas; dados de demonstração vivem no banco (`scripts/seed-demo-data.mjs`). Painel interno "Operação" e "IA / Supervisão" ocultos no MVP.
+- Teste de fumaça: `supabase/tests/complaints_smoke.sql` (13 verificações).
+
 ## Motivo
 
 Atende ao prazo e ao custo, entrega autenticação e isolamento reais em PostgreSQL e preserva o caminho para uma API própria: o esquema e as políticas podem migrar para uma API que use o mesmo banco.

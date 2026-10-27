@@ -5,17 +5,18 @@ const app = document.querySelector<HTMLDivElement>('#app');
 let root: Root | undefined;
 let active: 'company' | 'partner' | null = null;
 let activeCompanyId: string | undefined;
+let activePartnerId: string | undefined;
 
 function shell() { return app?.querySelector<HTMLElement>('.legacy-editorial'); }
 function content() { return shell()?.querySelector<HTMLElement>('.content'); }
-function mount(persona: 'company' | 'partner', companyId = activeCompanyId) {
+function mount(persona: 'company' | 'partner', companyId = activeCompanyId, partnerId = activePartnerId) {
  const target = content();
  if (!target) return;
  active = persona;
  target.closest<HTMLElement>('.portal-layout')?.classList.add('commercial-legacy-layout');
  shell()?.querySelector<HTMLElement>('.sidebar')?.classList.add('commercial-legacy-sidebar-hidden');
  if (!root) root = createRoot(target);
- root.render(<CommercialPortal persona={persona} companyId={persona === 'company' ? companyId : undefined} />);
+ root.render(<CommercialPortal persona={persona} companyId={persona === 'company' ? companyId : undefined} partnerId={persona === 'partner' ? partnerId : undefined} />);
 }
 function unmount() {
  content()?.closest<HTMLElement>('.portal-layout')?.classList.remove('commercial-legacy-layout');
@@ -47,9 +48,7 @@ if (app) {
   if (operator && active) { unmount(); }
  }, true);
  // Conta real de empresa abre direto o portal da empresa (TASK-0022).
- app.addEventListener('escuta:open-portal', event => { const detail = (event as CustomEvent<{ persona: 'company' | 'partner'; companyId?: string }>).detail; activeCompanyId = detail.companyId; mount(detail.persona, detail.companyId); });
- app.addEventListener('escuta:reset-portal', () => { activeCompanyId = undefined; if (active) unmount(); });
- const observer = new MutationObserver(() => { if (!active) addPartnerShortcut(); });
- observer.observe(app, { childList: true, subtree: true });
- requestAnimationFrame(addPartnerShortcut);
+ app.addEventListener('escuta:open-portal', event => { const detail = (event as CustomEvent<{ persona: 'company' | 'partner'; companyId?: string; partnerId?: string }>).detail; activeCompanyId = detail.companyId; activePartnerId = detail.partnerId; mount(detail.persona, detail.companyId, detail.partnerId); });
+ app.addEventListener('escuta:reset-portal', () => { activeCompanyId = undefined; activePartnerId = undefined; if (active) unmount(); });
+
 }

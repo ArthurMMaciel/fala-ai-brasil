@@ -4,7 +4,7 @@ import { appRoleFor, authErrorMessage, buildProfilePayload, type CampaignInput, 
 // ADR-0009: somente a chave pública no navegador; o acesso real é controlado por RLS.
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const partnerMediaBucket = "partner-media";
+export const partnerMediaBucket = "partner-media";
 const maxAvatarBytes = 5 * 1024 * 1024;
 let client: SupabaseClient | null = null;
 
@@ -12,7 +12,7 @@ export function isAccountServiceConfigured(): boolean {
   return Boolean(url && key);
 }
 
-function supabase(): SupabaseClient {
+export function supabase(): SupabaseClient {
   if (!url || !key) throw new Error("Cadastro real indisponível: configure VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY.");
   client ??= createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
   return client;
@@ -247,6 +247,7 @@ export async function loadCompanyContext(companyId: string): Promise<CompanyCont
 }
 
 export interface DirectoryPartner {
+  requested: boolean;
   id: string;
   name: string;
   specialty: string;
@@ -261,7 +262,8 @@ export async function listPartnerDirectory(): Promise<DirectoryPartner[]> {
   const db = supabase();
   const { data, error } = await db.rpc("list_partner_directory");
   if (error || !data) return [];
-  return data.map((row: { id: string; display_name: string; specialty: string; description: string | null; avatar_path: string | null; city: string; state: string }) => ({
+  return data.map((row: { id: string; display_name: string; specialty: string; description: string | null; avatar_path: string | null; city: string; state: string; requested: boolean }) => ({
+    requested: row.requested,
     id: row.id,
     name: row.display_name,
     specialty: row.specialty,

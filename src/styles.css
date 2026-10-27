@@ -1615,3 +1615,6 @@ body { color: var(--brand-ink); background: var(--brand-paper); }
 .campaign-card p { margin: 0; }
 .campaign-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .campaign-card-head > div { display: grid; gap: 4px; }
+.sponsor-monogram { display: grid; place-items: center; width: 100%; max-width: 260px; aspect-ratio: 32 / 11; margin-bottom: 8px; background: var(--soft); color: var(--deep); font-family: Lora, Georgia, serif; font-size: 32px; }
+.ranking-mine td { background: var(--soft); }
+.company-response-text { width: 100%; min-height: 120px; margin: 10px 0; }

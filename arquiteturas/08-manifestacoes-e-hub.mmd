@@ -1,0 +1,13 @@
+---
+title: Escuta Aí Brasil — manifestações e Hub no banco (modelo v3)
+---
+erDiagram
+  WORKERS ||--o{ COMPLAINTS : "relata"
+  COMPANIES ||--o{ COMPLAINTS : "recebe"
+  COMPLAINTS ||--|| COMPLAINT_ORIGINALS : "original (só o trabalhador)"
+  COMPLAINTS ||--o| COMPLAINT_SHARED_VERSIONS : "compartilhável (empresa via função)"
+  COMPLAINTS ||--o{ COMPLAINT_EVENTS : "linha do tempo"
+  COMPLAINTS ||--o{ COMPANY_RESPONSES : "respostas"
+  COMPANIES ||--o{ PARTNER_CONNECTIONS : "interesse"
+  PARTNERS ||--o{ PARTNER_CONNECTIONS : "contato / cliente"
+  SPONSORS ||--o{ CAMPAIGNS : "campanhas"

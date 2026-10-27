@@ -546,3 +546,13 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .company-facts dd { margin: 0; color: var(--ink); font-weight: 600; }
 .partner-photo { object-fit: cover; background: var(--soft); }
 @media (max-width: 520px) { .company-facts div { grid-template-columns: 1fr; gap: 2px; } }
+
+/* Portal do trabalhador com dados reais. */
+.worker-form-step { margin-top: 16px; }
+.worker-form-step label { display: grid; gap: 6px; }
+.worker-form-step textarea, .worker-share-text { width: 100%; min-height: 140px; }
+.worker-company-options { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.worker-outcomes { display: grid; gap: 4px; }
+.worker-form-actions { justify-content: flex-end; margin-top: 20px; }
+.worker-timeline-response strong { color: var(--deep); }
+.worker-actions label { display: grid; gap: 6px; margin-bottom: 10px; }

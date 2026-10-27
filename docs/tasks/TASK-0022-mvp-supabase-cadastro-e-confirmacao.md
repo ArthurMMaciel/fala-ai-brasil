@@ -18,6 +18,7 @@ Cadastrar Trabalhador, Empresa, Parceiro e Patrocinador no Supabase, com confirm
 - Migration v2 com entidades por tipo (`workers`, `companies`/`company_users`, `partners`, `sponsors`), `addresses`, `media` + bucket `partner-media`, `plans`, `subscriptions`, RLS, `current_profiles()`, `add_profile()` e `list_partner_directory()`.
 - Seletor de perfil para contas com mais de um tipo; foto de perfil do parceiro na conta.
 - Conta do patrocinador com abas Planos e Campanhas (`campaigns`, `create_campaign()`, `submit_campaign()`); empresa real abre o portal da empresa com seus dados e o diretório real de parceiros.
+- Modelo v3: manifestações, versão compartilhável revisada pelo trabalhador, respostas, ranking e Hub de parceiros no banco; portais de trabalhador, empresa e parceiro lendo dados reais; seed de demonstração com 24 contas.
 - Toasts de sucesso/erro, exibir senha, reenvio contextual, patrocinadores fixos na landing e usuários de teste por entidade.
 - Integração `@supabase/supabase-js` no cadastro/login existentes.
 - Confirmação de senha, tela "verifique seu e-mail", reenvio e tratamento de e-mail não confirmado.
