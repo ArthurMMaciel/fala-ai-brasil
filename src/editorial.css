@@ -87,7 +87,6 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .editorial-footer small { grid-column: 1 / -1; font-size: 11px; color: #e9efe7; }
 .footer-official-logo { background: var(--paper); padding: 5px; height: 45px; width: 225px; object-fit: contain; }
 .editorial-commercial { border-block: 1px solid var(--line); }
-.editorial-commercial > summary { cursor: pointer; padding: 20px max(5%, calc((100% - 1152px) / 2)); font-size: 14px; color: var(--deep); }
 .editorial-commercial .landing-pricing { padding: 36px max(5%, calc((100% - 1152px) / 2)); margin: 0; background: var(--paper); }
 .editorial-commercial .landing-pricing h2 { margin-top: 12px; }
 .editorial-commercial .landing-plans { margin-block: 28px; }
@@ -455,7 +454,6 @@ button:disabled { cursor: not-allowed; opacity: .55; }
  .editorial-final { align-items: flex-start; flex-direction: column; gap: 28px; padding: 40px 24px; }
  .editorial-final h2 { font-size: 34px; }
  .editorial-footer { grid-template-columns: 1fr; padding: 36px 24px; gap: 28px; }
- .editorial-commercial > summary { padding: 20px 24px; }
  .editorial-commercial .landing-pricing { padding: 32px 24px; }
  .report-layout { grid-template-columns: 1fr; gap: 32px; padding: 32px 24px; }
  .report-sidebar h2 { margin: 14px 0; font-size: 28px; }
