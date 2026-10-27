@@ -14,7 +14,7 @@ A POC apresenta apenas trabalhador e empresa/admin. O plano de monetização pre
 
 ## Contexto
 
-Os modelos e valores vêm do `PLANO_MONETIZACAO_ESCUTA_AI.html` e são hipóteses para entrevistas. A plataforma continua sendo uma POC local sem autenticação, cobrança, contratos, backend ou persistência reais.
+Os modelos e valores vêm do `docs/apresentacoes/PLANO_MONETIZACAO_ESCUTA_AI.html` e são hipóteses para entrevistas. A plataforma continua sendo uma POC local sem autenticação, cobrança, contratos, backend ou persistência reais.
 
 ## Objetivo
 

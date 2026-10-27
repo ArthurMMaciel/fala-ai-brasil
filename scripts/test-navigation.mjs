@@ -14,13 +14,13 @@ function compile(file, extra = '', customRequire = require) {
   vm.runInNewContext(code, { module, exports: module.exports, require: customRequire });
   return module.exports;
 }
-const catalog = compile('src/commercial.ts').commercialCatalog;
-const model = compile('src/editorial-model.ts');
-const ui = compile('src/editorial-ui.tsx');
-const stories = compile('src/editorial-landing.tsx', '', name => name === './editorial-ui' ? ui : require(name));
-const tracking = compile('src/editorial-tracking.tsx', '', name => name === './editorial-ui' ? ui : name === './editorial-model' ? model : require(name));
-const experience = compile('src/editorial-experience.tsx', '', name => name === './editorial-ui' ? ui : name === './editorial-model' ? model : name === './editorial-tracking' ? tracking : require(name));
-const landing = compile('src/landing-react.tsx', '\nexport { Landing };', name => ({ './commercial': { commercialCatalog: catalog }, './editorial-ui': ui, './editorial-landing': stories, './editorial-experience': experience }[name] ?? require(name)));
+const catalog = compile('src/domain/commercial.ts').commercialCatalog;
+const model = compile('src/editorial/editorial-model.ts');
+const ui = compile('src/editorial/editorial-ui.tsx');
+const stories = compile('src/editorial/editorial-landing.tsx', '', name => name === './editorial-ui' ? ui : require(name));
+const tracking = compile('src/editorial/editorial-tracking.tsx', '', name => name === './editorial-ui' ? ui : name === './editorial-model' ? model : require(name));
+const experience = compile('src/editorial/editorial-experience.tsx', '', name => name === './editorial-ui' ? ui : name === './editorial-model' ? model : name === './editorial-tracking' ? tracking : require(name));
+const landing = compile('src/landing/landing-react.tsx', '\nexport { Landing };', name => ({ '../domain/commercial': { commercialCatalog: catalog }, '../editorial/editorial-ui': ui, '../editorial/editorial-landing': stories, '../editorial/editorial-experience': experience }[name] ?? require(name)));
 
 // Minimal host for the legacy renderer: checks transitions and bound actions without a browser.
 function app() {
@@ -45,11 +45,17 @@ function app() {
     mountExperience() { reactMounted = true; },
     mountLanding(_, next) { reactMounted = true; props = next; },
     unmountLanding() { reactMounted = false; },
+    // Cadastro real (ADR-0009) fica desligado no host de teste; contas demo seguem locais.
+    isAccountServiceConfigured: () => false, loadAccount: async () => null, readRedirectError: () => null,
+    registerAccount: async () => ({ ok: false, message: 'indisponível' }), resendConfirmation: async () => ({ ok: true, value: null }),
+    signIn: async () => ({ ok: false, message: 'indisponível' }), signOut: async () => {}, loadPartnerPhoto: async () => ({ url: null }), uploadPartnerPhoto: async () => ({ ok: false, message: 'indisponível' }),
+    isDemoEmail: email => email.endsWith('@escutaai.demo'), listPublicSponsors: async () => [], minPasswordLength: 8, validateRegistration: () => null,
+    brazilianStates: ['SP'], showToast() {}, createCampaign: async () => ({ ok: false, message: 'indisponível' }), deleteCampaignDraft: async () => ({ ok: true }), listCampaigns: async () => [], submitCampaign: async () => ({ ok: true }), campaignKindForPlan: () => null, campaignKindLabels: {}, campaignStatusLabels: {}, isActiveCampaign: () => false, validateCampaign: () => null, profileLabels: {}, splitStreet: () => null, streetTypeLabels: { street: 'Rua' },
     document: { createElement() { return { relList: { supports: () => true } }; }, querySelector: () => element },
     window: { scrollTo() {}, matchMedia: () => ({ matches: true }) },
     requestAnimationFrame: callback => callback(), console, URL, Intl, Date, AbortController,
   });
-  const source = readFileSync('src/main.js', 'utf8').replace(/^import .*;\r?\n/gm, '');
+  const source = readFileSync('src/app/main.js', 'utf8').replace(/^import .*;\r?\n/gm, '');
   vm.runInContext(source + '\nglobalThis.api={state:o,route:m,responses:ve};', context);
   return { get props() { return props; }, get html() { return markup; }, api: context.api, button(action) { const button = buttons.find(b => b.dataset.action === action || b.dataset.route === action); assert.ok(button, `Botão ${action} encontrado`); return button; } };
 }
@@ -112,7 +118,7 @@ test('avaliação e finalização do caso respondem e não duplicam o encerramen
 
 test('desmontagem descarta a raiz React antes de remontar a landing', () => {
   let created = 0, unmounted = 0;
-  const lifecycle = compile('src/landing-react.tsx', '', name => name === 'react-dom/client' ? { createRoot() { created++; return { render() {}, unmount() { unmounted++; } }; } } : ({ './commercial': { commercialCatalog: catalog }, './editorial-ui': ui, './editorial-landing': stories, './editorial-experience': experience }[name] ?? require(name)));
+  const lifecycle = compile('src/landing/landing-react.tsx', '', name => name === 'react-dom/client' ? { createRoot() { created++; return { render() {}, unmount() { unmounted++; } }; } } : ({ '../domain/commercial': { commercialCatalog: catalog }, '../editorial/editorial-ui': ui, '../editorial/editorial-landing': stories, '../editorial/editorial-experience': experience }[name] ?? require(name)));
   lifecycle.mountLanding({}, {});
   lifecycle.mountLanding({}, {});
   assert.equal(created, 1);

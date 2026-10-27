@@ -23,6 +23,10 @@
 | 19 | [TASK-0019](TASK-0019-cadastro-planos-e-endereco.md) Cadastro comercial, assinatura e endereço estruturado ([ClickUp](https://app.clickup.com/t/86aktwda1)) | P1 | em-andamento |
 | 20 | [TASK-0020](TASK-0020-usabilidade-navegacao-planos-e-marca.md) Usabilidade, navegação contextual e marca oficial ([ClickUp](https://app.clickup.com/t/17tu7rp3wa5)) | P1 | em-andamento |
 | 21 | [TASK-0021](TASK-0021-figma-direcao-editorial.md) Percursos editoriais do Figma ([ClickUp](https://app.clickup.com/t/17tu7rp6397)) | P1 | concluída |
+| 22 | [TASK-0022](TASK-0022-mvp-supabase-cadastro-e-confirmacao.md) MVP: Supabase, cadastro persistido e confirmação por e-mail ([ClickUp](https://app.clickup.com/t/17tu7rp7pjw)) | P1 | em-andamento |
+| 23 | [TASK-0023](TASK-0023-smtp-gmail-para-demonstracao.md) Trocar SMTP do Supabase para Gmail ([ClickUp](https://app.clickup.com/t/17tu7rp7qbv)) — prazo 2026-10-30 | P0 | pronta |
+| 24 | [TASK-0024](TASK-0024-completar-dados-de-demonstracao-no-banco.md) Levar ao banco o que ainda é simulado ([ClickUp](https://app.clickup.com/t/17tu7rp7qbw)) | P1 | proposta |
+| 25 | [TASK-0025](TASK-0025-refinar-front-menos-generico.md) Refinar o front para parecer menos gerado por IA ([ClickUp](https://app.clickup.com/t/17tu7rp7qbx)) | P1 | proposta |
 
 ## Acompanhamento no ClickUp
 

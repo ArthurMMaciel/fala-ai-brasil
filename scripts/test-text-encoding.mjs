@@ -15,7 +15,7 @@ test('textos versionados usam UTF-8 sem caracteres corrompidos', () => {
 });
 
 test('mensagem da empresa preserva os acentos e o travessão em PT-BR', () => {
-  const content = readFileSync('src/main.js', 'utf8');
+  const content = readFileSync('src/app/main.js', 'utf8');
   assert.ok(content.includes('Transforme sinais sensíveis em resposta institucional — com dono, prazo e prova.'));
   assert.ok(content.includes('A Escuta Aí Empresas organiza uma versão protegida, atribui responsáveis, acompanha prazos e converte o histórico em indicadores próprios de responsividade.'));
 });

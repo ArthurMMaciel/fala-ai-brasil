@@ -87,7 +87,6 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .editorial-footer small { grid-column: 1 / -1; font-size: 11px; color: #e9efe7; }
 .footer-official-logo { background: var(--paper); padding: 5px; height: 45px; width: 225px; object-fit: contain; }
 .editorial-commercial { border-block: 1px solid var(--line); }
-.editorial-commercial > summary { cursor: pointer; padding: 20px max(5%, calc((100% - 1152px) / 2)); font-size: 14px; color: var(--deep); }
 .editorial-commercial .landing-pricing { padding: 36px max(5%, calc((100% - 1152px) / 2)); margin: 0; background: var(--paper); }
 .editorial-commercial .landing-pricing h2 { margin-top: 12px; }
 .editorial-commercial .landing-plans { margin-block: 28px; }
@@ -353,7 +352,9 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .partner-company-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 0; border-top: 1px solid var(--line); }
 .partner-company-row div { display: grid; gap: 5px; }
 .partner-company-row span, .partner-company-row small { color: var(--muted); }
-.partner-company-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.partner-company-row .partner-company-actions { display: grid; gap: 8px; width: 240px; flex: none; }
+.partner-company-row .partner-company-actions:empty { display: none; }
+.partner-company-actions .btn { width: 100%; }
 .partner-bars { display: flex; align-items: end; gap: 20px; height: 210px; padding-top: 24px; border-bottom: 1px solid var(--line); }
 .partner-bars div { display: grid; flex: 1; align-items: end; height: 100%; text-align: center; }
 .partner-bars i { display: block; width: min(40px, 80%); margin: 0 auto; background: var(--deep); }
@@ -455,7 +456,6 @@ button:disabled { cursor: not-allowed; opacity: .55; }
  .editorial-final { align-items: flex-start; flex-direction: column; gap: 28px; padding: 40px 24px; }
  .editorial-final h2 { font-size: 34px; }
  .editorial-footer { grid-template-columns: 1fr; padding: 36px 24px; gap: 28px; }
- .editorial-commercial > summary { padding: 20px 24px; }
  .editorial-commercial .landing-pricing { padding: 32px 24px; }
  .report-layout { grid-template-columns: 1fr; gap: 32px; padding: 32px 24px; }
  .report-sidebar h2 { margin: 14px 0; font-size: 28px; }
@@ -531,10 +531,28 @@ button:disabled { cursor: not-allowed; opacity: .55; }
  .partner-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
  .commercial-search { width: 100%; }
  .partner-company-row { align-items: flex-start; flex-direction: column; }
- .partner-company-actions { justify-content: flex-start; }
+ .partner-company-row .partner-company-actions { width: min(100%, 320px); }
 }
 @media (prefers-reduced-motion: no-preference) {
  .editorial-hero-copy { animation: editorial-arrive .35s ease-out; }
  @keyframes editorial-arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
+
+/* Portal da empresa com dados reais (TASK-0022). */
+.company-facts { display: grid; gap: 12px; margin: 14px 0 0; }
+.company-facts div { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.company-facts dt { color: var(--muted); }
+.company-facts dd { margin: 0; color: var(--ink); font-weight: 600; }
+.partner-photo { object-fit: cover; background: var(--soft); }
+@media (max-width: 520px) { .company-facts div { grid-template-columns: 1fr; gap: 2px; } }
+
+/* Portal do trabalhador com dados reais. */
+.worker-form-step { margin-top: 16px; }
+.worker-form-step label { display: grid; gap: 6px; }
+.worker-form-step textarea, .worker-share-text { width: 100%; min-height: 140px; }
+.worker-company-options { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.worker-outcomes { display: grid; gap: 4px; }
+.worker-form-actions { justify-content: flex-end; margin-top: 20px; }
+.worker-timeline-response strong { color: var(--deep); }
+.worker-actions label { display: grid; gap: 6px; margin-bottom: 10px; }

@@ -2,7 +2,7 @@
 
 | ID | Item | Prioridade | Consequência | Estratégia |
 |---|---|---|---|---|
-| TD-001 | `src/main.ts` concentra UI, estado e regras | P2 | Alto acoplamento e testes difíceis | Extrair por feature após baseline de testes |
+| TD-001 | `src/app/main.js` (minificado e corrigido à mão) concentra UI, estado e regras | P2 | Alto acoplamento e testes difíceis | Extrair por feature após baseline de testes |
 | TD-002 | Renderização por `innerHTML` com dados não confiáveis | P0 antes de piloto | XSS e exposição de dados | Escape central + APIs DOM ou framework avaliado |
 | TD-003 | Estado apenas em memória | P1 | Perda de dados e POC não operacional | API e PostgreSQL |
 | TD-004 | Auth e senha demo no bundle | P1 | Sem segurança real | Sessão server-side e hash de senha |

@@ -10,4 +10,4 @@
 | [ADR-0006](adr/ADR-0006-consulta-cep-viacep.md) | Aceita no escopo autorizado | Consulta pontual de CEP por ViaCEP |
 | [ADR-0007](adr/ADR-0007-boleto-e-transferencia-stripe-brasil.md) | Boleto em investigação; transferência BRL bloqueada | Boleto e transferência bancária na Stripe para o Brasil |
 
-Decisões ainda não formalizadas não são compromisso arquitetural. Propostas antigas em `README.md` e `ENGENHARIA.md` devem ser reavaliadas antes da implementação.
+Decisões ainda não formalizadas não são compromisso arquitetural. Propostas antigas em `README.md` e `docs/ENGENHARIA.md` devem ser reavaliadas antes da implementação.
