@@ -17,6 +17,17 @@ test('CPF e CNPJ validam dígitos verificadores', () => {
   assert.equal(rules.isValidCnpj('12.345.678/0001-90'), false);
 });
 
+test('máscaras de CPF e CNPJ acompanham a digitação', () => {
+  assert.equal(rules.maskCpf('529'), '529');
+  assert.equal(rules.maskCpf('5299822'), '529.982.2');
+  assert.equal(rules.maskCpf('52998224725'), '529.982.247-25');
+  assert.equal(rules.maskCpf('529.982.247-25999'), '529.982.247-25');
+  assert.equal(rules.maskCnpj('112'), '11.2');
+  assert.equal(rules.maskCnpj('11222333000'), '11.222.333/000');
+  assert.equal(rules.maskCnpj('11222333000181'), '11.222.333/0001-81');
+  assert.equal(rules.maskCnpj('11.222.333/0001-81'), '11.222.333/0001-81');
+});
+
 test('cadastro exige confirmação de senha igual e tamanho mínimo', () => {
   assert.equal(rules.validateRegistration(worker), null);
   assert.match(rules.validateRegistration({ ...worker, confirm: 'outra-senha' }), /confirmação de senha/);
