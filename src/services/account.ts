@@ -19,8 +19,11 @@ export function supabase(): SupabaseClient {
   return client;
 }
 
+// Um VITE_SITE_URL local copiado para a Vercel quebraria o link do e-mail; fora do localhost vale a origem atual.
 function redirectUrl(): string {
-  return import.meta.env.VITE_SITE_URL || window.location.origin;
+  const configured = import.meta.env.VITE_SITE_URL;
+  const local = (value: string) => /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(value);
+  return configured && !(local(configured) && !local(window.location.origin)) ? configured : window.location.origin;
 }
 
 export interface AccountProfile {

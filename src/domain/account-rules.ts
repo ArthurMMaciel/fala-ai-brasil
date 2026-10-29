@@ -21,6 +21,17 @@ export function onlyDigits(value: string): string {
   return value.replace(/\D/g, "");
 }
 
+// Máscara progressiva para digitação: aceita colagem com ou sem pontuação.
+export function maskCpf(value: string): string {
+  const d = onlyDigits(value).slice(0, 11);
+  return d.replace(/^(\d{3})(\d)/, "$1.$2").replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3").replace(/\.(\d{3})(\d{1,2})$/, ".$1-$2");
+}
+
+export function maskCnpj(value: string): string {
+  const d = onlyDigits(value).slice(0, 14);
+  return d.replace(/^(\d{2})(\d)/, "$1.$2").replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3").replace(/\.(\d{3})(\d)/, ".$1/$2").replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+}
+
 function allSameDigit(digits: string): boolean {
   return /^(\d)\1+$/.test(digits);
 }
