@@ -26,7 +26,7 @@ try {
  await page.keyboard.press('Enter');
  assert.equal(await page.locator('#main-content').evaluate(el => el === document.activeElement), true);
  await noOverflow();
- assert.equal(await page.locator('.editorial-photo img').evaluate(img => img.complete && img.naturalWidth > 0 && img.width === 420 && img.height === 475), true);
+ assert.equal(await page.locator('.hero-control li').count(), 3);
  await capture('initial-desktop');
 
  await keyboardActivate(button('Relatar uma situação').first());
