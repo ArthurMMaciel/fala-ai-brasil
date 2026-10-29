@@ -7,7 +7,7 @@ const output = ts.transpileModule(readFileSync('src/domain/account-rules.ts', 'u
 const rules = await import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}`);
 
 const address = { zipCode: '01310-100', streetType: 'avenue', streetName: 'Paulista', number: '1000', city: 'São Paulo', state: 'sp' };
-const worker = { type: 'worker', name: 'Pessoa Teste', email: 'pessoa@exemplo.com', password: 'senha-forte-1', confirm: 'senha-forte-1', cpf: '529.982.247-25', address };
+const worker = { type: 'worker', name: 'Pessoa Teste', email: 'pessoa@exemplo.com', password: 'Senha-forte-1', confirm: 'Senha-forte-1', cpf: '529.982.247-25', address };
 
 test('CPF e CNPJ validam dígitos verificadores', () => {
   assert.equal(rules.isValidCpf('529.982.247-25'), true);
@@ -32,6 +32,15 @@ test('cadastro exige confirmação de senha igual e tamanho mínimo', () => {
   assert.equal(rules.validateRegistration(worker), null);
   assert.match(rules.validateRegistration({ ...worker, confirm: 'outra-senha' }), /confirmação de senha/);
   assert.match(rules.validateRegistration({ ...worker, password: '1234567', confirm: '1234567' }), /pelo menos 8/);
+  assert.match(rules.validateRegistration({ ...worker, password: 'senha-forte-1', confirm: 'senha-forte-1' }), /maiúscula/);
+  assert.match(rules.validateRegistration({ ...worker, password: 'SenhaForte1', confirm: 'SenhaForte1' }), /caractere especial/);
+});
+
+test('checklist de senha marca cada regra atendida', () => {
+  assert.deepEqual(rules.passwordChecks('', ''), { length: false, upper: false, lower: false, number: false, special: false, match: false });
+  assert.deepEqual(rules.passwordChecks('Senha@2026', 'Senha@2026'), { length: true, upper: true, lower: true, number: true, special: true, match: true });
+  assert.equal(rules.passwordChecks('Senha@2026', 'Senha@202').match, false);
+  assert.equal(rules.passwordChecks('senha 2026', 'senha 2026').special, false);
 });
 
 test('cada tipo exige seus próprios documentos', () => {

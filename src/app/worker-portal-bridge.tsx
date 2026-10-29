@@ -1,11 +1,11 @@
 import { createRoot, type Root } from 'react-dom/client';
-import { WorkerPortalLive } from '../portals/worker-portal-live';
+import { WorkerPortalLive, type WorkerEntryView } from '../portals/worker-portal-live';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 let root: Root | undefined;
 let mounted = false;
 let mountedContainer: HTMLElement | null = null;
-let activeView: 'dashboard' | 'list' | null = null;
+let activeView: WorkerEntryView | null = null;
 let pendingRelatedId: string | null = null;
 
 function workerShell() { return app?.querySelector<HTMLElement>('.legacy-editorial'); }
@@ -17,6 +17,9 @@ function normalizeSidebar() {
  let manifestations = sidebar.querySelector<HTMLButtonElement>('[data-worker-view="manifestations"]');
  if (!manifestations) { manifestations = document.createElement('button'); manifestations.className = 'side-link'; manifestations.type = 'button'; manifestations.dataset.workerView = 'manifestations'; manifestations.textContent = 'Manifestações'; sidebar.append(manifestations); }
  manifestations.classList.toggle('active', activeView === 'list');
+ let companies = sidebar.querySelector<HTMLButtonElement>('[data-worker-view="companies"]');
+ if (!companies) { companies = document.createElement('button'); companies.className = 'side-link'; companies.type = 'button'; companies.dataset.workerView = 'companies'; companies.textContent = 'Empresas'; sidebar.append(companies); }
+ companies.classList.toggle('active', activeView === 'companies');
  sidebar.querySelector<HTMLElement>('[data-route="worker"]')?.classList.toggle('active', activeView === 'dashboard');
 }
 function workerContent() { return workerShell()?.querySelector<HTMLElement>('.content'); }
@@ -43,7 +46,7 @@ function addRelatedNote() {
  content.dataset.relatedManifestationId = pendingRelatedId;
 }
 function isWorkerDashboard() { return Boolean(workerContent()?.querySelector('.page-head h2')?.textContent?.includes('Como podemos ajudar')); }
-function mount(view: 'dashboard' | 'list') {
+function mount(view: WorkerEntryView) {
  const content = workerContent();
  if (!content) return;
  activeView = view;
@@ -62,6 +65,8 @@ if (app) {
   const target = event.target as HTMLElement;
   const manifestations = target.closest<HTMLElement>('[data-worker-view="manifestations"]');
   if (manifestations) { event.preventDefault(); event.stopImmediatePropagation(); mount('list'); }
+  const companies = target.closest<HTMLElement>('[data-worker-view="companies"]');
+  if (companies) { event.preventDefault(); event.stopImmediatePropagation(); mount('companies'); }
  }, true);
  const observer = new MutationObserver(() => {
   normalizeSidebar();

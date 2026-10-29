@@ -3,6 +3,28 @@ export type ProfileType = "worker" | "company" | "partner" | "sponsor";
 export const registrableProfiles: ProfileType[] = ["worker", "company", "partner", "sponsor"];
 export const minPasswordLength = 8;
 
+// Regras de senha do cadastro, na ordem exibida ao usuário. "match" compara com a confirmação.
+export type PasswordRuleId = "length" | "upper" | "lower" | "number" | "special" | "match";
+export const passwordRules: { id: PasswordRuleId; label: string }[] = [
+  { id: "length", label: `Pelo menos ${minPasswordLength} caracteres` },
+  { id: "upper", label: "Uma letra maiúscula" },
+  { id: "lower", label: "Uma letra minúscula" },
+  { id: "number", label: "Um número" },
+  { id: "special", label: "Um caractere especial (! @ # $ %)" },
+  { id: "match", label: "Senha e confirmação iguais" },
+];
+
+export function passwordChecks(password: string, confirm: string): Record<PasswordRuleId, boolean> {
+  return {
+    length: password.length >= minPasswordLength,
+    upper: /[A-Z]/.test(password),
+    lower: /[a-z]/.test(password),
+    number: /\d/.test(password),
+    special: /[^A-Za-z0-9\s]/.test(password),
+    match: password.length > 0 && password === confirm,
+  };
+}
+
 export type StreetType = "street" | "avenue" | "alley" | "boulevard" | "square" | "road" | "highway" | "other";
 export const streetTypeLabels: Record<StreetType, string> = {
   street: "Rua",
@@ -134,8 +156,11 @@ export function validateRegistration(input: RegistrationInput): string | null {
   const addressError = validateAddress(input.address);
   if (addressError) return addressError;
   if (input.type !== "worker" && (!input.planId || !input.subscriptionMode)) return "Selecione um plano e uma modalidade.";
+  const checks = passwordChecks(input.password, input.confirm);
   if (input.password.length < minPasswordLength) return `A senha precisa ter pelo menos ${minPasswordLength} caracteres.`;
-  if (input.password !== input.confirm) return "A confirmação de senha precisa ser igual à senha informada.";
+  const missing = passwordRules.filter(rule => rule.id !== "match" && !checks[rule.id]).map(rule => rule.label.toLowerCase());
+  if (missing.length) return `A senha precisa ter: ${missing.join(", ")}.`;
+  if (!checks.match) return "A confirmação de senha precisa ser igual à senha informada.";
   return null;
 }
 
@@ -177,7 +202,7 @@ const authMessages: Record<string, string> = {
   invalid_credentials: "E-mail ou senha incorretos.",
   user_already_exists: "Já existe uma conta com este e-mail. Entre e adicione este perfil pela sua conta.",
   email_exists: "Já existe uma conta com este e-mail. Entre e adicione este perfil pela sua conta.",
-  weak_password: `Escolha uma senha mais forte, com pelo menos ${minPasswordLength} caracteres.`,
+  weak_password: "Escolha uma senha mais forte: maiúscula, minúscula, número e caractere especial.",
   over_email_send_rate_limit: "Muitos e-mails enviados em pouco tempo. Aguarde alguns minutos e tente de novo.",
   over_request_rate_limit: "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente de novo.",
   email_send_failed: "Não conseguimos enviar o e-mail de confirmação agora. Nenhuma conta foi criada; tente novamente em alguns minutos.",

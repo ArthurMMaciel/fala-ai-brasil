@@ -175,6 +175,19 @@ export async function uploadPartnerPhoto(partnerId: string, file: File): Promise
 }
 
 // Erros devolvidos pelo link de confirmação (ex.: link expirado) chegam no fragmento da URL.
+// O link de confirmação chega com "type=signup" no hash; lido antes do cliente consumir a URL.
+const arrivedFromConfirmation = typeof window !== "undefined" && /[#&]type=signup(&|$)/.test(window.location.hash);
+
+// Confirmação por e-mail leva à tela de login: encerra a sessão aberta pelo link e devolve o e-mail para preencher o campo.
+export async function consumeEmailConfirmation(): Promise<string | null> {
+  if (!arrivedFromConfirmation || !isAccountServiceConfigured()) return null;
+  const { data } = await supabase().auth.getSession();
+  const email = data.session?.user.email ?? null;
+  await supabase().auth.signOut({ scope: "local" });
+  history.replaceState(null, "", window.location.pathname + window.location.search);
+  return email;
+}
+
 export function readRedirectError(): string | null {
   const params = new URLSearchParams(window.location.hash.slice(1));
   const code = params.get("error_code");

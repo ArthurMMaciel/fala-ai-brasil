@@ -1587,6 +1587,12 @@ body { color: var(--brand-ink); background: var(--brand-paper); }
 .check-row input[type="checkbox"] { width: 18px !important; height: 18px; margin: 0; flex: none; accent-color: var(--brand-green, #1e8a52); }
 .resend-box { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 14px; padding: 12px 14px; border: 1px dashed var(--line); border-radius: 10px; }
 .resend-box p { margin: 0; flex: 1 1 220px; }
+.password-rules { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
+.password-rules li { color: var(--red, #9b3030); display: flex; gap: 6px; align-items: baseline; }
+.password-rules li.ok { color: var(--green, #18563f); }
+.password-rule-icon { width: 14px; font-weight: 700; }
+.check-email p { line-height: 1.6; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 /* Patrocinadores fixos na landing: mesma linguagem editorial (papel, linha, verde profundo, sem sombra). */
 .sponsors-strip { display: grid; grid-template-columns: 350px minmax(0, 1fr); gap: 16px 60px; padding: 52px max(5%, calc((100% - 1152px) / 2)); background: var(--paper); border-bottom: 1px solid var(--line); }

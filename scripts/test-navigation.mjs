@@ -46,7 +46,7 @@ function app() {
     mountLanding(_, next) { reactMounted = true; props = next; },
     unmountLanding() { reactMounted = false; },
     // Cadastro real (ADR-0009) fica desligado no host de teste; contas demo seguem locais.
-    isAccountServiceConfigured: () => false, loadAccount: async () => null, readRedirectError: () => null,
+    isAccountServiceConfigured: () => false, loadAccount: async () => null, readRedirectError: () => null, consumeEmailConfirmation: async () => null, passwordRulesMarkup: () => "",
     registerAccount: async () => ({ ok: false, message: 'indisponível' }), resendConfirmation: async () => ({ ok: true, value: null }),
     signIn: async () => ({ ok: false, message: 'indisponível' }), signOut: async () => {}, loadPartnerPhoto: async () => ({ url: null }), uploadPartnerPhoto: async () => ({ ok: false, message: 'indisponível' }),
     isDemoEmail: email => email.endsWith('@escutaai.demo'), listPublicSponsors: async () => [], minPasswordLength: 8, validateRegistration: () => null,
@@ -59,6 +59,16 @@ function app() {
   vm.runInContext(source + '\nglobalThis.api={state:o,route:m,responses:ve};', context);
   return { get props() { return props; }, get html() { return markup; }, api: context.api, button(action) { const button = buttons.find(b => b.dataset.action === action || b.dataset.route === action); assert.ok(button, `Botão ${action} encontrado`); return button; } };
 }
+
+test('após o cadastro mostra a tela de confirmar e-mail, e o botão leva ao login com o e-mail preenchido', () => {
+  const screen = app();
+  screen.api.route('login', { authNotice: { email: 'pessoa@example.com', sent: true } });
+  assert.match(screen.html, /Falta só um passo/);
+  assert.doesNotMatch(screen.html, /data-form="auth"/);
+  screen.button('confirmed-login').click();
+  assert.match(screen.html, /data-form="auth"/);
+  assert.match(screen.html, /value="pessoa@example.com"/);
+});
 
 test('marca volta à landing repetidamente após login/cadastro e a persona continua navegável', () => {
   const screen = app();

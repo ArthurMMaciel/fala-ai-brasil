@@ -1,6 +1,6 @@
 # TASK-0023 — Trocar o SMTP do Supabase para Gmail na demonstração
 
-- Status: pronta
+- Status: concluída
 - ClickUp: [TASK-0023](https://app.clickup.com/t/17tu7rp7qbv)
 - Área: Operação/Auth
 - Prioridade: P0
@@ -41,5 +41,11 @@ Logs de Auth do Supabase.
 Revogar a senha de app e voltar ao SMTP anterior no painel.
 ## Testes necessários
 Cadastro ponta a ponta com e-mail real de teste; reenvio; link expirado.
+## Resultado (2026-10-29)
+
+- Cadastro em produção (fala-ai-brasil.vercel.app) às 03:13 UTC; e-mail de confirmação na caixa de entrada em menos de 1 minuto; confirmado às 03:15 UTC e perfil de trabalhador criado.
+- Causas dos erros 500 anteriores: usuário do SMTP preenchido com o nome do remetente; variáveis `VITE_` ausentes no build de produção e `VITE_SITE_URL` com valor local.
+- Pendentes: reenvio e link expirado não testados; nome do remetente ainda "Ouvira Brasil".
+
 ## Definição de pronto
 Critérios atendidos e ADR-0009 atualizada com a pendência de domínio próprio antes do piloto.
