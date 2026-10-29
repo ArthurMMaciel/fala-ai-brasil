@@ -128,6 +128,14 @@ sql += `insert into public.campaigns (sponsor_id, subscription_id, kind, title, 
   from public.sponsors s join public.subscriptions sub on sub.sponsor_id = s.id where s.id = ${S('patrocinador.teste@example.com')};\n`;
 sql += `end $$;\n`;
 
+// Contato fictício das empresas (domínio example.com) e Parceira Teste no plano Nacional (Destaques e Meus conteúdos).
+companies.forEach(([slug], i) => { sql += `update public.companies set contact_email = ${q(`contato.${slug}@example.com`)}, contact_phone = ${q(`1199990000${i}`)} where id = ${companyRef(slug)} and contact_email is null;
+`; });
+sql += `update public.companies set contact_email = 'contato.empresateste@example.com', contact_phone = '41999990000' where id = ${companyRef('empresa.teste')} and contact_email is null;
+`;
+sql += `update public.subscriptions set plan_id = 'partner-national' where partner_id = ${P('parceiro.teste@example.com')};
+`;
+
 process.stdout.write(sql);
 
 // Atualiza a lista de contas no arquivo local (sem senha no terminal).

@@ -249,22 +249,25 @@ export interface CompanyContext {
   cnpj: string;
   city: string;
   state: string;
+  contactEmail: string | null;
+  contactPhone: string | null;
 }
 
 // Empresa da conta logada (RLS: só empresas das quais o usuário é membro).
 export async function loadCompanyContext(companyId: string): Promise<CompanyContext | null> {
   const { data } = await supabase()
     .from("companies")
-    .select("id, legal_name, trade_name, cnpj, address:address_id (city, state)")
+    .select("id, legal_name, trade_name, cnpj, contact_email, contact_phone, address:address_id (city, state)")
     .eq("id", companyId)
     .maybeSingle();
   if (!data) return null;
   const address = (Array.isArray(data.address) ? data.address[0] : data.address) as { city?: string; state?: string } | null;
-  return { id: data.id, name: data.trade_name || data.legal_name, legalName: data.legal_name, cnpj: data.cnpj, city: address?.city ?? "", state: address?.state ?? "" };
+  return { id: data.id, name: data.trade_name || data.legal_name, legalName: data.legal_name, cnpj: data.cnpj, city: address?.city ?? "", state: address?.state ?? "", contactEmail: data.contact_email, contactPhone: data.contact_phone };
 }
 
 export interface DirectoryPartner {
   requested: boolean;
+  featured: boolean;
   id: string;
   name: string;
   specialty: string;
@@ -279,8 +282,9 @@ export async function listPartnerDirectory(): Promise<DirectoryPartner[]> {
   const db = supabase();
   const { data, error } = await db.rpc("list_partner_directory");
   if (error || !data) return [];
-  return data.map((row: { id: string; display_name: string; specialty: string; description: string | null; avatar_path: string | null; city: string; state: string; requested: boolean }) => ({
+  return data.map((row: { id: string; display_name: string; specialty: string; description: string | null; avatar_path: string | null; city: string; state: string; requested: boolean; featured: boolean }) => ({
     requested: row.requested,
+    featured: row.featured,
     id: row.id,
     name: row.display_name,
     specialty: row.specialty,
