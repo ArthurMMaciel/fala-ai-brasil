@@ -59,6 +59,8 @@ Aplicação Vite + TypeScript com landing e percursos editoriais em React, integ
 
 ## Alterações recentes
 
+- Em 2026-10-29, regressões do portal com dados reais (commits de 2026-10-26/27, sem pedido do responsável) corrigidas: aba Empresas do trabalhador volta como diretório com "Fazer manifestação" e ranking; aba Destaques volta em Parceiros (planos Profissional e Nacional, migration 20261029040000); empresa logada aparece no Ranking mesmo abaixo de 3 manifestações; parceiro edita perfil e foto em "Meu perfil". "Meus conteúdos" e contato com clientes aguardam aprovação do modelo.
+
 - Em 2026-10-29 o cadastro em produção passou a enviar e-mail pelo Gmail (TASK-0023 concluída). Após cadastrar, a pessoa vê "confirme seu e-mail"; o link leva ao login. Senha com regras e checklist; máscara de CPF/CNPJ; aba Empresas do trabalhador volta com o ranking real (oculta desde 2026-10-22 por usar dados simulados).
 
 - Em 2026-10-28, a pedido do responsável, a fotografia do hero do trabalhador saiu da landing. No lugar entrou o painel "Você no controle" (original protegido, versão autorizada sem identidade, retorno na área do trabalhador). O aviso "nada é enviado à empresa" era da POC e passou a pedir dados fictícios. Produção na Vercel ainda sem variáveis do Supabase.

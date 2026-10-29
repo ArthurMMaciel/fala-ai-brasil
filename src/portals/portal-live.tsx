@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { listPartnerDirectory, loadCompanyContext, type CompanyContext, type DirectoryPartner } from '../services/account';
-import { listCompanyComplaints, listPartnerCompanies, loadCompanyRanking, loadCompanyTimeline, loadPartnerProfile, requestPartner, respondCompanyComplaint, setPartnerConnection, type CompanyComplaint, type ComplaintStatusDb, type PartnerCompany, type PartnerProfileData, type RankingRow, type TimelineItem } from '../services/data';
+import { listPartnerDirectory, loadCompanyContext, loadPartnerPhoto, uploadPartnerPhoto, type CompanyContext, type DirectoryPartner } from '../services/account';
+import { listCompanyComplaints, listPartnerCompanies, loadCompanyRanking, loadCompanyTimeline, loadPartnerProfile, requestPartner, respondCompanyComplaint, setPartnerConnection, updatePartnerProfile, type CompanyComplaint, type ComplaintStatusDb, type PartnerCompany, type PartnerProfileData, type RankingRow, type TimelineItem } from '../services/data';
 import { showToast } from '../app/toast';
 
 // Portais de empresa e parceiro com dados reais (modelo v3). A empresa lê apenas versões compartilhadas, sem identidade.
@@ -61,21 +61,24 @@ function CompanyComplaintDetail({ item, onBack, onChanged }: { item: CompanyComp
   {['shared', 'answered'].includes(item.status) && <section className="commercial-panel"><h2>{item.status === 'shared' ? 'Responder' : 'Enviar nova atualização'}</h2><p className="muted small">Responda de forma institucional. Não tente identificar quem relatou.</p><textarea className="company-response-text" rows={5} maxLength={5000} value={text} onChange={event => setText(event.target.value)} aria-label="Resposta da empresa" /><div className="nav-actions"><button className="btn primary" disabled={busy || text.trim().length < 10} onClick={send}>Enviar resposta</button></div></section>}</>;
 }
 
-function CompanyRanking({ rows }: { rows: RankingRow[] | null }) {
+function CompanyRanking({ rows, company, complaints }: { rows: RankingRow[] | null; company: CompanyContext; complaints: CompanyComplaint[] }) {
  const mine = rows?.find(row => row.isMine);
+ const answered = complaints.filter(item => item.responses > 0).length;
+ const own = !mine && <tr className="ranking-mine"><td>—</td><td>{company.name}<strong> · sua empresa</strong></td><td>{company.city}/{company.state}</td><td>{complaints.length}</td><td>{complaints.length ? Math.round(100 * answered / complaints.length) : 0}%</td><td>fora da classificação</td></tr>;
  return <><div className="commercial-page-head"><div><span className="editorial-eyebrow">Referência pública</span><h1>Ranking</h1><p>Responsividade entre empresas com pelo menos 3 manifestações compartilhadas.</p></div></div>
   <div className="commercial-callout">{mine ? 'Sua empresa está destacada na tabela.' : 'Sua empresa entra no ranking a partir de 3 manifestações compartilhadas, para uma comparação justa.'} O cálculo considera volume, taxa de resposta e tempo até a primeira resposta.</div>
-  {rows === null ? <p className="muted">Carregando…</p> : rows.length === 0 ? <section className="commercial-panel"><p>Ainda não há empresas com volume suficiente.</p></section> :
-  <div className="commercial-panel commercial-table-wrap"><table className="commercial-table"><thead><tr><th>Posição</th><th>Empresa</th><th>Cidade</th><th>Manifestações</th><th>Taxa de resposta</th><th>Tempo médio</th></tr></thead><tbody>{rows.map((row, index) => <tr key={row.companyId} className={row.isMine ? 'ranking-mine' : ''}><td>{index + 1}º</td><td>{row.name}{row.isMine && <strong> · sua empresa</strong>}</td><td>{row.city}/{row.state}</td><td>{row.received}</td><td>{row.responseRate}%</td><td>{hours(row.avgFirstResponseHours)}</td></tr>)}</tbody></table></div>}</>;
+  {rows === null ? <p className="muted">Carregando…</p> :
+  <div className="commercial-panel commercial-table-wrap"><table className="commercial-table"><thead><tr><th>Posição</th><th>Empresa</th><th>Cidade</th><th>Manifestações</th><th>Taxa de resposta</th><th>Tempo médio</th></tr></thead><tbody>{rows.map((row, index) => <tr key={row.companyId} className={row.isMine ? 'ranking-mine' : ''}><td>{index + 1}º</td><td>{row.name}{row.isMine && <strong> · sua empresa</strong>}</td><td>{row.city}/{row.state}</td><td>{row.received}</td><td>{row.responseRate}%</td><td>{hours(row.avgFirstResponseHours)}</td></tr>)}{own}</tbody></table></div>}</>;
 }
 
 function PartnerDirectoryLive() {
  const [partners, setPartners] = useState<DirectoryPartner[] | null>(null);
  const [search, setSearch] = useState('');
+ const [tab, setTab] = useState<'featured' | 'all'>('featured');
  const [selected, setSelected] = useState<DirectoryPartner | null>(null);
  const [version, setVersion] = useState(0);
  useEffect(() => { let active = true; listPartnerDirectory().then(rows => { if (active) setPartners(rows); }); return () => { active = false; }; }, [version]);
- const rows = (partners ?? []).filter(partner => `${partner.name} ${partner.specialty} ${partner.city} ${partner.state}`.toLowerCase().includes(search.toLowerCase()));
+ const rows = (partners ?? []).filter(partner => (tab === 'all' || partner.featured) && `${partner.name} ${partner.specialty} ${partner.city} ${partner.state}`.toLowerCase().includes(search.toLowerCase()));
  const avatar = (partner: DirectoryPartner, large = false) => partner.avatarUrl ? <img className={`partner-avatar partner-photo${large ? ' large' : ''}`} src={partner.avatarUrl} alt={`Foto de ${partner.name}`} /> : <div className={`partner-avatar${large ? ' large' : ''}`} style={{ background: 'var(--soft)' }} aria-hidden="true">{initials(partner.name)}</div>;
  async function contact(partner: DirectoryPartner) {
   const result = await requestPartner(partner.id);
@@ -84,8 +87,9 @@ function PartnerDirectoryLive() {
   setSelected({ ...partner, requested: true }); setVersion(value => value + 1);
  }
  return <><div className="commercial-page-head"><div><span className="editorial-eyebrow">Rede de apoio</span><h1>Parceiros</h1><p>Profissionais cadastrados no Hub de Parceiros para apoiar os próximos passos da sua organização.</p></div><label className="commercial-search">Pesquisar<input value={search} onChange={event => setSearch(event.target.value)} placeholder="Nome, especialidade ou cidade" /></label></div>
-  {partners === null ? <p className="muted">Carregando parceiros…</p> : rows.length === 0 ? <section className="commercial-panel"><h2>{partners.length ? 'Nenhum parceiro encontrado' : 'Ainda não há parceiros cadastrados'}</h2><p>{partners.length ? 'Tente outro nome, especialidade ou cidade.' : 'Quando profissionais se cadastrarem no Hub, eles aparecem aqui.'}</p></section> :
-  <div className="partner-grid">{rows.map(partner => <button className="partner-card" key={partner.id} onClick={() => setSelected(partner)}>{avatar(partner)}<span className="commercial-badge">{partner.requested ? 'Interesse enviado' : 'Parceiro cadastrado'}</span><h2>{partner.name}</h2><p>{partner.specialty}</p><small>{partner.city} / {partner.state}</small></button>)}</div>}
+  <div className="commercial-tabs" role="tablist"><button role="tab" aria-selected={tab === 'featured'} className={tab === 'featured' ? 'active' : ''} onClick={() => setTab('featured')}>Destaques</button><button role="tab" aria-selected={tab === 'all'} className={tab === 'all' ? 'active' : ''} onClick={() => setTab('all')}>Geral</button></div>
+  {partners === null ? <p className="muted">Carregando parceiros…</p> : rows.length === 0 ? <section className="commercial-panel"><h2>{!partners.length ? 'Ainda não há parceiros cadastrados' : tab === 'featured' && !search ? 'Nenhum parceiro em destaque' : 'Nenhum parceiro encontrado'}</h2><p>{!partners.length ? 'Quando profissionais se cadastrarem no Hub, eles aparecem aqui.' : tab === 'featured' && !search ? 'Veja todos os parceiros na aba Geral.' : 'Tente outro nome, especialidade ou cidade.'}</p></section> :
+  <div className="partner-grid">{rows.map(partner => <button className="partner-card" key={partner.id} onClick={() => setSelected(partner)}>{avatar(partner)}<span className="commercial-badge">{partner.requested ? 'Interesse enviado' : partner.featured ? 'Destaque' : 'Parceiro cadastrado'}</span><h2>{partner.name}</h2><p>{partner.specialty}</p><small>{partner.city} / {partner.state}</small></button>)}</div>}
   {selected && <div className="commercial-modal-backdrop" onMouseDown={event => event.target === event.currentTarget && setSelected(null)}><section className="commercial-modal partner-modal" role="dialog" aria-modal="true" aria-labelledby="partner-title"><button className="commercial-modal-close" onClick={() => setSelected(null)} aria-label="Fechar">×</button>{avatar(selected, true)}<span className="editorial-eyebrow">Perfil profissional</span><h2 id="partner-title">{selected.name}</h2><p>{selected.specialty} · {selected.city} / {selected.state}</p>{selected.description && <p>{selected.description}</p>}<div className="commercial-callout">A plataforma não intermedia o serviço. O parceiro recebe o interesse da sua empresa e retorna diretamente.</div>{selected.requested ? <p className="commercial-feedback" role="status">Interesse já enviado a este parceiro.</p> : <button className="btn primary" onClick={() => contact(selected)}>Entrar em contato</button>}</section></div>}</>;
 }
 
@@ -105,8 +109,40 @@ export function CompanyPortalLive({ companyId }: { companyId: string }) {
   {company === undefined || complaints === null ? <p className="muted">Carregando dados da empresa…</p> : company === null ? <section className="commercial-panel"><h2>Não foi possível carregar sua empresa</h2><p>Saia e entre novamente. Se continuar, fale com o suporte.</p></section> :
    view === 'dashboard' ? <CompanyDashboard company={company} complaints={complaints} mine={mine} onOpen={open} onView={setView} /> :
    view === 'complaints' ? <CompanyComplaints complaints={complaints} openId={openId} onOpen={setOpenId} onChanged={() => setVersion(value => value + 1)} /> :
-   view === 'ranking' ? <CompanyRanking rows={ranking} /> : <PartnerDirectoryLive />}
+   view === 'ranking' ? <CompanyRanking rows={ranking} company={company} complaints={complaints} /> : <PartnerDirectoryLive />}
  </section></main>;
+}
+
+function PartnerProfileEditor({ partnerId, profile, onSaved }: { partnerId: string; profile: PartnerProfileData; onSaved: (next: PartnerProfileData) => void }) {
+ const [form, setForm] = useState({ displayName: profile.displayName, specialty: profile.specialty, description: profile.description ?? '' });
+ const [photo, setPhoto] = useState<string | null | undefined>(undefined);
+ const [busy, setBusy] = useState(false);
+ useEffect(() => { let active = true; loadPartnerPhoto(partnerId).then(value => { if (active) setPhoto(value.url); }); return () => { active = false; }; }, [partnerId]);
+ async function save(event: React.FormEvent) {
+  event.preventDefault(); setBusy(true);
+  const result = await updatePartnerProfile(partnerId, form); setBusy(false);
+  if (!result.ok) return showToast('error', result.message);
+  showToast('success', 'Perfil atualizado. Empresas já veem a nova versão.');
+  onSaved({ ...profile, displayName: form.displayName.trim(), specialty: form.specialty.trim(), description: form.description.trim() || null });
+ }
+ async function upload(file: File | undefined) {
+  if (!file) return;
+  setBusy(true); const result = await uploadPartnerPhoto(partnerId, file); setBusy(false);
+  if (!result.ok) return showToast('error', result.message);
+  setPhoto(result.value.url); showToast('success', 'Foto de perfil atualizada.');
+ }
+ return <div className="commercial-grid-two partner-profile-editor">
+  <section className="commercial-panel"><h2>Dados públicos</h2><form className="partner-profile-form" onSubmit={save}>
+   <label className="field">Nome profissional<input value={form.displayName} maxLength={160} required onChange={event => setForm({ ...form, displayName: event.target.value })} /></label>
+   <label className="field">Especialidade<input value={form.specialty} maxLength={120} required onChange={event => setForm({ ...form, specialty: event.target.value })} /></label>
+   <label className="field">Descrição<textarea rows={6} maxLength={2000} value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} /><small className="muted">{form.description.length}/2000</small></label>
+   <p className="muted small">Cidade: {profile.city}/{profile.state}. Endereço e documento não aparecem para empresas.</p>
+   <button className="btn primary" type="submit" disabled={busy}>{busy ? 'Salvando…' : 'Salvar alterações'}</button>
+  </form></section>
+  <section className="commercial-panel"><h2>Foto de perfil</h2>{photo ? <img className="partner-avatar partner-photo large" src={photo} alt={`Foto de ${form.displayName}`} /> : <div className="partner-avatar large" style={{ background: 'var(--soft)' }} aria-hidden="true">{initials(form.displayName)}</div>}
+   <label className="btn partner-photo-upload">{photo ? 'Trocar foto' : 'Enviar foto'}<input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={busy} onChange={event => upload(event.target.files?.[0])} /></label>
+   <p className="muted small">JPG, PNG ou WebP até 5 MB. A foto aparece no diretório de parceiros.</p></section>
+ </div>;
 }
 
 function PartnerCompanyRows({ rows, actions, onChanged }: { rows: PartnerCompany[]; actions: boolean; onChanged: () => void }) {
@@ -135,7 +171,7 @@ export function PartnerPortalLive({ partnerId }: { partnerId: string }) {
  return <main className="commercial-portal-content"><Sidebar eyebrow="Hub de parceiros" name={profile?.displayName ?? 'Carregando…'} items={items} view={view} onView={setView} /><section className="commercial-portal-main">
   {profile === undefined || companies === null ? <p className="muted">Carregando seu hub…</p> : profile === null ? <section className="commercial-panel"><h2>Não foi possível carregar seu perfil</h2><p>Saia e entre novamente.</p></section> :
    view === 'dashboard' ? <>{head('Seu hub profissional', 'Dashboard', 'Acompanhe empresas interessadas e sua carteira.')}<div className="commercial-metrics"><Metric label="Empresas na plataforma" value={companies.length} /><Metric label="Possíveis clientes" value={leads.length} note="demonstraram interesse" /><Metric label="Contatos iniciados" value={contacted.length} /><Metric label="Clientes" value={clients.length} note="na sua carteira" /></div><div className="commercial-grid-two"><section className="commercial-panel"><h2>Possíveis clientes</h2><PartnerCompanyRows rows={leads.slice(0, 3)} actions onChanged={reload} /></section><section className="commercial-panel"><h2>Próximo passo</h2><p>Mantenha foto e descrição atualizadas: empresas veem esses dados ao buscar parceiros.</p><button className="btn" onClick={() => setView('profile')}>Ver meu perfil</button></section></div></> :
-   view === 'profile' ? <>{head('Hub de parceiros', 'Meu perfil', 'É assim que empresas encontram você no diretório.')}<section className="commercial-panel"><dl className="company-facts"><div><dt>Nome profissional</dt><dd>{profile.displayName}</dd></div><div><dt>Especialidade</dt><dd>{profile.specialty}</dd></div><div><dt>Cidade</dt><dd>{profile.city}/{profile.state}</dd></div><div><dt>Descrição</dt><dd>{profile.description ?? '—'}</dd></div></dl><div className="commercial-callout">Foto de perfil e plano ficam em "Minha assinatura".</div></section></> :
+   view === 'profile' ? <>{head('Hub de parceiros', 'Meu perfil', 'É assim que empresas encontram você no diretório.')}<PartnerProfileEditor partnerId={partnerId} profile={profile} onSaved={setProfile} /></> :
    view === 'companies' ? <>{head('Hub de parceiros', 'Empresas', 'Empresas cadastradas na plataforma.')}<section className="commercial-panel partner-company-panel"><PartnerCompanyRows rows={companies} actions onChanged={reload} /></section></> :
    view === 'leads' ? <>{head('Hub de parceiros', 'Possíveis clientes', 'Empresas que demonstraram interesse no seu perfil.')}<section className="commercial-panel partner-company-panel"><PartnerCompanyRows rows={leads} actions onChanged={reload} /></section></> :
    <>{head('Hub de parceiros', 'Clientes', 'Empresas que você marcou como clientes pela plataforma.')}<section className="commercial-panel partner-company-panel"><PartnerCompanyRows rows={clients} actions={false} onChanged={reload} /></section></>}

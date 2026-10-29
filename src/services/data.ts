@@ -117,6 +117,15 @@ export async function setPartnerConnection(companyId: string, stage: Exclude<Con
 
 export interface PartnerProfileData { displayName: string; specialty: string; description: string | null; city: string; state: string }
 
+export async function updatePartnerProfile(partnerId: string, input: { displayName: string; specialty: string; description: string }): Promise<AuthResult<null>> {
+  const displayName = input.displayName.trim(), specialty = input.specialty.trim(), description = input.description.trim();
+  if (!displayName || displayName.length > 160) return { ok: false, message: "Informe o nome profissional (até 160 caracteres)." };
+  if (!specialty || specialty.length > 120) return { ok: false, message: "Informe a especialidade (até 120 caracteres)." };
+  if (description.length > 2000) return { ok: false, message: "A descrição pode ter até 2.000 caracteres." };
+  const { error } = await supabase().from("partners").update({ display_name: displayName, specialty, description: description || null }).eq("id", partnerId);
+  return error ? { ok: false, message: "Não foi possível salvar o perfil. Tente novamente." } : { ok: true, value: null };
+}
+
 export async function loadPartnerProfile(partnerId: string): Promise<PartnerProfileData | null> {
   const { data } = await supabase().from("partners").select("display_name, specialty, description, address:address_id (city, state)").eq("id", partnerId).maybeSingle();
   if (!data) return null;

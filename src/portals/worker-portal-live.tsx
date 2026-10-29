@@ -22,12 +22,17 @@ function Status({ status }: { status: ComplaintStatusDb }) { return <span classN
 function hours(value: number | null) { return value === null ? '—' : value < 48 ? `${value} h` : `${(value / 24).toFixed(1).replace('.', ',')} dias`; }
 
 // Ranking público de responsividade: só empresas com 3+ manifestações compartilhadas, sem nenhum dado de quem relatou.
-function Companies({ onNew }: { onNew: () => void }) {
+function Companies({ companies, onNew }: { companies: DirectoryCompany[]; onNew: (companyId?: string) => void }) {
  const [rows, setRows] = useState<RankingRow[] | null>(null);
+ const [search, setSearch] = useState('');
  useEffect(() => { let active = true; loadCompanyRanking().then(data => { if (active) setRows(data); }); return () => { active = false; }; }, []);
+ const listed = companies.filter(company => `${company.name} ${company.city} ${company.state}`.toLowerCase().includes(search.toLowerCase()));
  return <section className="worker-companies">
-  <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Área do trabalhador</span><h2>Empresas</h2><p className="muted">Como as empresas respondem às manifestações compartilhadas.</p></div><button className="btn primary" onClick={onNew}>Nova manifestação</button></div>
-  <p className="muted small">Entram na lista empresas com pelo menos 3 manifestações compartilhadas, para uma comparação justa. Nenhum relato ou identidade aparece aqui.</p>
+  <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Área do trabalhador</span><h2>Empresas</h2><p className="muted">Como as empresas respondem às manifestações compartilhadas.</p></div><button className="btn primary" onClick={() => onNew()}>Nova manifestação</button></div>
+  <label className="field worker-company-search">Buscar empresa<input value={search} onChange={event => setSearch(event.target.value)} placeholder="Nome ou cidade" /></label>
+  {!listed.length ? <p className="muted">Nenhuma empresa encontrada.</p> : <div className="worker-company-list">{listed.map(company => <article key={company.id} className="worker-company-row"><div><strong>{company.name}</strong><small>{company.city}/{company.state}</small></div><button className="btn" onClick={() => onNew(company.id)}>Fazer manifestação</button></article>)}</div>}
+  <h3>Como as empresas respondem</h3>
+  <p className="muted small">Entram no ranking empresas com pelo menos 3 manifestações compartilhadas, para uma comparação justa. Nenhum relato ou identidade aparece aqui.</p>
   {rows === null ? <p className="muted">Carregando…</p> : rows.length === 0 ? <p>Ainda não há empresas com volume suficiente.</p> :
   <div className="commercial-table-wrap"><table className="commercial-table"><thead><tr><th>Posição</th><th>Empresa</th><th>Cidade</th><th>Manifestações</th><th>Taxa de resposta</th><th>Tempo médio até responder</th></tr></thead><tbody>{rows.map((row, index) => <tr key={row.companyId}><td>{index + 1}º</td><td>{row.name}</td><td>{row.city}/{row.state}</td><td>{row.received}</td><td>{row.responseRate}%</td><td>{hours(row.avgFirstResponseHours)}</td></tr>)}</tbody></table></div>}
  </section>;
@@ -100,8 +105,8 @@ function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerCo
   </aside></div>}</>;
 }
 
-function NewComplaint({ companies, onCancel, onCreated }: { companies: DirectoryCompany[]; onCancel: () => void; onCreated: () => void }) {
- const [form, setForm] = useState({ companyId: '', category: '', title: '', incidentPeriod: '', recurrence: '', original: '', shared: '', expectedOutcomes: [] as string[] });
+function NewComplaint({ companies, initialCompanyId = '', onCancel, onCreated }: { companies: DirectoryCompany[]; initialCompanyId?: string; onCancel: () => void; onCreated: () => void }) {
+ const [form, setForm] = useState({ companyId: initialCompanyId, category: '', title: '', incidentPeriod: '', recurrence: '', original: '', shared: '', expectedOutcomes: [] as string[] });
  const [companySearch, setCompanySearch] = useState('');
  const [reviewed, setReviewed] = useState(false);
  const [busy, setBusy] = useState(false);
@@ -137,6 +142,8 @@ export function WorkerPortalLive({ initialView = 'dashboard' }: { initialView?: 
  const [complaints, setComplaints] = useState<WorkerComplaint[] | null>(null);
  const [companies, setCompanies] = useState<DirectoryCompany[]>([]);
  const [selectedId, setSelectedId] = useState<string | null>(null);
+ const [newCompanyId, setNewCompanyId] = useState('');
+ const startNew = (companyId = '') => { setNewCompanyId(companyId); setView('new'); };
  const [version, setVersion] = useState(0);
  useEffect(() => { setView(initialView); }, [initialView]);
  useEffect(() => { let active = true; Promise.all([listWorkerComplaints(), listCompanyDirectory()]).then(([rows, directory]) => { if (active) { setComplaints(rows); setCompanies(directory); } }); return () => { active = false; }; }, [version]);
@@ -145,10 +152,10 @@ export function WorkerPortalLive({ initialView = 'dashboard' }: { initialView?: 
  const reload = () => setVersion(value => value + 1);
  return <main className="worker-portal-content" id="main-content" tabIndex={-1}>
   {complaints === null ? <p className="muted">Carregando suas manifestações…</p> :
-   view === 'new' ? <NewComplaint companies={companies} onCancel={() => setView('list')} onCreated={() => { reload(); setView('list'); }} /> :
+   view === 'new' ? <NewComplaint key={newCompanyId} companies={companies} initialCompanyId={newCompanyId} onCancel={() => setView('list')} onCreated={() => { reload(); setView('list'); }} /> :
    view === 'detail' && selected ? <Detail complaint={selected} company={byId.get(selected.companyId)} onBack={() => setView('list')} onChanged={reload} /> :
-   view === 'companies' ? <Companies onNew={() => setView('new')} /> :
-   view === 'list' ? <List complaints={complaints} companies={byId} onSelect={item => { setSelectedId(item.id); setView('detail'); }} onNew={() => setView('new')} /> :
-   <Dashboard complaints={complaints} onList={() => setView('list')} onNew={() => setView('new')} />}
+   view === 'companies' ? <Companies companies={companies} onNew={startNew} /> :
+   view === 'list' ? <List complaints={complaints} companies={byId} onSelect={item => { setSelectedId(item.id); setView('detail'); }} onNew={() => startNew()} /> :
+   <Dashboard complaints={complaints} onList={() => setView('list')} onNew={() => startNew()} />}
  </main>;
 }
