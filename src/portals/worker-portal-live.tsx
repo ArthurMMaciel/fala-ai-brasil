@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { closeWorkerComplaint, createWorkerComplaint, listCompanyDirectory, listWorkerComplaints, loadWorkerComplaintDetail, shareWorkerComplaint, type ComplaintFeedback, type ComplaintStatusDb, type DirectoryCompany, type WorkerComplaint, type WorkerComplaintDetail } from '../services/data';
+import { closeWorkerComplaint, createWorkerComplaint, listCompanyDirectory, listWorkerComplaints, loadCompanyRanking, loadWorkerComplaintDetail, shareWorkerComplaint, type ComplaintFeedback, type ComplaintStatusDb, type DirectoryCompany, type RankingRow, type WorkerComplaint, type WorkerComplaintDetail } from '../services/data';
 import { topics } from '../editorial/editorial-model';
 import { showToast } from '../app/toast';
 
 // Portal do trabalhador com dados reais (modelo v3). O relato original nunca sai daqui; a empresa recebe só a versão revisada.
-type View = 'dashboard' | 'list' | 'detail' | 'new';
+type View = 'dashboard' | 'list' | 'detail' | 'new' | 'companies';
+export type WorkerEntryView = 'dashboard' | 'list' | 'companies';
 type Period = 'weekly' | 'monthly' | 'yearly';
 
 const statusLabels: Record<ComplaintStatusDb, string> = { received: 'Guardada', shared: 'Aguardando empresa', answered: 'Respondida', closed: 'Finalizada', canceled: 'Cancelada' };
@@ -17,6 +18,20 @@ const feedbackLabels: Record<ComplaintFeedback, string> = { yes: 'Sim, ajudou', 
 
 function dateLabel(value: string) { return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value)); }
 function Status({ status }: { status: ComplaintStatusDb }) { return <span className={`worker-status ${statusClass[status]}`}>{statusLabels[status]}</span>; }
+
+function hours(value: number | null) { return value === null ? '—' : value < 48 ? `${value} h` : `${(value / 24).toFixed(1).replace('.', ',')} dias`; }
+
+// Ranking público de responsividade: só empresas com 3+ manifestações compartilhadas, sem nenhum dado de quem relatou.
+function Companies({ onNew }: { onNew: () => void }) {
+ const [rows, setRows] = useState<RankingRow[] | null>(null);
+ useEffect(() => { let active = true; loadCompanyRanking().then(data => { if (active) setRows(data); }); return () => { active = false; }; }, []);
+ return <section className="worker-companies">
+  <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Área do trabalhador</span><h2>Empresas</h2><p className="muted">Como as empresas respondem às manifestações compartilhadas.</p></div><button className="btn primary" onClick={onNew}>Nova manifestação</button></div>
+  <p className="muted small">Entram na lista empresas com pelo menos 3 manifestações compartilhadas, para uma comparação justa. Nenhum relato ou identidade aparece aqui.</p>
+  {rows === null ? <p className="muted">Carregando…</p> : rows.length === 0 ? <p>Ainda não há empresas com volume suficiente.</p> :
+  <div className="commercial-table-wrap"><table className="commercial-table"><thead><tr><th>Posição</th><th>Empresa</th><th>Cidade</th><th>Manifestações</th><th>Taxa de resposta</th><th>Tempo médio até responder</th></tr></thead><tbody>{rows.map((row, index) => <tr key={row.companyId}><td>{index + 1}º</td><td>{row.name}</td><td>{row.city}/{row.state}</td><td>{row.received}</td><td>{row.responseRate}%</td><td>{hours(row.avgFirstResponseHours)}</td></tr>)}</tbody></table></div>}
+ </section>;
+}
 
 function Dashboard({ complaints, onList, onNew }: { complaints: WorkerComplaint[]; onList: () => void; onNew: () => void }) {
  const [period, setPeriod] = useState<Period>('monthly');
@@ -117,7 +132,7 @@ function NewComplaint({ companies, onCancel, onCreated }: { companies: Directory
   <div className="nav-actions worker-form-actions"><button className="btn" disabled={busy} onClick={() => submit(false)}>Guardar sem compartilhar</button><button className="btn primary" disabled={busy} onClick={() => submit(true)}>Enviar à empresa</button></div></>;
 }
 
-export function WorkerPortalLive({ initialView = 'dashboard' }: { initialView?: 'dashboard' | 'list' }) {
+export function WorkerPortalLive({ initialView = 'dashboard' }: { initialView?: WorkerEntryView }) {
  const [view, setView] = useState<View>(initialView);
  const [complaints, setComplaints] = useState<WorkerComplaint[] | null>(null);
  const [companies, setCompanies] = useState<DirectoryCompany[]>([]);
@@ -132,6 +147,7 @@ export function WorkerPortalLive({ initialView = 'dashboard' }: { initialView?: 
   {complaints === null ? <p className="muted">Carregando suas manifestações…</p> :
    view === 'new' ? <NewComplaint companies={companies} onCancel={() => setView('list')} onCreated={() => { reload(); setView('list'); }} /> :
    view === 'detail' && selected ? <Detail complaint={selected} company={byId.get(selected.companyId)} onBack={() => setView('list')} onChanged={reload} /> :
+   view === 'companies' ? <Companies onNew={() => setView('new')} /> :
    view === 'list' ? <List complaints={complaints} companies={byId} onSelect={item => { setSelectedId(item.id); setView('detail'); }} onNew={() => setView('new')} /> :
    <Dashboard complaints={complaints} onList={() => setView('list')} onNew={() => setView('new')} />}
  </main>;

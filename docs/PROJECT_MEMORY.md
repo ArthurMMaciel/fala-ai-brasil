@@ -59,6 +59,8 @@ Aplicação Vite + TypeScript com landing e percursos editoriais em React, integ
 
 ## Alterações recentes
 
+- Em 2026-10-29 o cadastro em produção passou a enviar e-mail pelo Gmail (TASK-0023 concluída). Após cadastrar, a pessoa vê "confirme seu e-mail"; o link leva ao login. Senha com regras e checklist; máscara de CPF/CNPJ; aba Empresas do trabalhador volta com o ranking real (oculta desde 2026-10-22 por usar dados simulados).
+
 - Em 2026-10-28, a pedido do responsável, a fotografia do hero do trabalhador saiu da landing. No lugar entrou o painel "Você no controle" (original protegido, versão autorizada sem identidade, retorno na área do trabalhador). O aviso "nada é enviado à empresa" era da POC e passou a pedir dados fictícios. Produção na Vercel ainda sem variáveis do Supabase.
 
 - Em 2026-10-27 o repositório foi reorganizado a pedido do responsável: `src/` em pastas (`app`, `portals`, `landing`, `editorial`, `services`, `domain`, `styles`); legado sem uso removido (`main.ts`, `worker-portal.tsx`, `commercial-portal.tsx`, `mockData.ts`, `models.ts`); diagramas em `docs/arquitetura/diagramas/{poc,mvp}`; `ENGENHARIA.md` e apresentações HTML movidos para `docs/`. Portais de empresa e parceiro só montam com conta real.

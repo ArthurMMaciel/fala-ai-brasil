@@ -63,6 +63,13 @@ O modelo inicial com tabela única `profiles` e coluna `persona` foi substituíd
 - Contas `@escutaai.demo` em memória removidas; dados de demonstração vivem no banco (`scripts/seed-demo-data.mjs`). Painel interno "Operação" e "IA / Supervisão" ocultos no MVP.
 - Teste de fumaça: `supabase/tests/complaints_smoke.sql` (13 verificações).
 
+## Envio por Gmail e fluxo de confirmação (2026-10-29, pedido do responsável)
+
+- SMTP do Auth trocado do Resend (sem domínio verificado) para o Gmail do responsável com senha de app (TASK-0023). Pendência antes do piloto: domínio próprio e provedor transacional; o Gmail é aceito só para a demonstração.
+- Após o cadastro, a tela mostra "confirme seu e-mail" com reenvio, sem formulário de login. O link de confirmação encerra a sessão aberta pelo Supabase e leva ao login com o e-mail preenchido: a pessoa entra com a senha criada.
+- Senha do cadastro: mínimo de 8 caracteres, maiúscula, minúscula, número e caractere especial, com checklist ao vivo. A regra é aplicada no cliente; espelhar na política de senha do Supabase Auth é recomendado.
+- `VITE_SITE_URL` de localhost é ignorado fora do localhost; na Vercel a chave pública pode se chamar `VITE_SUPABASE_PUBLISHABLE`.
+
 ## Motivo
 
 Atende ao prazo e ao custo, entrega autenticação e isolamento reais em PostgreSQL e preserva o caminho para uma API própria: o esquema e as políticas podem migrar para uma API que use o mesmo banco.
