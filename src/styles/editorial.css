@@ -33,15 +33,18 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .editorial-personas button[aria-pressed=true] { color: var(--deep); text-decoration: underline; text-underline-offset: 4px; font-weight: 700; }
 .editorial-eyebrow { display: block; color: var(--deep); text-transform: uppercase; font-size: 12px; line-height: 1.4; font-weight: 700; letter-spacing: 0; }
 .editorial-hero { padding: 56px max(5%, calc((100% - 1152px) / 2)) 40px; }
-.editorial-hero.photographic { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 58px; align-items: start; }
+.editorial-hero.with-aside { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 58px; align-items: start; }
 .editorial-hero-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 26px; }
 .editorial-hero h1 { font-size: 66px; line-height: 1.12; letter-spacing: 0; max-width: 980px; }
 .editorial-hero .lead { font-size: 19px; }
 .editorial-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
 .hero-disclosure { font-size: 13px; color: var(--muted); }
-.editorial-photo { margin: 0; width: 420px; }
-.editorial-photo img { display: block; width: 420px; height: 475px; object-fit: cover; }
-.editorial-photo figcaption { padding-top: 12px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+.hero-control { align-self: center; border: 1px solid var(--line); background: var(--soft); padding: 28px 28px 8px; }
+.hero-control ol { list-style: none; margin: 18px 0 0; padding: 0; }
+.hero-control li { display: grid; grid-template-columns: 40px 1fr; gap: 14px; padding: 18px 0; border-top: 1px solid var(--line); }
+.hero-control li > span { font-family: Lora, serif; font-size: 22px; color: var(--deep); line-height: 1.2; }
+.hero-control strong { display: block; font-size: 17px; color: var(--ink); }
+.hero-control p { margin: 6px 0 0; font-size: 15px; line-height: 1.5; color: var(--muted); }
 .editorial-path { display: grid; grid-template-columns: 340px minmax(0, 1fr); align-items: start; gap: 64px; border-block: 1px solid var(--line); padding: 22px max(5%, calc((100% - 1152px) / 2)) 30px; }
 .editorial-path h2 { font-size: 27px; line-height: 1.12; }
 .editorial-path p { margin-top: 10px; font-size: 12px; color: var(--muted); }
@@ -416,11 +419,9 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .worker-original { max-width: 720px; }
 .worker-original summary { min-height: 44px; padding: 12px 0; cursor: pointer; color: var(--deep); font-size: 14px; }
 .worker-original p { margin-top: 16px; font-size: 14px; }
-@media (min-width: 1440px) { .editorial-hero.photographic { grid-template-columns: minmax(0, 1fr) 420px; } }
+@media (min-width: 1440px) { .editorial-hero.with-aside { grid-template-columns: minmax(0, 1fr) 420px; } }
 @media (max-width: 1100px) {
- .editorial-hero.photographic { grid-template-columns: minmax(0, 1fr) 36%; gap: 36px; }
- .editorial-photo, .editorial-photo img { width: 100%; }
- .editorial-photo img { height: auto; aspect-ratio: 420 / 475; }
+ .editorial-hero.with-aside { grid-template-columns: minmax(0, 1fr) 36%; gap: 36px; }
  .editorial-hero h1 { font-size: 54px; }
  .editorial-path { grid-template-columns: 30% minmax(0, 1fr); gap: 36px; }
  .editorial-section { grid-template-columns: 30% minmax(0, 1fr); gap: 36px; }
@@ -441,12 +442,11 @@ button:disabled { cursor: not-allowed; opacity: .55; }
  .editorial-wordmark { font-size: 25px; }
  .editorial-personas { gap: 22px; width: 100%; overflow-x: auto; flex-wrap: nowrap; }
  .editorial-personas button { flex-shrink: 0; }
- .editorial-hero, .editorial-hero.photographic { display: flex; flex-direction: column; padding: 36px 24px; gap: 32px; }
+ .editorial-hero, .editorial-hero.with-aside { display: flex; flex-direction: column; padding: 36px 24px; gap: 32px; }
  .editorial-hero h1 { font-size: clamp(40px, 8vw, 54px); line-height: 1.12; }
  .editorial-hero-copy { gap: 22px; }
  .editorial-hero .lead { font-size: 17px; }
- .editorial-photo { width: 100%; }
- .editorial-photo img { width: 100%; height: auto; aspect-ratio: 1 / 1; object-position: center 38%; }
+ .hero-control { padding: 22px 20px 4px; }
  .editorial-path { grid-template-columns: 1fr; gap: 24px; padding: 28px 24px; }
  .journey-line strong { font-size: 11px; padding-right: 8px; }
  .journey-track span { width: 26px; height: 26px; flex-basis: 26px; font-size: 11px; }

@@ -59,6 +59,8 @@ Aplicação Vite + TypeScript com landing e percursos editoriais em React, integ
 
 ## Alterações recentes
 
+- Em 2026-10-28, a pedido do responsável, a fotografia do hero do trabalhador saiu da landing. No lugar entrou o painel "Você no controle" (original protegido, versão autorizada sem identidade, retorno na área do trabalhador). O aviso "nada é enviado à empresa" era da POC e passou a pedir dados fictícios. Produção na Vercel ainda sem variáveis do Supabase.
+
 - Em 2026-10-27 o repositório foi reorganizado a pedido do responsável: `src/` em pastas (`app`, `portals`, `landing`, `editorial`, `services`, `domain`, `styles`); legado sem uso removido (`main.ts`, `worker-portal.tsx`, `commercial-portal.tsx`, `mockData.ts`, `models.ts`); diagramas em `docs/arquitetura/diagramas/{poc,mvp}`; `ENGENHARIA.md` e apresentações HTML movidos para `docs/`. Portais de empresa e parceiro só montam com conta real.
 
 - Em 2026-10-27 o responsável aprovou o modelo v3 e pediu tudo em banco: manifestações (original separado da versão compartilhável revisada pelo trabalhador), respostas, ranking calculado, conexões do Hub e patrocinadores da landing vindos do banco. Migration `20261027024534_mvp_manifestacoes_e_conexoes.sql`; seed `scripts/seed-demo-data.mjs` (24 contas fictícias, mesma senha em `supabase/test-users.local.md`). Contas `@escutaai.demo` removidas; Operação/IA ocultas. Novo portal do trabalhador `src/worker-portal-live.tsx` e portais de empresa/parceiro `src/portal-live.tsx`; `src/worker-portal.tsx`, `mockData.ts` e os percursos editoriais anônimos seguem no código, sem uso pelas contas reais.
