@@ -566,3 +566,15 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .worker-form-actions { justify-content: flex-end; margin-top: 20px; }
 .worker-timeline-response strong { color: var(--deep); }
 .worker-actions label { display: grid; gap: 6px; margin-bottom: 10px; }
+
+/* Conteúdos do parceiro e contato da empresa (2026-10-29). */
+.company-contact-form { display: grid; gap: 12px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.company-contact-form .field { display: grid; gap: 6px; font-weight: 600; }
+.content-kind { display: flex; gap: 18px; border: 0; padding: 0; margin: 0; }
+.content-kind legend { font-weight: 600; margin-bottom: 6px; }
+.content-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin: 12px 0; }
+.content-card { border: 1px solid var(--line); background: var(--paper); display: grid; }
+.content-card img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+.content-card > div { padding: 12px; display: grid; gap: 6px; }
+.content-card p { margin: 0; font-size: 14px; color: var(--muted); white-space: pre-line; }
+.content-video { aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--soft); color: var(--deep); font-weight: 700; text-decoration: none; }

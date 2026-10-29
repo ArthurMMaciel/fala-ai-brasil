@@ -102,3 +102,28 @@ test('campanha: tipo vem do plano e período é validado', () => {
   assert.equal(rules.isActiveCampaign({ status: 'rejected', endsAt: '2026-11-01' }, '2026-10-27'), false);
   assert.equal(rules.isActiveCampaign({ status: 'approved', endsAt: '2026-10-20' }, '2026-10-27'), false);
 });
+
+test('conteúdo do parceiro: plano, vídeo por link e campos obrigatórios', () => {
+  assert.equal(rules.planIncludesContent('partner-national'), true);
+  assert.equal(rules.planIncludesContent('partner-presence'), false);
+  assert.equal(rules.isAllowedVideoUrl('https://www.youtube.com/watch?v=abc'), true);
+  assert.equal(rules.isAllowedVideoUrl('https://youtu.be/abc'), true);
+  assert.equal(rules.isAllowedVideoUrl('https://vimeo.com/123'), true);
+  assert.equal(rules.isAllowedVideoUrl('http://youtube.com/watch?v=abc'), false);
+  assert.equal(rules.isAllowedVideoUrl('https://notyoutube.com/x'), false);
+  assert.match(rules.validateContent({ kind: 'image', title: ' ', caption: '' }), /título/);
+  assert.match(rules.validateContent({ kind: 'image', title: 'Oficina', caption: '' }), /foto/);
+  assert.equal(rules.validateContent({ kind: 'image', title: 'Oficina', caption: '', hasFile: true }), null);
+  assert.match(rules.validateContent({ kind: 'video', title: 'Palestra', caption: '', videoUrl: 'https://exemplo.com/v' }), /YouTube/);
+  assert.match(rules.validateContent({ kind: 'image', title: 'x', caption: 'a'.repeat(1001), hasFile: true }), /1.000/);
+});
+
+test('contato da empresa é opcional e validado', () => {
+  assert.equal(rules.validateCompanyContact('', ''), null);
+  assert.equal(rules.validateCompanyContact('rh@example.com', '(41) 99999-0000'), null);
+  assert.match(rules.validateCompanyContact('rh@', ''), /e-mail/);
+  assert.match(rules.validateCompanyContact('', '9999'), /DDD/);
+  assert.equal(rules.whatsappLink('(41) 99999-0000'), 'https://wa.me/5541999990000');
+  assert.equal(rules.formatPhone('41999990000'), '(41) 99999-0000');
+  assert.equal(rules.formatPhone('4133334444'), '(41) 3333-4444');
+});
