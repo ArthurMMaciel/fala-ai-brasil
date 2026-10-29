@@ -263,3 +263,47 @@ export function validateCampaign(input: CampaignInput, today: string): string | 
   if (input.endsAt < input.startsAt) return "O fim precisa ser igual ou posterior ao início.";
   return null;
 }
+
+// Conteúdos do parceiro (planos Profissional e Nacional): foto no Storage ou vídeo por link do YouTube/Vimeo.
+export const contentPlanIds = ["partner-professional", "partner-national"];
+export function planIncludesContent(planId: string | null | undefined): boolean {
+  return Boolean(planId && contentPlanIds.includes(planId));
+}
+
+export function isAllowedVideoUrl(value: string): boolean {
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "https:" && /(^|\.)(youtube\.com|youtu\.be|vimeo\.com)$/.test(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+export interface ContentInput { kind: "image" | "video"; title: string; caption: string; videoUrl?: string; hasFile?: boolean }
+export function validateContent(input: ContentInput): string | null {
+  const title = input.title.trim();
+  if (!title) return "Dê um título ao conteúdo.";
+  if (title.length > 120) return "O título pode ter até 120 caracteres.";
+  if (input.caption.length > 1000) return "A descrição pode ter até 1.000 caracteres.";
+  if (input.kind === "image" && !input.hasFile) return "Escolha uma foto.";
+  if (input.kind === "video" && !isAllowedVideoUrl(input.videoUrl ?? "")) return "Use um link https do YouTube ou do Vimeo.";
+  return null;
+}
+
+// Contato da empresa: opcional; telefone com DDD (10 ou 11 dígitos).
+export function validateCompanyContact(email: string, phone: string): string | null {
+  const mail = email.trim();
+  if (mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) return "Informe um e-mail válido ou deixe em branco.";
+  const digits = onlyDigits(phone);
+  if (phone.trim() && (digits.length < 10 || digits.length > 11)) return "Informe o telefone com DDD (10 ou 11 dígitos) ou deixe em branco.";
+  return null;
+}
+
+export function whatsappLink(phone: string): string {
+  return `https://wa.me/55${onlyDigits(phone)}`;
+}
+
+export function formatPhone(phone: string): string {
+  const d = onlyDigits(phone);
+  return d.length === 11 ? d.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3") : d.replace(/^(\d{2})(\d{4})(\d{4})$/, "($1) $2-$3");
+}

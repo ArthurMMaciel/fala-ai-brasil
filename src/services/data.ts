@@ -1,5 +1,6 @@
 import { isAccountServiceConfigured, supabase, type AuthResult } from "./account";
-import type { CampaignKind } from "../domain/account-rules";
+import { onlyDigits, type CampaignKind, type ContentInput } from "../domain/account-rules";
+import { partnerMediaBucket } from "./account";
 
 // Acesso aos dados do modelo v3 (manifestações, Hub, landing). Regras e privacidade ficam no banco (RLS e funções).
 export type ComplaintStatusDb = "received" | "shared" | "answered" | "closed" | "canceled";
@@ -103,11 +104,11 @@ export async function requestPartner(partnerId: string): Promise<AuthResult<null
 }
 
 export type ConnectionStage = "company_interest" | "partner_contacted" | "client";
-export interface PartnerCompany { id: string; name: string; legalName: string; city: string; state: string; stage: ConnectionStage | null }
+export interface PartnerCompany { id: string; name: string; legalName: string; city: string; state: string; stage: ConnectionStage | null; contactEmail: string | null; contactPhone: string | null }
 
 export async function listPartnerCompanies(): Promise<PartnerCompany[]> {
   const { data } = await supabase().rpc("list_partner_companies");
-  return (data ?? []).map((row: { id: string; name: string; legal_name: string; city: string; state: string; stage: ConnectionStage | null }) => ({ id: row.id, name: row.name, legalName: row.legal_name, city: row.city, state: row.state, stage: row.stage }));
+  return (data ?? []).map((row: { id: string; name: string; legal_name: string; city: string; state: string; stage: ConnectionStage | null; contact_email: string | null; contact_phone: string | null }) => ({ id: row.id, name: row.name, legalName: row.legal_name, city: row.city, state: row.state, stage: row.stage, contactEmail: row.contact_email, contactPhone: row.contact_phone }));
 }
 
 export async function setPartnerConnection(companyId: string, stage: Exclude<ConnectionStage, "company_interest">): Promise<AuthResult<null>> {
@@ -139,4 +140,60 @@ export async function listPublicSponsors(): Promise<PublicSponsor[]> {
   if (!isAccountServiceConfigured()) return [];
   const { data } = await supabase().rpc("list_public_sponsors");
   return (data ?? []).map((row: { id: string; name: string; campaign_title: string; campaign_kind: CampaignKind }) => ({ id: row.id, name: row.name, campaignTitle: row.campaign_title, campaignKind: row.campaign_kind }));
+}
+
+// Contato da empresa (só o dono da conta altera; RLS companies_update).
+export async function updateCompanyContact(companyId: string, email: string, phone: string): Promise<AuthResult<null>> {
+  const { error } = await supabase().from("companies").update({ contact_email: email.trim().toLowerCase() || null, contact_phone: onlyDigits(phone) || null }).eq("id", companyId);
+  return error ? { ok: false, message: "Não foi possível salvar o contato. Só o responsável pela conta da empresa pode alterá-lo." } : { ok: true, value: null };
+}
+
+// Conteúdos do parceiro: linhas de media com título. Fotos no bucket público, vídeos por link.
+export interface PartnerContent { id: string; kind: "image" | "video"; url: string; title: string; caption: string | null; publishedAt: string | null; storagePath: string | null }
+
+function toContent(row: { id: string; kind: "image" | "video"; storage_path: string | null; external_url: string | null; title: string; caption: string | null; published_at: string | null }): PartnerContent {
+  const url = row.kind === "image" && row.storage_path ? supabase().storage.from(partnerMediaBucket).getPublicUrl(row.storage_path).data.publicUrl : row.external_url ?? "";
+  return { id: row.id, kind: row.kind, url, title: row.title, caption: row.caption, publishedAt: row.published_at, storagePath: row.storage_path };
+}
+
+export async function loadPartnerPlan(partnerId: string): Promise<string | null> {
+  const { data } = await supabase().from("subscriptions").select("plan_id").eq("partner_id", partnerId).order("created_at", { ascending: false }).limit(1);
+  return data?.[0]?.plan_id ?? null;
+}
+
+export async function listMyContents(partnerId: string): Promise<PartnerContent[]> {
+  const { data } = await supabase().from("media").select("id, kind, storage_path, external_url, title, caption, published_at").eq("partner_id", partnerId).not("title", "is", null).order("published_at", { ascending: false });
+  return (data ?? []).map(toContent);
+}
+
+export async function listPartnerContents(partnerId: string): Promise<PartnerContent[]> {
+  const { data } = await supabase().rpc("list_partner_contents", { p_partner: partnerId });
+  return (data ?? []).map(toContent);
+}
+
+export async function createPartnerContent(partnerId: string, input: ContentInput, file?: File): Promise<AuthResult<null>> {
+  const db = supabase();
+  const base = { partner_id: partnerId, kind: input.kind, title: input.title.trim(), caption: input.caption.trim() || null, published_at: new Date().toISOString() };
+  if (input.kind === "video") {
+    const { error } = await db.from("media").insert({ ...base, external_url: (input.videoUrl ?? "").trim() });
+    return error ? { ok: false, message: "Não foi possível publicar o vídeo. Confira se seu plano inclui conteúdos." } : { ok: true, value: null };
+  }
+  if (!file) return { ok: false, message: "Escolha uma foto." };
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) return { ok: false, message: "Use uma imagem JPG, PNG ou WebP." };
+  if (file.size > 5 * 1024 * 1024) return { ok: false, message: "A imagem pode ter até 5 MB." };
+  const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+  const path = `${partnerId}/conteudo-${Date.now()}.${extension}`;
+  const upload = await db.storage.from(partnerMediaBucket).upload(path, file, { contentType: file.type, upsert: false });
+  if (upload.error) return { ok: false, message: "Não foi possível enviar a imagem. Tente novamente." };
+  const { error } = await db.from("media").insert({ ...base, storage_path: path, mime_type: file.type, size_bytes: file.size });
+  if (error) { await db.storage.from(partnerMediaBucket).remove([path]); return { ok: false, message: "Não foi possível publicar a foto. Confira se seu plano inclui conteúdos." }; }
+  return { ok: true, value: null };
+}
+
+export async function deletePartnerContent(content: PartnerContent): Promise<AuthResult<null>> {
+  const db = supabase();
+  const { error } = await db.from("media").delete().eq("id", content.id);
+  if (error) return { ok: false, message: "Não foi possível remover o conteúdo." };
+  if (content.storagePath) await db.storage.from(partnerMediaBucket).remove([content.storagePath]);
+  return { ok: true, value: null };
 }

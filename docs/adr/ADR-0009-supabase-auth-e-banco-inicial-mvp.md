@@ -70,6 +70,14 @@ O modelo inicial com tabela única `profiles` e coluna `persona` foi substituíd
 - Senha do cadastro: mínimo de 8 caracteres, maiúscula, minúscula, número e caractere especial, com checklist ao vivo. A regra é aplicada no cliente; espelhar na política de senha do Supabase Auth é recomendado.
 - `VITE_SITE_URL` de localhost é ignorado fora do localhost; na Vercel a chave pública pode se chamar `VITE_SUPABASE_PUBLISHABLE`.
 
+## Conteúdos do parceiro e contato da empresa (2026-10-29, aprovado pelo responsável)
+
+- `media` ganha `title`, `caption` e `published_at`; linha com título é conteúdo publicado, sem título é foto de perfil. Fotos no bucket `partner-media` (até 5 MB); vídeos só por link https do YouTube/Vimeo, sem upload, por custo do plano gratuito.
+- Publicar conteúdo exige plano Profissional ou Nacional vigente, verificado no banco (`partner_has_content_plan` na política de inserção e atualização). Empresas leem por `list_partner_contents`; trabalhadores não.
+- `companies` ganha `contact_email` e `contact_phone` opcionais, editados só pelo dono da conta. O parceiro recebe esses dados apenas de empresas que demonstraram interesse nele ou que são clientes dele (`list_partner_companies`). O e-mail de login nunca é exposto.
+- Diretório marca `featured` (planos Profissional e Nacional) para a aba Destaques.
+- Teste de fumaça: `supabase/tests/content_contact_smoke.sql`.
+
 ## Motivo
 
 Atende ao prazo e ao custo, entrega autenticação e isolamento reais em PostgreSQL e preserva o caminho para uma API própria: o esquema e as políticas podem migrar para uma API que use o mesmo banco.
