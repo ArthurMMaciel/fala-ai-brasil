@@ -3,7 +3,8 @@ import { appRoleFor, authErrorMessage, buildProfilePayload, type CampaignInput, 
 
 // ADR-0009: somente a chave pública no navegador; o acesso real é controlado por RLS.
 const url = import.meta.env.VITE_SUPABASE_URL;
-const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+// A Vercel recusa o sufixo _KEY no nome; aceita os dois.
+const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE;
 export const partnerMediaBucket = "partner-media";
 const maxAvatarBytes = 5 * 1024 * 1024;
 let client: SupabaseClient | null = null;
@@ -13,7 +14,7 @@ export function isAccountServiceConfigured(): boolean {
 }
 
 export function supabase(): SupabaseClient {
-  if (!url || !key) throw new Error("Cadastro real indisponível: configure VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY.");
+  if (!url || !key) throw new Error("Cadastro real indisponível: configure VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY (ou VITE_SUPABASE_PUBLISHABLE).");
   client ??= createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
   return client;
 }
