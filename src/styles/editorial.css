@@ -578,3 +578,12 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .content-card > div { padding: 12px; display: grid; gap: 6px; }
 .content-card p { margin: 0; font-size: 14px; color: var(--muted); white-space: pre-line; }
 .content-video { aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--soft); color: var(--deep); font-weight: 700; text-decoration: none; }
+
+/* Assistente de nova manifestação (restaurado em 2026-10-30). */
+.contact-form { margin: 16px 0 12px; }
+.contact-list { display: grid; gap: 8px; margin-top: 14px; }
+.contact-chip { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--line); background: var(--soft); }
+.contact-chip button { border: 0; background: transparent; font-size: 20px; cursor: pointer; color: var(--muted); }
+.empty-contact { padding: 12px 14px; border: 1px dashed var(--line); color: var(--muted); }
+.wizard-box .text-panel textarea { width: 100%; font: inherit; margin-bottom: 10px; }
+.wizard-box .field { display: grid; gap: 6px; margin-top: 14px; }

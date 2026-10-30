@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { closeWorkerComplaint, createWorkerComplaint, listCompanyDirectory, listWorkerComplaints, loadCompanyRanking, loadWorkerComplaintDetail, shareWorkerComplaint, type ComplaintFeedback, type ComplaintStatusDb, type DirectoryCompany, type RankingRow, type WorkerComplaint, type WorkerComplaintDetail } from '../services/data';
-import { topics } from '../editorial/editorial-model';
+import { closeWorkerComplaint, listCompanyDirectory, listWorkerComplaints, loadCompanyRanking, loadWorkerComplaintDetail, shareWorkerComplaint, type ComplaintFeedback, type ComplaintStatusDb, type DirectoryCompany, type RankingRow, type WorkerComplaint, type WorkerComplaintDetail } from '../services/data';
 import { showToast } from '../app/toast';
+import { ComplaintWizard } from './complaint-wizard';
 
 // Portal do trabalhador com dados reais (modelo v3). O relato original nunca sai daqui; a empresa recebe só a versão revisada.
 type View = 'dashboard' | 'list' | 'detail' | 'new' | 'companies';
@@ -11,9 +11,6 @@ type Period = 'weekly' | 'monthly' | 'yearly';
 const statusLabels: Record<ComplaintStatusDb, string> = { received: 'Guardada', shared: 'Aguardando empresa', answered: 'Respondida', closed: 'Finalizada', canceled: 'Cancelada' };
 const eventLabels: Record<ComplaintStatusDb, string> = { received: 'Registrada', shared: 'Enviada à empresa', answered: 'Respondida', closed: 'Finalizada', canceled: 'Cancelada' };
 const statusClass: Record<ComplaintStatusDb, string> = { received: 'em-aberto', shared: 'encaminhada-para-empresa', answered: 'respondida', closed: 'finalizada', canceled: 'finalizada' };
-const outcomes = ['Receber uma resposta', 'Que alguma prática seja revista', 'Ter um canal de diálogo', 'Apenas registrar o ocorrido'];
-const periods = ['Hoje', 'Nesta semana', 'Neste mês', 'Há mais de um mês'];
-const recurrences = ['Uma vez', 'Algumas vezes', 'Recorrente'];
 const feedbackLabels: Record<ComplaintFeedback, string> = { yes: 'Sim, ajudou', partial: 'Em parte', no: 'Não ajudou' };
 
 function dateLabel(value: string) { return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value)); }
@@ -105,37 +102,6 @@ function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerCo
   </aside></div>}</>;
 }
 
-function NewComplaint({ companies, initialCompanyId = '', onCancel, onCreated }: { companies: DirectoryCompany[]; initialCompanyId?: string; onCancel: () => void; onCreated: () => void }) {
- const [form, setForm] = useState({ companyId: initialCompanyId, category: '', title: '', incidentPeriod: '', recurrence: '', original: '', shared: '', expectedOutcomes: [] as string[] });
- const [companySearch, setCompanySearch] = useState('');
- const [reviewed, setReviewed] = useState(false);
- const [busy, setBusy] = useState(false);
- const set = (key: keyof typeof form, value: string | string[]) => setForm(current => ({ ...current, [key]: value }));
- const filtered = companies.filter(company => `${company.name} ${company.city}`.toLowerCase().includes(companySearch.toLowerCase())).slice(0, 8);
- function validate(share: boolean) {
-  if (!form.companyId) return 'Escolha a empresa relacionada.';
-  if (!form.category) return 'Escolha um assunto.';
-  if (form.title.trim().length < 3) return 'Dê um título curto à manifestação.';
-  if (form.original.trim().length < 10) return 'Descreva a situação com pelo menos 10 caracteres.';
-  if (share && (!reviewed || form.shared.trim().length < 10)) return 'Revise a versão que a empresa vai ler antes de enviar.';
-  return '';
- }
- async function submit(share: boolean) {
-  const error = validate(share); if (error) return showToast('error', error);
-  setBusy(true); const result = await createWorkerComplaint(form, share); setBusy(false);
-  if (!result.ok) return showToast('error', result.message);
-  showToast('success', share ? 'Manifestação registrada e enviada à empresa.' : 'Manifestação guardada. Você pode compartilhar depois.'); onCreated();
- }
- const selected = companies.find(company => company.id === form.companyId);
- return <><button className="text-action worker-back" onClick={onCancel}>← Voltar</button>
-  <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Nova manifestação</span><h2>Conte o que aconteceu</h2><p className="muted">Você escreve o relato e revisa a versão que a empresa vai ler. Seu nome e seus dados não são enviados.</p></div></div>
-  <section className="worker-detail-section worker-form-step"><h3>1. Empresa</h3>{selected ? <p><strong>{selected.name}</strong> · {selected.city}/{selected.state} <button className="text-action" onClick={() => set('companyId', '')}>Trocar</button></p> : <><label>Buscar empresa<input value={companySearch} onChange={event => setCompanySearch(event.target.value)} placeholder="Nome ou cidade" /></label><div className="worker-company-options">{filtered.map(company => <button key={company.id} className="btn" type="button" onClick={() => set('companyId', company.id)}>{company.name} · {company.city}/{company.state}</button>)}{filtered.length === 0 && <p className="muted small">Nenhuma empresa encontrada. Nesta versão, só empresas cadastradas podem receber manifestações.</p>}</div></>}</section>
-  <section className="worker-detail-section worker-form-step"><h3>2. Assunto</h3><div className="grid two"><label>Assunto<select value={form.category} onChange={event => set('category', event.target.value)}><option value="">Selecione</option>{topics.map(topic => <option key={topic}>{topic}</option>)}</select></label><label>Título curto<input value={form.title} maxLength={140} onChange={event => set('title', event.target.value)} placeholder="Ex.: Pedidos fora do horário" /></label><label>Quando aconteceu<select value={form.incidentPeriod} onChange={event => set('incidentPeriod', event.target.value)}><option value="">Prefiro não dizer</option>{periods.map(item => <option key={item}>{item}</option>)}</select></label><label>Com que frequência<select value={form.recurrence} onChange={event => set('recurrence', event.target.value)}><option value="">Prefiro não dizer</option>{recurrences.map(item => <option key={item}>{item}</option>)}</select></label></div></section>
-  <section className="worker-detail-section worker-form-step"><h3>3. Seu relato</h3><p className="muted small">Este texto fica só com você. Pode escrever com suas palavras.</p><textarea rows={6} maxLength={5000} value={form.original} onChange={event => { set('original', event.target.value); setReviewed(false); }} aria-label="Relato original" /></section>
-  <section className="worker-detail-section worker-form-step"><h3>4. Versão para a empresa</h3>{!reviewed ? <><p className="muted small">Vamos preparar uma cópia do relato para você revisar. Retire nomes, locais, datas e detalhes que identifiquem pessoas.</p><button className="btn" type="button" disabled={form.original.trim().length < 10} onClick={() => { set('shared', form.original); setReviewed(true); }}>Preparar versão para revisar</button></> : <><textarea rows={6} maxLength={5000} value={form.shared} onChange={event => set('shared', event.target.value)} aria-label="Versão para a empresa" /><p className="muted small">A empresa lerá exatamente este texto.</p></>}</section>
-  <section className="worker-detail-section worker-form-step"><h3>5. O que você espera</h3><div className="worker-outcomes">{outcomes.map(item => <label key={item} className="check-row"><input type="checkbox" checked={form.expectedOutcomes.includes(item)} onChange={event => set('expectedOutcomes', event.target.checked ? [...form.expectedOutcomes, item] : form.expectedOutcomes.filter(value => value !== item))} /> <span>{item}</span></label>)}</div></section>
-  <div className="nav-actions worker-form-actions"><button className="btn" disabled={busy} onClick={() => submit(false)}>Guardar sem compartilhar</button><button className="btn primary" disabled={busy} onClick={() => submit(true)}>Enviar à empresa</button></div></>;
-}
 
 export function WorkerPortalLive({ initialView = 'dashboard' }: { initialView?: WorkerEntryView }) {
  const [view, setView] = useState<View>(initialView);
@@ -152,7 +118,7 @@ export function WorkerPortalLive({ initialView = 'dashboard' }: { initialView?: 
  const reload = () => setVersion(value => value + 1);
  return <main className="worker-portal-content" id="main-content" tabIndex={-1}>
   {complaints === null ? <p className="muted">Carregando suas manifestações…</p> :
-   view === 'new' ? <NewComplaint key={newCompanyId} companies={companies} initialCompanyId={newCompanyId} onCancel={() => setView('list')} onCreated={() => { reload(); setView('list'); }} /> :
+   view === 'new' ? <ComplaintWizard key={newCompanyId} companies={companies} initialCompanyId={newCompanyId} onCancel={() => setView('list')} onCreated={() => { reload(); setView('list'); }} /> :
    view === 'detail' && selected ? <Detail complaint={selected} company={byId.get(selected.companyId)} onBack={() => setView('list')} onChanged={reload} /> :
    view === 'companies' ? <Companies companies={companies} onNew={startNew} /> :
    view === 'list' ? <List complaints={complaints} companies={byId} onSelect={item => { setSelectedId(item.id); setView('detail'); }} onNew={() => startNew()} /> :
