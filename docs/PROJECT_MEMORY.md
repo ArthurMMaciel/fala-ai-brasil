@@ -59,6 +59,8 @@ Aplicação Vite + TypeScript com landing e percursos editoriais em React, integ
 
 ## Alterações recentes
 
+- Em 2026-10-30 o assistente de nova manifestação em 9 etapas (contexto, tema, relato, formas de comunicação, expectativas e revisão protegida) voltou ao portal do trabalhador. Tinha sido substituído sem pedido por um formulário simplificado em 2026-10-27. Relato, versão compartilhável e expectativas vão ao banco; respostas de contexto e contatos indicados ficam só na sessão até aprovação do modelo (context_answers e complaint_contacts propostos).
+
 - Em 2026-10-29 o responsável aprovou "Meus conteúdos" do parceiro (fotos e vídeos por link, planos Profissional/Nacional) e o contato da empresa visível ao parceiro com interesse ou cliente (migration 20261029050000, ADR-0009). Parceira Teste passa ao plano Nacional no seed.
 
 - Em 2026-10-29, regressões do portal com dados reais (commits de 2026-10-26/27, sem pedido do responsável) corrigidas: aba Empresas do trabalhador volta como diretório com "Fazer manifestação" e ranking; aba Destaques volta em Parceiros (planos Profissional e Nacional, migration 20261029040000); empresa logada aparece no Ranking mesmo abaixo de 3 manifestações; parceiro edita perfil e foto em "Meu perfil". "Meus conteúdos" e contato com clientes aguardam aprovação do modelo.
