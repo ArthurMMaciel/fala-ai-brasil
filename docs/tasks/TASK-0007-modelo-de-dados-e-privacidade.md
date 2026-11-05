@@ -3,7 +3,7 @@
 - Status: proposta
 - ClickUp: [TASK-0007](https://app.clickup.com/t/86aktn729)
 - Área: Dados/Privacidade/DBA
-- Prioridade: P1
+- Prioridade: P0 para o piloto fechado de novembro
 - Estimativa: 4–6 dias
 - Impacto: evita acoplamento e exposição de dados sensíveis
 

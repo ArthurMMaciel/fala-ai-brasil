@@ -1,6 +1,10 @@
 # Memória permanente do projeto
 
-Atualizado em: 2026-10-26
+Atualizado em: 2026-11-05
+
+- Em 2026-11-05, TASK-0028/ADR-0011: pedido do responsável para “Saiba mais” em todas as landings, persistência em `contact_solicitations` e aba da equipe com filtros e status `waiting_contact`/`contacted`. Implementação local inclui formulário sem texto livre, migration com RPCs e acesso restrito a `private.platform_admins`, e interface administrativa. Intelligence é perfil Empresa com origem própria. Base legal, aviso e prazo de retenção ainda exigem decisão; migration não aplicada em produção e equipe não provisionada. Nenhum e-mail ou CRM novo.
+
+- Em 2026-11-05, o responsável aprovou a aplicação das referências Vectary (imagem local) e Emerald24, com componentes mais arredondados (TASK-0025). Primeira passada local: landing de Trabalhador/Empresa com hero mais amplo, painel de jornada para Empresa e painel de controle preservado para Trabalhador; botões, formulários, painéis e navegação operacional com cantos suaves e verde profundo. Nenhuma regra de relato, acesso ou persistência foi alterada. Os 38 testes e o build passaram; a inspeção visual automatizada depende de Playwright, ausente neste ambiente. ClickUp pendente após limite da API.
 
 ## Visão
 
@@ -58,6 +62,10 @@ Aplicação Vite + TypeScript com landing e percursos editoriais em React, integ
 - Alterações estruturais exigem ADR; trabalho relevante exige tarefa.
 
 ## Alterações recentes
+
+- Em 2026-11-05, a orientação comercial para novembro passou a priorizar um piloto fechado Trabalhador–Empresa. A empresa acessa e responde gratuitamente à versão compartilhável autorizada; a primeira oferta paga proposta é orientação humana opcional. TASK-0030 a TASK-0033 foram criadas e vinculadas ao ClickUp; TASK-0006, TASK-0007, TASK-0011 e TASK-0029 subiram a P0, enquanto Stripe automatizada e expansão visual/de aquisição passaram a P2. O fluxo alvo inclui triagem humana antes de liberação, representante verificado, convite mínimo, auditoria e gate de restore/segurança, proposto na ADR-0010. A versão compartilhável agora começa vazia nos dois pontos de entrada do portal do trabalhador, e indicação de contato empresarial deixou de ser obrigatória no assistente (38 testes e build passaram). O RPC ainda compartilha diretamente após confirmação; nenhuma abertura a relatos reais foi autorizada.
+
+- Em 2026-11-03, feedback comercial motivou TASK-0026 a TASK-0029: mapear aquisição por Trabalhador, Empresa, Parceiro e Patrocinador; separar páginas públicas dos portais; oferecer formulário de contato em todas as entradas; e definir convite empresarial seguro. TASK-0025 incorpora resumos e CTAs. A última menção a “Parceiro” no feedback foi interpretada provisoriamente como Patrocinador. Nenhum envio automático, integração ou coleta nova foi implementado. O convite à empresa depende de verificação de destinatário, autorização, revisão de risco e ADR; risco alto não dispara contato externo automático.
 
 - Em 2026-10-30 o assistente de nova manifestação em 9 etapas (contexto, tema, relato, formas de comunicação, expectativas e revisão protegida) voltou ao portal do trabalhador. Tinha sido substituído sem pedido por um formulário simplificado em 2026-10-27. Relato, versão compartilhável e expectativas vão ao banco; respostas de contexto e contatos indicados ficam só na sessão até aprovação do modelo (context_answers e complaint_contacts propostos).
 

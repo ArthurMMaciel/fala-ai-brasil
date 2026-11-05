@@ -55,7 +55,6 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
  const [contacts, setContacts] = useState<Contact[]>([]);
  const [contact, setContact] = useState<Contact>(emptyContact);
  const [error, setError] = useState('');
- const [reviewed, setReviewed] = useState(false);
  const [busy, setBusy] = useState(false);
  const company = companies.find(item => item.id === companyId);
  const set = (key: keyof typeof draft, value: string | string[]) => setDraft(current => ({ ...current, [key]: value }));
@@ -85,7 +84,6 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
   if (step === 5 && draft.title.trim().length < 3) return setError('Dê um título curto ao relato (pelo menos 3 caracteres).');
   if (step === 5 && draft.original.trim().length < 10) return setError('Conte o que aconteceu com pelo menos 10 caracteres.');
   if (step === 7 && !draft.expectedOutcomes.length) return setError('Escolha pelo menos uma expectativa.');
-  if (step === 7 && !reviewed) { set('shared', draft.original); setReviewed(true); }
   go(step + 1);
  }
  function addContact() {
@@ -120,27 +118,27 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
   body = <><h2>Conte o que aconteceu do seu jeito.</h2><p className="muted">Você não precisa escrever de forma perfeita. Explique como se estivesse contando para alguém de confiança.</p>
    <div className="notice">Evite colocar seu nome, telefone, e-mail ou informações que facilitem sua identificação. Antes de enviar, você revisa a versão que a empresa vai ler.</div>
    <label className="field">Título curto<input value={draft.title} maxLength={140} onChange={event => set('title', event.target.value)} placeholder="Ex.: Sobrecarga e cobranças fora do horário" /></label>
-   <label className="field">Relato<textarea rows={7} maxLength={5000} value={draft.original} onChange={event => { set('original', event.target.value); setReviewed(false); }} /></label>
+   <label className="field">Relato<textarea rows={7} maxLength={5000} value={draft.original} onChange={event => set('original', event.target.value)} /></label>
    <div className="grid two"><label className="field">Quando isso aconteceu?<input value={draft.incidentPeriod} maxLength={80} onChange={event => set('incidentPeriod', event.target.value)} placeholder="Ex.: Últimas semanas" /></label><label className="field">Isso é recorrente?<input value={draft.recurrence} maxLength={80} onChange={event => set('recurrence', event.target.value)} placeholder="Ex.: Recorrente" /></label></div>
    {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Continuar</button></div></>;
  } else if (step === 6) {
   const field = (key: keyof Contact, label: string, props: Record<string, string> = {}) => <div className="field"><label htmlFor={`contact-${key}`}>{label}</label><input id={`contact-${key}`} value={contact[key]} onChange={event => { setContact({ ...contact, [key]: event.target.value }); setError(''); }} aria-describedby="communication-help" {...props} /></div>;
-  body = <><h2>Formas de comunicação</h2><p className="muted">Estes dados servem para indicar pessoas específicas da empresa que possam receber e encaminhar esta manifestação, como RH, ouvidoria, compliance ou uma liderança responsável. A Escuta Aí Brasil validará o destino antes de qualquer contato.</p>
+  body = <><h2>Formas de comunicação</h2><p className="muted">Se você conhece uma pessoa da empresa que possa receber a manifestação, pode indicá-la aqui. A Escuta Aí Brasil precisará validar o destino antes de qualquer contato. Se não conhece um contato seguro, continue sem indicar ninguém.</p>
    <div className="notice warn small">Se o contato for proprietário(a), sócio(a) ou estiver diretamente envolvido no relato, informe o cargo com clareza. Esse contato exige revisão humana e pode não ser usado para proteger a pessoa manifestante.</div>
    <div className="grid two contact-form">{field('name', 'Nome do contato', { autoComplete: 'off' })}{field('role', 'Cargo', { placeholder: 'Ex.: Analista de RH, Ouvidor(a), Proprietário(a)' })}{field('email', 'E-mail profissional', { type: 'email', placeholder: 'contato@empresa.com.br' })}{field('phone', 'Telefone', { inputMode: 'tel', placeholder: '(11) 99999-9999' })}</div>
    <button className="btn primary" type="button" onClick={addContact}>Adicionar contato</button>
    <p id="communication-help" className="muted small">Use dados profissionais e, no telefone, inclua o DDD. Não informe contatos pessoais sem necessidade.</p>
    {errorLine}
    <div className="contact-list" aria-live="polite">{contacts.length ? contacts.map((item, index) => <div className="contact-chip" key={item.email}><span><strong>{item.name}</strong> · {item.role}<br /><span className="small">{item.email} · {item.phone}</span></span><button type="button" onClick={() => setContacts(contacts.filter((_, i) => i !== index))} aria-label={`Remover contato ${item.name}`}>×</button></div>) : <div className="empty-contact">Nenhum contato adicionado ainda.</div>}</div>
-   <div className="nav-actions">{back}<button className="btn primary" type="button" disabled={!contacts.length} onClick={next}>Continuar</button></div></>;
+   <div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Continuar</button></div></>;
  } else if (step === 7) {
   body = <><h2>O que você espera?</h2><OptionGrid label="O que você espera" options={expectations} value={draft.expectedOutcomes} onSelect={option => { setDraft(current => ({ ...current, expectedOutcomes: current.expectedOutcomes.includes(option) ? current.expectedOutcomes.filter(item => item !== option) : [...current.expectedOutcomes, option] })); setError(''); }} />
    {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Preparar revisão</button></div></>;
  } else {
-  body = <><h2>Revisão protegida</h2><p className="muted">À esquerda, seu relato original, que fica só com você. À direita, a versão que a empresa vai ler: retire nomes, locais, datas e detalhes que identifiquem pessoas.</p>
+  body = <><h2>Revisão protegida</h2><p className="muted">Seu relato original não será mostrado à empresa. Escreva uma versão separada, sem nomes, locais, datas ou detalhes que possam identificar pessoas.</p>
    <div className="comparison"><div className="text-panel"><h3>Seu relato original</h3><p>{draft.original}</p></div>
-    <div className="text-panel"><h3>Versão que será enviada à empresa</h3><textarea rows={8} maxLength={5000} value={draft.shared} onChange={event => { set('shared', event.target.value); setError(''); }} aria-label="Versão que será enviada à empresa" /><span className="badge green">Identidade protegida perante a empresa</span></div></div>
-   <p className="muted small">Contatos indicados: {contacts.map(item => `${item.name} (${item.role})`).join(', ')}. Demonstração: contatos e respostas de contexto não são armazenados nem usados para contato.</p>
+    <div className="text-panel"><h3>Versão que será enviada à empresa</h3><textarea rows={8} maxLength={5000} value={draft.shared} onChange={event => { set('shared', event.target.value); setError(''); }} aria-label="Versão que será enviada à empresa" placeholder="Descreva o que a empresa precisa saber para entender e responder, sem dados que identifiquem pessoas." /></div></div>
+   <p className="muted small">{contacts.length ? `Contatos indicados: ${contacts.map(item => `${item.name} (${item.role})`).join(', ')}.` : 'Nenhum contato indicado.'} Demonstração: contatos e respostas de contexto não são armazenados nem usados para contato.</p>
    {errorLine}<div className="nav-actions"><button className="btn" type="button" onClick={() => go(5)}>Quero ajustar meu relato</button><button className="btn" type="button" disabled={busy} onClick={() => submit(false)}>Guardar sem compartilhar</button><button className="btn primary" type="button" disabled={busy} onClick={() => submit(true)}>{busy ? 'Enviando…' : 'Aprovar e enviar'}</button></div></>;
  }
  return <><button className="text-action worker-back" onClick={onCancel}>← Voltar</button>

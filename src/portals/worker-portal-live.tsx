@@ -19,13 +19,13 @@ function Status({ status }: { status: ComplaintStatusDb }) { return <span classN
 function hours(value: number | null) { return value === null ? '—' : value < 48 ? `${value} h` : `${(value / 24).toFixed(1).replace('.', ',')} dias`; }
 
 // Ranking público de responsividade: só empresas com 3+ manifestações compartilhadas, sem nenhum dado de quem relatou.
-function Companies({ companies, onNew }: { companies: DirectoryCompany[]; onNew: (companyId?: string) => void }) {
+function Companies({ companies, onNew }: { companies: DirectoryCompany[]; onNew: (companyId: string) => void }) {
  const [rows, setRows] = useState<RankingRow[] | null>(null);
  const [search, setSearch] = useState('');
  useEffect(() => { let active = true; loadCompanyRanking().then(data => { if (active) setRows(data); }); return () => { active = false; }; }, []);
  const listed = companies.filter(company => `${company.name} ${company.city} ${company.state}`.toLowerCase().includes(search.toLowerCase()));
  return <section className="worker-companies">
-  <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Área do trabalhador</span><h2>Empresas</h2><p className="muted">Como as empresas respondem às manifestações compartilhadas.</p></div><button className="btn primary" onClick={() => onNew()}>Nova manifestação</button></div>
+  <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Área do trabalhador</span><h2>Empresas</h2><p className="muted">Escolha a empresa para iniciar uma manifestação. Você também pode consultar como as empresas respondem.</p></div></div>
   <label className="field worker-company-search">Buscar empresa<input value={search} onChange={event => setSearch(event.target.value)} placeholder="Nome ou cidade" /></label>
   {!listed.length ? <p className="muted">Nenhuma empresa encontrada.</p> : <div className="worker-company-list">{listed.map(company => <article key={company.id} className="worker-company-row"><div><strong>{company.name}</strong><small>{company.city}/{company.state}</small></div><button className="btn" onClick={() => onNew(company.id)}>Fazer manifestação</button></article>)}</div>}
   <h3>Como as empresas respondem</h3>
@@ -75,7 +75,7 @@ function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerCo
  const [shareText, setShareText] = useState('');
  const [busy, setBusy] = useState(false);
  const [feedback, setFeedback] = useState<ComplaintFeedback | ''>('');
- useEffect(() => { let active = true; loadWorkerComplaintDetail(complaint.id).then(value => { if (active) { setDetail(value); setShareText(value.original); } }); return () => { active = false; }; }, [complaint.id]);
+ useEffect(() => { let active = true; loadWorkerComplaintDetail(complaint.id).then(value => { if (active) { setDetail(value); setShareText(''); } }); return () => { active = false; }; }, [complaint.id]);
  async function share() {
   if (shareText.trim().length < 10) return showToast('error', 'Revise a versão para a empresa (mínimo de 10 caracteres).');
   setBusy(true); const result = await shareWorkerComplaint(complaint.id, shareText); setBusy(false);
@@ -93,7 +93,7 @@ function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerCo
   {!detail ? <p className="muted">Carregando detalhes…</p> : <div className="worker-detail-grid"><div>
    <section className="worker-detail-section"><h3>Resumo</h3><dl><div><dt>Empresa</dt><dd>{company?.name ?? '—'}</dd></div><div><dt>Assunto</dt><dd>{complaint.category}</dd></div><div><dt>Quando aconteceu</dt><dd>{complaint.incidentPeriod ?? '—'}</dd></div><div><dt>Recorrência</dt><dd>{complaint.recurrence ?? '—'}</dd></div></dl></section>
    <section className="worker-detail-section"><h3>Seu relato original</h3><p className="muted small">Só você vê este texto.</p><p className="worker-original">{detail.original}</p></section>
-   {detail.shared ? <section className="worker-detail-section"><h3>Versão que a empresa recebeu</h3><p className="worker-original">{detail.shared}</p></section> : complaint.status === 'received' && <section className="worker-detail-section"><h3>Compartilhar com a empresa</h3><p className="muted small">Revise o texto abaixo e retire nomes, locais, datas ou detalhes que possam identificar você ou outras pessoas. Só esta versão será enviada.</p><textarea className="worker-share-text" rows={6} value={shareText} onChange={event => setShareText(event.target.value)} aria-label="Versão para a empresa" /><button className="btn primary" disabled={busy} onClick={share}>Enviar esta versão à empresa</button></section>}
+   {detail.shared ? <section className="worker-detail-section"><h3>Versão que a empresa recebeu</h3><p className="worker-original">{detail.shared}</p></section> : complaint.status === 'received' && <section className="worker-detail-section"><h3>Compartilhar com a empresa</h3><p className="muted small">Escreva uma versão separada. Inclua o necessário para a empresa entender e responder, sem nomes, locais, datas ou detalhes que possam identificar pessoas.</p><textarea className="worker-share-text" rows={6} value={shareText} onChange={event => setShareText(event.target.value)} aria-label="Versão para a empresa" placeholder="Escreva a versão que poderá ser mostrada à empresa." /><button className="btn primary" disabled={busy} onClick={share}>Enviar esta versão à empresa</button></section>}
    {complaint.expectedOutcomes.length > 0 && <section className="worker-detail-section"><h3>O que você espera</h3><ul>{complaint.expectedOutcomes.map(item => <li key={item}>{item}</li>)}</ul></section>}
   </div><aside className="worker-detail-aside">
    <section className="worker-detail-section"><h3>Acompanhamento</h3><ol className="worker-timeline">{detail.timeline.map((item, index) => <li key={index} className={item.kind === 'response' ? 'worker-timeline-response' : ''}><strong>{item.kind === 'response' ? 'Resposta da empresa' : eventLabels[item.status ?? 'received']}</strong><span>{dateLabel(item.createdAt)}</span><p>{item.content}</p></li>)}</ol></section>
@@ -103,25 +103,26 @@ function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerCo
 }
 
 
-export function WorkerPortalLive({ initialView = 'dashboard' }: { initialView?: WorkerEntryView }) {
+export function WorkerPortalLive({ initialView = 'dashboard', onViewChange }: { initialView?: WorkerEntryView; onViewChange?: (view: WorkerEntryView) => void }) {
  const [view, setView] = useState<View>(initialView);
  const [complaints, setComplaints] = useState<WorkerComplaint[] | null>(null);
  const [companies, setCompanies] = useState<DirectoryCompany[]>([]);
  const [selectedId, setSelectedId] = useState<string | null>(null);
  const [newCompanyId, setNewCompanyId] = useState('');
- const startNew = (companyId = '') => { setNewCompanyId(companyId); setView('new'); };
+ const startNew = (companyId: string) => { setNewCompanyId(companyId); setView('new'); };
  const [version, setVersion] = useState(0);
  useEffect(() => { setView(initialView); }, [initialView]);
+ useEffect(() => { onViewChange?.(view === 'dashboard' ? 'dashboard' : view === 'companies' || view === 'new' ? 'companies' : 'list'); }, [view, onViewChange]);
  useEffect(() => { let active = true; Promise.all([listWorkerComplaints(), listCompanyDirectory()]).then(([rows, directory]) => { if (active) { setComplaints(rows); setCompanies(directory); } }); return () => { active = false; }; }, [version]);
  const byId = useMemo(() => new Map(companies.map(company => [company.id, company])), [companies]);
  const selected = complaints?.find(item => item.id === selectedId);
  const reload = () => setVersion(value => value + 1);
  return <main className="worker-portal-content" id="main-content" tabIndex={-1}>
   {complaints === null ? <p className="muted">Carregando suas manifestações…</p> :
-   view === 'new' ? <ComplaintWizard key={newCompanyId} companies={companies} initialCompanyId={newCompanyId} onCancel={() => setView('list')} onCreated={() => { reload(); setView('list'); }} /> :
+   view === 'new' ? <ComplaintWizard key={newCompanyId} companies={companies} initialCompanyId={newCompanyId} onCancel={() => setView('companies')} onCreated={() => { reload(); setView('list'); }} /> :
    view === 'detail' && selected ? <Detail complaint={selected} company={byId.get(selected.companyId)} onBack={() => setView('list')} onChanged={reload} /> :
    view === 'companies' ? <Companies companies={companies} onNew={startNew} /> :
-   view === 'list' ? <List complaints={complaints} companies={byId} onSelect={item => { setSelectedId(item.id); setView('detail'); }} onNew={() => startNew()} /> :
-   <Dashboard complaints={complaints} onList={() => setView('list')} onNew={() => startNew()} />}
+   view === 'list' ? <List complaints={complaints} companies={byId} onSelect={item => { setSelectedId(item.id); setView('detail'); }} onNew={() => setView('companies')} /> :
+   <Dashboard complaints={complaints} onList={() => setView('list')} onNew={() => setView('companies')} />}
  </main>;
 }

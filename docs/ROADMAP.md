@@ -1,5 +1,11 @@
 # Roadmap
 
+## Recorte imediato — piloto fechado de novembro de 2026
+
+O percurso prioritário é Trabalhador → triagem humana → Empresa verificada → resposta gratuita → orientação humana opcional. [TASK-0030](tasks/TASK-0030-fluxos-operacionais-piloto-trabalhador-empresa.md) detalha as jornadas e exceções; [TASK-0031](tasks/TASK-0031-triagem-humana-e-liberacao-segura.md) cobre a liberação segura; [TASK-0033](tasks/TASK-0033-gate-tecnico-piloto-fechado.md) registra as evidências de go/no-go. O Hub, a pesquisa de ambiente, o ranking público de três índices, IA e cobrança automatizada não compõem o fluxo transacional inicial.
+
+Meta de novembro é piloto por convite e com capacidade limitada, condicionado ao gate abaixo. Demonstrações e negociação comercial podem usar dados fictícios antes da liberação de relatos reais. Acesso empresarial à versão autorizada e resposta não dependem de pagamento.
+
 ## Fase 0 — Auditoria e organização (agora)
 
 - Governança, memória, riscos, dívida, skills, backlog e ADRs.

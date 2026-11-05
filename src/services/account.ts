@@ -27,7 +27,7 @@ function redirectUrl(): string {
 }
 
 export interface AccountProfile {
-  type: ProfileType;
+  type: ProfileType | "system";
   id: string;
   name: string;
 }
@@ -36,7 +36,7 @@ export interface AppUser {
   id: string;
   name: string;
   email: string;
-  role: "worker" | "admin" | "commercial";
+  role: "worker" | "admin" | "commercial" | "platform_admin";
   profile: AccountProfile;
   createdAt: string;
 }
@@ -105,7 +105,7 @@ export async function signOut(): Promise<void> {
 }
 
 async function loadSubscription(profile: AccountProfile, userId: string): Promise<AppSubscription | null> {
-  if (profile.type === "worker") return null;
+  if (profile.type === "worker" || profile.type === "system") return null;
   const column = `${profile.type}_id`;
   const { data } = await supabase()
     .from("subscriptions")
@@ -127,9 +127,17 @@ export async function loadAccount(preferred?: { type: ProfileType; id: string })
   const authUser = sessionData.session?.user;
   if (!authUser) return null;
 
+  // A equipe é provisionada fora do navegador; uma conta empresarial não herda este acesso.
+  const { data: isStaff } = await db.rpc("is_platform_admin");
+  if (isStaff === true) {
+    const profile: AccountProfile = { type: "system", id: authUser.id, name: "Equipe Escuta Aí Brasil" };
+    const user: AppUser = { id: authUser.id, name: profile.name, email: authUser.email ?? "", role: "platform_admin", profile, createdAt: authUser.created_at };
+    return { user, subscription: null, profiles: [profile] };
+  }
+
   const { data: rows, error } = await db.rpc("current_profiles");
   if (error || !rows?.length) return null;
-  const profiles: AccountProfile[] = rows.map((row: { profile_type: ProfileType; profile_id: string; display_name: string }) => ({ type: row.profile_type, id: row.profile_id, name: row.display_name }));
+  const profiles: Array<AccountProfile & { type: ProfileType }> = rows.map((row: { profile_type: ProfileType; profile_id: string; display_name: string }) => ({ type: row.profile_type, id: row.profile_id, name: row.display_name }));
   const profile = profiles.find(item => item.type === preferred?.type && item.id === preferred?.id) ?? profiles[0];
   const user: AppUser = {
     id: authUser.id,
