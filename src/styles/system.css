@@ -1,0 +1,80 @@
+/* Sistema visual dos portais (2026-11-05). Referência de telas e componentes: Emerald24
+   (cartões brancos com cantos suaves, botões em pílula, campos em cinza claro, tela dividida no login).
+   As cores continuam as da marca: tokens de editorial.css. Carregado por último. */
+
+:root {
+  --sys-surface: #ffffff;
+  --sys-canvas: #f2f4f1;
+  --sys-field: #f4f6f3;
+  --sys-field-line: #e2e8e1;
+  --sys-radius-sm: 12px;
+  --sys-radius: 18px;
+  --sys-radius-lg: 28px;
+  --sys-shadow: 0 1px 2px rgba(25, 42, 35, .04), 0 10px 28px rgba(25, 42, 35, .06);
+  --sys-shadow-lift: 0 2px 4px rgba(25, 42, 35, .05), 0 18px 40px rgba(25, 42, 35, .1);
+  --sys-ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+/* Botões em pílula: primário em tinta escura, como no Continue/Back To Home da referência. */
+.legacy-editorial .btn { border-radius: 999px; min-height: 46px; padding: 0 22px; font-weight: 600; transition: transform .18s var(--sys-ease), box-shadow .18s var(--sys-ease), background-color .18s; }
+.legacy-editorial .btn.primary { border-color: var(--ink); background: var(--ink); color: #fff; }
+.legacy-editorial .btn.primary:hover { background: var(--deep); border-color: var(--deep); transform: translateY(-1px); box-shadow: var(--sys-shadow); }
+.legacy-editorial .btn:not(.primary):not(.ghost) { border-color: transparent; background: var(--sys-field); color: var(--ink); }
+.legacy-editorial .btn:not(.primary):not(.ghost):hover { background: var(--soft); }
+.legacy-editorial .btn:active { transform: translateY(0) scale(.98); }
+
+/* Campos: fundo cinza claro, sem borda pesada, foco na cor da marca. */
+.legacy-editorial .field label { font-size: 13px; font-weight: 600; color: var(--ink); }
+.legacy-editorial input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), .legacy-editorial select, .legacy-editorial textarea {
+  min-height: 48px; border: 1px solid var(--sys-field-line); border-radius: var(--sys-radius-sm); background: var(--sys-field); color: var(--ink); padding: 12px 14px; font: inherit;
+  transition: border-color .15s, background-color .15s, box-shadow .15s;
+}
+.legacy-editorial input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover, .legacy-editorial select:hover, .legacy-editorial textarea:hover { border-color: #cdd6cc; }
+.legacy-editorial input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus, .legacy-editorial select:focus, .legacy-editorial textarea:focus { outline: none; border-color: var(--deep); background: #fff; box-shadow: 0 0 0 4px rgba(22, 78, 59, .12); }
+
+/* Login e cadastro: painel da marca à esquerda, formulário centralizado à direita. */
+.legacy-editorial .auth-split { display: grid; grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr); gap: 0; max-width: 1280px; min-height: calc(100vh - 120px); margin: 24px auto; padding: 0 24px; align-items: stretch; }
+.auth-art { position: sticky; top: 24px; height: calc(100vh - 168px); min-height: 520px; overflow: hidden; border-radius: var(--sys-radius-lg); padding: 36px; display: flex; flex-direction: column; justify-content: space-between; color: #fff;
+  background: radial-gradient(120% 90% at 85% 10%, #2f8f63 0%, transparent 55%), radial-gradient(90% 70% at 10% 100%, #0f3a2b 0%, transparent 60%), linear-gradient(160deg, #1d6b4e 0%, #164e3b 45%, #0e3527 100%); }
+.auth-art-logo { width: 150px; height: auto; filter: brightness(0) invert(1); opacity: .95; position: relative; z-index: 1; }
+.auth-art-quote { position: relative; z-index: 1; max-width: 340px; margin: 0; font-family: Lora, serif; font-size: clamp(24px, 2.4vw, 32px); line-height: 1.25; }
+.auth-art-shapes { position: absolute; inset: 0; pointer-events: none; }
+.auth-art-shapes i { position: absolute; left: -18%; width: 120%; height: 34%; border-radius: 50% 50% 46% 54% / 60% 60% 40% 40%; border: 1px solid rgba(255, 255, 255, .22);
+  background: linear-gradient(100deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .02) 60%); transform-origin: 0 50%; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25); }
+.auth-art-shapes i:nth-child(1) { top: 8%; transform: rotate(-22deg); }
+.auth-art-shapes i:nth-child(2) { top: 20%; transform: rotate(-12deg); opacity: .85; }
+.auth-art-shapes i:nth-child(3) { top: 32%; transform: rotate(-3deg); opacity: .7; }
+.auth-art-shapes i:nth-child(4) { top: 44%; transform: rotate(7deg); opacity: .55; }
+.auth-art-shapes i:nth-child(5) { top: 56%; transform: rotate(17deg); opacity: .4; }
+@media (prefers-reduced-motion: no-preference) {
+  .auth-art-shapes i { animation: auth-sway 14s var(--sys-ease) infinite alternate; }
+  .auth-art-shapes i:nth-child(2n) { animation-duration: 18s; }
+}
+@keyframes auth-sway { to { translate: 2% -2%; } }
+
+.legacy-editorial .auth-split .auth-box { align-self: center; width: min(100%, 440px); margin: 0 auto; padding: 48px 0; border: 0; background: transparent; box-shadow: none; display: flex; flex-direction: column; gap: 14px; }
+.legacy-editorial .auth-split .auth-box > h2 { margin: 4px 0 0; font-size: clamp(26px, 2.6vw, 34px); line-height: 1.15; }
+.legacy-editorial .auth-split .auth-box > .muted { margin: 0; font-size: 15px; }
+.legacy-editorial .auth-split form { display: grid; gap: 14px; margin-top: 8px; }
+.legacy-editorial .auth-split .field { margin: 0; }
+.auth-actions .btn { width: 100%; }
+.auth-divider { display: flex; align-items: center; gap: 14px; margin: 6px 0; color: var(--muted); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+.auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--sys-field-line); }
+.auth-option { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px 18px; border: 1px solid var(--sys-field-line); border-radius: var(--sys-radius); background: var(--sys-surface); color: var(--ink); text-align: left; font: inherit; cursor: pointer; transition: box-shadow .18s var(--sys-ease), transform .18s var(--sys-ease), border-color .18s; }
+.auth-option:hover { border-color: transparent; box-shadow: var(--sys-shadow-lift); transform: translateY(-1px); }
+.auth-option strong { display: block; font-size: 15px; }
+.auth-option small { display: block; margin-top: 2px; color: var(--muted); font-size: 13px; }
+.auth-option-icon { display: grid; place-items: center; flex: 0 0 44px; height: 44px; border-radius: 50%; background: var(--deep); color: #fff; font-size: 18px; }
+.auth-switch { margin: 6px 0 0; text-align: center; color: var(--muted); font-size: 14px; }
+.auth-switch .text-action { color: var(--ink); font-weight: 700; }
+.auth-hint { margin: 0; text-align: center; color: var(--muted); font-size: 12px; }
+
+@media (max-width: 900px) {
+  .legacy-editorial .auth-split { grid-template-columns: 1fr; margin: 12px auto; padding: 0 16px; min-height: 0; }
+  .auth-art { position: relative; top: 0; height: 180px; min-height: 0; padding: 24px; }
+  .auth-art-quote { font-size: 20px; }
+  .legacy-editorial .auth-split .auth-box { padding: 28px 0 40px; }
+}
+
+/* Selo do portal no login/cadastro em verde suave, como os chips "See all" da referência. */
+.legacy-editorial .auth-split .auth-box > .eyebrow { align-self: flex-start; padding: 6px 12px; border-radius: 999px; background: var(--soft); color: var(--deep); font-size: 12px; font-weight: 700; letter-spacing: .02em; text-transform: none; }

@@ -1,5 +1,6 @@
 import "../styles/styles.css";
 import "../styles/editorial.css";
+import "../styles/system.css";
 import "./document-mask";
 import "./contact-admin-bridge";
 import { passwordRulesMarkup } from "./password-rules";
@@ -92,7 +93,12 @@ function u(e,a){return`<article class="card"><h3>${e}</h3><p class="muted">${a}<
     <form data-form="subscription">${se(a,((p=w.find(g=>g.id===o.selectedPlanId))==null?void 0:p.audience)===a?o.selectedPlanId:e==null?void 0:e.planId,(e==null?void 0:e.mode)??"trial",!!e)}<p id="subscription-error" role="alert"></p><button class="btn primary" type="submit">${e?"Solicitar alteração":"Selecionar primeiro plano"}</button></form>
     <p class="muted small">Pagamento habilita somente recursos comerciais da própria conta. Não muda prioridade de atendimento nem acesso a identidades ou relatos originais.</p>
   </section></main>`}function De(e){if(e==="login"&&o.authNotice?.sent)return acctCheckEmail();const a=e==="login",t=o.authAudience==="company",i=o.authAudience!=="worker";return`
-    <main class="form-shell">
+    <main class="form-shell auth-split">
+      <aside class="auth-art" aria-hidden="true">
+        <img class="auth-art-logo" src="/brand/escuta-ai-brasil.svg" alt="" width="180" height="36" />
+        <div class="auth-art-shapes"><i></i><i></i><i></i><i></i><i></i></div>
+        <p class="auth-art-quote">${a?"Sua experiência no trabalho merece ser ouvida.":"Escuta com cuidado, resposta com responsabilidade."}</p>
+      </aside>
       <section class="auth-box">
         <span class="eyebrow">Portal · ${i?E[o.authAudience].short:"Trabalhador"}</span>
         <h2>${a?i?"Acesse sua conta.":"Entre para acompanhar seus relatos.":i?"Cadastre sua conta e escolha seu plano.":"Crie uma conta para acompanhar seus relatos."}</h2>
@@ -108,16 +114,15 @@ function u(e,a){return`<article class="card"><h3>${e}</h3><p class="muted">${a}<
           ${a?"":`<label class="check-row"><input name="terms" type="checkbox" required /> <span>Aceito os termos de uso.</span></label>
           <label class="check-row"><input name="privacy" type="checkbox" required /> <span>Li a política de privacidade.</span></label>`}
           ${a?acctResendBox():""}
-          <div class="nav-actions" style="margin-top:18px">
+          <div class="auth-actions">
             <button class="btn primary" type="submit">${a?"Entrar":i?"Criar conta e continuar":"Criar conta gratuita"}</button>
-            <button class="btn" type="button" data-action="switch-auth-audience">${t?"Sou trabalhador":"Sou empresa"}</button>
           </div>
         </form>
+        <div class="auth-divider" role="presentation"><span>ou</span></div>
+        <button class="auth-option" type="button" data-action="switch-auth-audience"><span class="auth-option-icon" aria-hidden="true">${t?"◎":"▦"}</span><span><strong>${t?"Sou trabalhador":"Sou empresa"}</strong><small>${t?"Relate e acompanhe suas manifestações com proteção.":"Receba e responda manifestações da sua organização."}</small></span></button>
+        <p class="auth-switch">${a?"Ainda não tem conta?":"Já tem conta?"} <button type="button" class="text-action" data-action="open-auth" data-mode="${a?"register":"login"}" data-audience="${o.authAudience}">${a?"Cadastre-se":"Entrar"}</button></p>
+        ${isAccountServiceConfigured()?'<p class="auth-hint">Depois do cadastro, confirme pelo link enviado ao seu e-mail para entrar.</p>':""}
       </section>
-      <aside class="card">
-        <h3>${isAccountServiceConfigured()?"Sua conta":"Acessos demo"}</h3>
-        ${isAccountServiceConfigured()?'<p class="muted small">Cadastre-se e confirme pelo link enviado ao seu e-mail para entrar.</p>':""}
-      </aside>
     </main>
   `}const q=[{title:"Seu contexto",intro:"Antes de você falar sobre o que aconteceu, queremos entender um pouco do seu contexto.",fields:[["Qual é sua relação atual com a empresa?",["Trabalho atualmente nela","Trabalhei anteriormente","Prestador(a) / terceirizado(a)","Outro"]],["Há quanto tempo você tem ou teve vínculo?",["Menos de 3 meses","3 a 12 meses","1 a 3 anos","Mais de 3 anos","Prefiro não informar"]],["Em qual formato você trabalha ou trabalhava?",["Presencial","Híbrido","Remoto","Externo / campo","Outro"]],["Você lidera ou liderava outras pessoas?",["Sim","Não","Prefiro não informar"]]]},{title:"Como está sua experiência",intro:"Essas respostas ajudam a organizar sua experiência sem revelar quem você é.",fields:[["Nas últimas semanas, com que frequência o trabalho tem causado tensão, medo, exaustão ou sobrecarga?",["Nunca","Raramente","Às vezes","Frequentemente","Quase todos os dias"]],["Você sente que pode falar sobre problemas sem medo de consequências?",["1","2","3","4","5"]],["Quando um problema é reportado, a empresa costuma ouvir e agir?",["Sim","Às vezes","Raramente","Não","Nunca reportei"]],["Quais situações mais aparecem no seu dia a dia?",["Sobrecarga","Cobrança excessiva","Conflitos","Assédio ou humilhação","Falta de apoio","Metas incompatíveis","Falta de autonomia","Jornada excessiva"]]]},{title:"Por que você veio até aqui",intro:"Situações sensíveis recebem revisão com cuidado adicional.",fields:[["O que melhor descreve o motivo de você estar aqui hoje?",["Quero relatar algo que aconteceu comigo","Presenciei algo acontecendo com outra pessoa","É um problema recorrente na equipe","Quero registrar um alerta antes que piore","Outro"]],["Isso ainda está acontecendo?",["Sim","Não","Não sei"]],["Você sente que há risco imediato para você ou outra pessoa?",["Sim","Não","Não tenho certeza"]]]},{title:"Confiança e expectativa",intro:"Última etapa. Queremos entender o que você espera desse acompanhamento.",fields:[["Se a empresa pudesse receber seu relato sem saber quem você é, isso ajudaria?",["1","2","3","4","5"]],["O que você espera que aconteça depois de enviar um relato?",["Quero apenas ser ouvido(a)","Quero que a empresa dê um retorno","Quero que a empresa investigue internamente","Quero que o problema não aconteça com outras pessoas","Quero acompanhar providências"]]]}];function Q(e,a){return e===1&&a===3||e===3&&a===1}function j(e,a){return`${e}-${a}`}function Ie(){if(o.onboardingStep>3)return`
       <main class="form-shell">
