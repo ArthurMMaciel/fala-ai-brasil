@@ -105,7 +105,8 @@ test('landing mostra apenas planos do perfil ativo e acesso gratuito para trabal
     screen.props.onAudienceChange(audience);
     const html = renderToStaticMarkup(React.createElement(landing.Landing, screen.props));
     assert.match(html, /id="solucoes-e-planos"/);
-    assert.match(html, new RegExp(`/media/${audience}\\.webp`));
+    assert.match(html, /\/media\/escuta-ai-brasil-institucional\.mp4/);
+    assert.doesNotMatch(html, /\/media\/[a-z]+\.webp/);
     assert.equal((html.match(/class="landing-process"/g) || []).length, 1);
     assert.doesNotMatch(html, /editorial-hero|editorial-section/);
     assert.match(html, /brand\/escuta-ai-brasil.svg/);
