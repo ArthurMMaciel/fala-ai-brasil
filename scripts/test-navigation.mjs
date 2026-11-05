@@ -18,8 +18,9 @@ const catalog = compile('src/domain/commercial.ts').commercialCatalog;
 const model = compile('src/editorial/editorial-model.ts');
 const ui = compile('src/editorial/editorial-ui.tsx');
 const stories = compile('src/editorial/editorial-landing.tsx', '', name => name === './editorial-ui' ? ui : require(name));
-const contactService = compile('src/services/contact-solicitations.ts', '', name => name === './account' ? { isAccountServiceConfigured: () => false } : require(name));
-const contactForm = compile('src/landing/contact-solicitation-form.tsx', '', name => name === '../services/contact-solicitations' ? contactService : require(name));
+const accountRules = compile('src/domain/account-rules.ts');
+const contactService = compile('src/services/contact-solicitations.ts', '', name => name === './account' ? { isAccountServiceConfigured: () => false } : name === '../domain/account-rules' ? accountRules : require(name));
+const contactForm = compile('src/landing/contact-solicitation-form.tsx', '', name => name === '../services/contact-solicitations' ? contactService : name === '../domain/account-rules' ? accountRules : require(name));
 const showcase = compile('src/landing/persona-showcase.tsx', '', name => name === './contact-solicitation-form' ? contactForm : require(name));
 const tracking = compile('src/editorial/editorial-tracking.tsx', '', name => name === './editorial-ui' ? ui : name === './editorial-model' ? model : require(name));
 const experience = compile('src/editorial/editorial-experience.tsx', '', name => name === './editorial-ui' ? ui : name === './editorial-model' ? model : name === './editorial-tracking' ? tracking : require(name));
@@ -131,10 +132,10 @@ test('landing mostra apenas planos do perfil ativo e acesso gratuito para trabal
 });
 
 test('solicitação de contato exige dados mínimos e mantém o perfil da landing', () => {
-  const input = { profile: 'worker', origin: 'worker', name: 'Ana', email: 'ana@example.com', phone: '(11) 99999-9999', organization: '', website: '' };
+  const input = { profile: 'worker', origin: 'worker', name: 'Ana', email: 'ana@example.com', phone: '(11) 98765-4321', organization: '', website: '' };
   assert.equal(contactService.validateContactSolicitation(input), null);
   assert.match(contactService.validateContactSolicitation({ ...input, email: 'inválido' }), /e-mail válido/);
-  assert.match(contactService.validateContactSolicitation({ ...input, phone: '123' }), /telefone com DDD/);
+  assert.match(contactService.validateContactSolicitation({ ...input, phone: '123' }), /DDD/);
 });
 
 test('solicitações contato aparecem apenas no menu da equipe da plataforma', () => {

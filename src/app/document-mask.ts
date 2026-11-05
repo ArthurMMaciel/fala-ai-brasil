@@ -1,9 +1,10 @@
-import { maskCnpj, maskCpf } from "../domain/account-rules";
+import { maskCnpj, maskCpf, maskPhone } from "../domain/account-rules";
 
 // Máscara de CPF/CNPJ por delegação: cobre os formulários renderizados por main.js a qualquer momento.
 function maskFor(input: HTMLInputElement): ((value: string) => string) | undefined {
   if (input.name === "cpf") return maskCpf;
   if (input.name === "cnpj") return maskCnpj;
+  if (input.name === "phone" && input.closest("form.auth-steps-form")) return maskPhone;
   if (input.name === "document") {
     const type = input.form?.querySelector<HTMLSelectElement>('select[name="documentType"]')?.value;
     return type === "cnpj" ? maskCnpj : maskCpf;
@@ -30,5 +31,6 @@ document.addEventListener("change", event => {
   const input = select.form?.querySelector<HTMLInputElement>('input[name="document"]');
   if (!input) return;
   input.placeholder = select.value === "cnpj" ? "00.000.000/0000-00" : "000.000.000-00";
+  input.inputMode = select.value === "cnpj" ? "text" : "numeric";
   apply(input);
 });

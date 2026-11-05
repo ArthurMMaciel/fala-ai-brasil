@@ -1,4 +1,5 @@
 import { isAccountServiceConfigured, supabase } from './account';
+import { isValidPhone, normalizePhone } from '../domain/account-rules';
 
 export type ContactProfile = 'worker' | 'company' | 'partner' | 'sponsor';
 export type LandingOrigin = ContactProfile | 'intelligence';
@@ -30,7 +31,7 @@ export interface ContactSolicitation {
 export function validateContactSolicitation(input: ContactSolicitationInput): string | null {
   if (input.name.trim().length < 2 || input.name.trim().length > 120) return 'Informe seu nome (de 2 a 120 caracteres).';
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.email.trim()) || input.email.trim().length > 254) return 'Informe um e-mail válido.';
-  if (!/^\d{10,11}$/.test(input.phone.replace(/\D/g, ''))) return 'Informe um telefone com DDD.';
+  if (!isValidPhone(input.phone)) return 'Confira o telefone: DDD + celular com 9 dígitos (começando com 9) ou fixo com 8.';
   if (input.organization.trim() && (input.organization.trim().length < 2 || input.organization.trim().length > 120)) return 'Informe o nome da organização ou deixe o campo vazio.';
   return null;
 }
@@ -44,7 +45,7 @@ export async function submitContactSolicitation(input: ContactSolicitationInput)
     p_origin: input.origin,
     p_name: input.name.trim(),
     p_email: input.email.trim().toLowerCase(),
-    p_phone: input.phone.replace(/\D/g, ''),
+    p_phone: normalizePhone(input.phone),
     p_organization: input.organization.trim() || null,
     p_website: input.website,
   });

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { submitContactSolicitation, validateContactSolicitation, type ContactSolicitationInput, type LandingOrigin } from '../services/contact-solicitations';
+import { maskPhone } from '../domain/account-rules';
 
 const profileLabels = { worker: 'Trabalhador', company: 'Empresa', partner: 'Parceiro', sponsor: 'Patrocinador' };
 
@@ -29,7 +30,7 @@ export function ContactSolicitationForm({ audience }: { audience: LandingOrigin 
     <form className="landing-contact-form" onSubmit={submit} noValidate>
       <p className="landing-contact-context">Perfil: <strong>{profileLabels[profile]}</strong>{audience === 'intelligence' ? ' · interesse em estudos e inteligência' : ''}</p>
       <div className="field"><label htmlFor="lead-name">Nome</label><input id="lead-name" autoComplete="name" maxLength={120} required value={form.name} onChange={event => update('name', event.target.value)} /></div>
-      <div className="landing-contact-pair"><div className="field"><label htmlFor="lead-email">E-mail</label><input id="lead-email" type="email" autoComplete="email" maxLength={254} required value={form.email} onChange={event => update('email', event.target.value)} /></div><div className="field"><label htmlFor="lead-phone">Telefone com DDD</label><input id="lead-phone" type="tel" autoComplete="tel" inputMode="tel" maxLength={20} required value={form.phone} onChange={event => update('phone', event.target.value)} /></div></div>
+      <div className="landing-contact-pair"><div className="field"><label htmlFor="lead-email">E-mail</label><input id="lead-email" type="email" autoComplete="email" maxLength={254} required value={form.email} onChange={event => update('email', event.target.value)} /></div><div className="field"><label htmlFor="lead-phone">Telefone com DDD</label><input id="lead-phone" type="tel" autoComplete="tel" inputMode="tel" maxLength={15} required placeholder="(00) 00000-0000" value={form.phone} onChange={event => update('phone', maskPhone(event.target.value))} /></div></div>
       {profile !== 'worker' && <div className="field"><label htmlFor="lead-organization">Organização <span className="small">(opcional)</span></label><input id="lead-organization" autoComplete="organization" maxLength={120} value={form.organization} onChange={event => update('organization', event.target.value)} /></div>}
       <div className="sr-only" aria-hidden="true"><label htmlFor="lead-website">Site</label><input id="lead-website" tabIndex={-1} autoComplete="off" value={form.website} onChange={event => update('website', event.target.value)} /></div>
       {error && <p className="field-error" role="alert">{error}</p>}

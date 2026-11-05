@@ -7,7 +7,7 @@ const output = ts.transpileModule(readFileSync('src/domain/account-rules.ts', 'u
 const rules = await import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}`);
 
 const address = { zipCode: '01310-100', streetType: 'avenue', streetName: 'Paulista', number: '1000', city: 'São Paulo', state: 'sp' };
-const worker = { type: 'worker', name: 'Pessoa Teste', email: 'pessoa@exemplo.com', password: 'Senha-forte-1', confirm: 'Senha-forte-1', cpf: '529.982.247-25', address };
+const worker = { type: 'worker', name: 'Pessoa Teste', email: 'pessoa@exemplo.com', password: 'Senha-forte-1', confirm: 'Senha-forte-1', cpf: '529.982.247-25', phone: '(41) 98765-4321', address };
 
 test('CPF e CNPJ validam dígitos verificadores', () => {
   assert.equal(rules.isValidCpf('529.982.247-25'), true);
@@ -126,4 +126,27 @@ test('contato da empresa é opcional e validado', () => {
   assert.equal(rules.whatsappLink('(41) 99999-0000'), 'https://wa.me/5541999990000');
   assert.equal(rules.formatPhone('41999990000'), '(41) 99999-0000');
   assert.equal(rules.formatPhone('4133334444'), '(41) 3333-4444');
+});
+
+test('CNPJ alfanumérico, máscaras e telefones fixo/celular com DDD', () => {
+  assert.equal(rules.isValidCnpj('12.ABC.345/01DE-35'), true);
+  assert.equal(rules.isValidCnpj('12ABC34501DE34'), false);
+  assert.equal(rules.isValidCnpj('11.222.333/0001-81'), true);
+  assert.equal(rules.isValidCnpj('AAAAAAAAAAAA00'), false);
+  assert.equal(rules.normalizeCnpj('12.abc.345/01de-35'), '12ABC34501DE35');
+  assert.equal(rules.maskCnpj('12abc34501de35'), '12.ABC.345/01DE-35');
+  assert.equal(rules.maskCnpj('12ABC345'), '12.ABC.345');
+  assert.equal(rules.maskPhone('41987654321'), '(41) 98765-4321');
+  assert.equal(rules.maskPhone('4133334444'), '(41) 3333-4444');
+  assert.equal(rules.maskPhone('419'), '(41) 9');
+  assert.equal(rules.phoneKind('(41) 98765-4321'), 'mobile');
+  assert.equal(rules.phoneKind('(41) 3333-4444'), 'landline');
+  assert.equal(rules.isValidPhone('+55 41 98765-4321'), true);
+  assert.equal(rules.isValidPhone('(20) 98765-4321'), false);
+  assert.equal(rules.isValidPhone('(41) 88765-4321'), false);
+  assert.equal(rules.isValidPhone('(41) 6333-4444'), false);
+  assert.equal(rules.isValidPhone('(41) 99999-9999'), false);
+  assert.equal(rules.isValidPhone('(41) 3333-4444', 'mobile'), false);
+  assert.match(rules.validateRegistration({ ...worker, phone: '' }), /telefone/);
+  assert.equal(rules.buildProfilePayload({ ...worker }).phone, '41987654321');
 });

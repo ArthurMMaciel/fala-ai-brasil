@@ -16,7 +16,7 @@ function region(): HTMLElement {
   return element;
 }
 
-export function showToast(kind: ToastKind, message: string): void {
+export function showToast(kind: ToastKind, message: string, heading?: string): void {
   const toast = document.createElement("div");
   toast.className = `toast toast-${kind}`;
   // Erros interrompem o leitor de tela; sucesso e aviso são anunciados sem interromper.
@@ -31,7 +31,7 @@ export function showToast(kind: ToastKind, message: string): void {
   const body = document.createElement("div");
   body.className = "toast-body";
   const title = document.createElement("strong");
-  title.textContent = titles[kind];
+  title.textContent = heading ?? titles[kind];
   const text = document.createElement("p");
   text.textContent = message;
   body.append(title, text);

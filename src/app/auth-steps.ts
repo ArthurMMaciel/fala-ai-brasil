@@ -1,4 +1,4 @@
-import { isValidCnpj, isValidCpf } from "../domain/account-rules";
+import { isValidCnpj, isValidCpf, isValidPhone } from "../domain/account-rules";
 
 // Cadastro em etapas (dados, endereço, plano, senha e termos). O formulário é renderizado por main.js;
 // este módulo só mostra uma etapa por vez e impede avançar com campo obrigatório pendente.
@@ -36,11 +36,13 @@ function checkDocument(input: HTMLInputElement) {
 
 function stepIsValid(step: HTMLFieldSetElement) {
   step.querySelectorAll<HTMLInputElement>('input[name="cpf"], input[name="cnpj"], input[name="document"]').forEach(checkDocument);
+  step.querySelectorAll<HTMLInputElement>('input[name="phone"]').forEach(input => {
+    input.setCustomValidity(!input.value.trim() || isValidPhone(input.value) ? "" : "Confira o telefone: DDD + celular com 9 dígitos (começando com 9) ou fixo com 8.");
+  });
   const fields = [...step.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea")].filter(field => !field.disabled);
   const invalid = fields.find(field => !field.checkValidity());
   if (!invalid) return true;
   invalid.reportValidity();
-  invalid.focus();
   return false;
 }
 
@@ -70,7 +72,7 @@ document.addEventListener("submit", event => {
 
 document.addEventListener("input", event => {
   const input = event.target;
-  if (input instanceof HTMLInputElement && ["cpf", "cnpj", "document"].includes(input.name)) input.setCustomValidity("");
+  if (input instanceof HTMLInputElement && ["cpf", "cnpj", "document", "phone"].includes(input.name)) input.setCustomValidity("");
 });
 
 // Cada novo formulário de cadastro (troca de persona, nova visita) começa na primeira etapa.

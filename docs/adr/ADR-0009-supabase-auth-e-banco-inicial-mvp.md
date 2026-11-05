@@ -78,6 +78,11 @@ O modelo inicial com tabela única `profiles` e coluna `persona` foi substituíd
 - Diretório marca `featured` (planos Profissional e Nacional) para a aba Destaques.
 - Teste de fumaça: `supabase/tests/content_contact_smoke.sql`.
 
+## Telefone do trabalhador e CNPJ alfanumérico (2026-11-05, pedido do responsável)
+
+- `workers.phone` (DDD + 8 dígitos fixo ou 9 celular, só números), exigido no cadastro novo pelo app e opcional no banco para contas antigas. Não é exposto à empresa; uso restrito a contato sobre as manifestações.
+- CNPJ aceita o formato alfanumérico da Receita (12 posições 0-9/A-Z + 2 dígitos verificadores, valor do caractere = código ASCII − 48); numéricos seguem válidos. Restrições de `companies`, `sponsors` e `partners` e a função `private.create_profile` atualizadas (migration 20261106120000).
+
 ## Motivo
 
 Atende ao prazo e ao custo, entrega autenticação e isolamento reais em PostgreSQL e preserva o caminho para uma API própria: o esquema e as políticas podem migrar para uma API que use o mesmo banco.

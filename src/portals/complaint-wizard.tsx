@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { createWorkerComplaint, type DirectoryCompany } from '../services/data';
 import { showToast } from '../app/toast';
+import { isValidPhone, maskPhone } from '../domain/account-rules';
 
 // Assistente de nova manifestação em 9 etapas (conteúdo da POC, restaurado em 2026-10-30).
 // Relato, versão compartilhável e expectativas vão ao banco; respostas de contexto e contatos
@@ -34,9 +35,7 @@ const multiple = (step: number, question: number) => (step === 1 && question ===
 const emptyContact: Contact = { name: '', role: '', email: '', phone: '' };
 
 export function isBrazilianPhone(value: string): boolean {
- let digits = value.trim().replace(/\D/g, '');
- if ((digits.length === 12 || digits.length === 13) && digits.startsWith('55')) digits = digits.slice(2);
- return /^[1-9]\d/.test(digits) && (/^\d{2}[2-5]\d{7}$/.test(digits) || /^\d{2}9\d{8}$/.test(digits));
+ return isValidPhone(value);
 }
 
 function OptionGrid({ label, options, value, onSelect }: { label: string; options: string[]; value: Answer | undefined; onSelect: (option: string) => void }) {
@@ -122,7 +121,7 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
    <div className="grid two"><label className="field">Quando isso aconteceu?<input value={draft.incidentPeriod} maxLength={80} onChange={event => set('incidentPeriod', event.target.value)} placeholder="Ex.: Últimas semanas" /></label><label className="field">Isso é recorrente?<input value={draft.recurrence} maxLength={80} onChange={event => set('recurrence', event.target.value)} placeholder="Ex.: Recorrente" /></label></div>
    {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Continuar</button></div></>;
  } else if (step === 6) {
-  const field = (key: keyof Contact, label: string, props: Record<string, string> = {}) => <div className="field"><label htmlFor={`contact-${key}`}>{label}</label><input id={`contact-${key}`} value={contact[key]} onChange={event => { setContact({ ...contact, [key]: event.target.value }); setError(''); }} aria-describedby="communication-help" {...props} /></div>;
+  const field = (key: keyof Contact, label: string, props: Record<string, string> = {}) => <div className="field"><label htmlFor={`contact-${key}`}>{label}</label><input id={`contact-${key}`} value={contact[key]} onChange={event => { setContact({ ...contact, [key]: key === 'phone' ? maskPhone(event.target.value) : event.target.value }); setError(''); }} aria-describedby="communication-help" {...props} /></div>;
   body = <><h2>Formas de comunicação</h2><p className="muted">Se você conhece uma pessoa da empresa que possa receber a manifestação, pode indicá-la aqui. A Escuta Aí Brasil precisará validar o destino antes de qualquer contato. Se não conhece um contato seguro, continue sem indicar ninguém.</p>
    <div className="notice warn small">Se o contato for proprietário(a), sócio(a) ou estiver diretamente envolvido no relato, informe o cargo com clareza. Esse contato exige revisão humana e pode não ser usado para proteger a pessoa manifestante.</div>
    <div className="grid two contact-form">{field('name', 'Nome do contato', { autoComplete: 'off' })}{field('role', 'Cargo', { placeholder: 'Ex.: Analista de RH, Ouvidor(a), Proprietário(a)' })}{field('email', 'E-mail profissional', { type: 'email', placeholder: 'contato@empresa.com.br' })}{field('phone', 'Telefone', { inputMode: 'tel', placeholder: '(11) 99999-9999' })}</div>

@@ -264,3 +264,24 @@
 .auth-step-nav .btn.primary { flex: 1; }
 .legacy-editorial .auth-box[data-current-step]:not([data-current-step="1"]) .field:has(#register-persona) { display: none; }
 @media (prefers-reduced-motion: no-preference) { .legacy-editorial .auth-step:not([hidden]) { animation: sys-rise .28s var(--sys-ease) both; } }
+
+/* Toasts sólidos: vermelho para erro, verde para sucesso; cantos suaves e entrada pela direita. */
+.toast-region { top: 20px; right: 20px; gap: 10px; width: min(400px, calc(100vw - 32px)); }
+.toast { grid-template-columns: 30px 1fr 28px; gap: 12px; padding: 14px 14px 16px; border: 0; border-radius: 18px; color: #fff; box-shadow: 0 18px 40px rgba(9, 30, 22, .28); animation: toast-in .28s var(--sys-ease) both; }
+.toast-error { background: #c62f2f; color: #fff; }
+.toast-success { background: #1b6b4b; color: #fff; }
+.toast-info { background: var(--ink); color: #fff; }
+.toast .toast-icon, .toast-error .toast-icon, .toast-success .toast-icon, .toast-info .toast-icon { width: 30px; height: 30px; background: rgba(255, 255, 255, .2); color: #fff; }
+.toast-body strong { font-size: 14px; font-weight: 700; }
+.toast-body p { margin-top: 2px; font-size: 14px; line-height: 1.4; color: rgba(255, 255, 255, .92); }
+.toast-close { border-radius: 50%; color: #fff; }
+.toast-close:hover, .toast-close:focus-visible { background: rgba(255, 255, 255, .18); outline: 2px solid #fff; }
+.toast-progress { background: #fff; opacity: .45; }
+@keyframes toast-in { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+@media (max-width: 560px) { .toast-region { top: auto; bottom: 16px; right: 16px; left: 16px; width: auto; } }
+
+/* Campo com problema: borda e rótulo vermelhos até a pessoa corrigir. */
+.legacy-editorial [aria-invalid="true"]:not([type="checkbox"]) { border-color: #c62f2f !important; background: #fff6f6 !important; box-shadow: 0 0 0 4px rgba(198, 47, 47, .12) !important; }
+.legacy-editorial .is-invalid > label, .legacy-editorial label.is-invalid { color: #b42323; }
+.legacy-editorial input[type="checkbox"][aria-invalid="true"] { outline: 2px solid #c62f2f; outline-offset: 2px; }

@@ -3,7 +3,7 @@ import { listPartnerDirectory, loadCompanyContext, loadPartnerPhoto, uploadPartn
 import { listCompanyComplaints, listPartnerCompanies, loadCompanyRanking, loadCompanyTimeline, loadPartnerProfile, requestPartner, respondCompanyComplaint, setPartnerConnection, updatePartnerProfile, updateCompanyContact, loadPartnerPlan, listMyContents, listPartnerContents, createPartnerContent, deletePartnerContent, type PartnerContent, type CompanyComplaint, type ComplaintStatusDb, type PartnerCompany, type PartnerProfileData, type RankingRow, type TimelineItem } from '../services/data';
 import { showToast } from '../app/toast';
 import { Icon, QuickActions, initials, type IconName } from './ui';
-import { formatPhone, planIncludesContent, validateCompanyContact, validateContent, whatsappLink } from '../domain/account-rules';
+import { formatPhone, maskPhone, planIncludesContent, validateCompanyContact, validateContent, whatsappLink } from '../domain/account-rules';
 
 // Portais de empresa e parceiro com dados reais (modelo v3). A empresa lê apenas versões compartilhadas, sem identidade.
 type CompanyView = 'dashboard' | 'complaints' | 'ranking' | 'partners';
@@ -54,7 +54,7 @@ function CompanyContactForm({ company }: { company: CompanyContext }) {
  }
  return <form className="company-contact-form" onSubmit={save}><h3>Contato para parceiros</h3><p className="muted small">Opcional. Só parceiros com quem sua empresa demonstrou interesse ou que atendem vocês veem estes dados.</p>
   <label className="field">E-mail de contato<input type="email" value={email} maxLength={160} onChange={event => setEmail(event.target.value)} placeholder="contato@empresa.com.br" /></label>
-  <label className="field">Telefone ou WhatsApp<input inputMode="tel" value={phone} maxLength={16} onChange={event => setPhone(event.target.value)} placeholder="(00) 00000-0000" /></label>
+  <label className="field">Telefone ou WhatsApp<input type="tel" inputMode="tel" autoComplete="tel-national" value={phone} maxLength={15} onChange={event => setPhone(maskPhone(event.target.value))} placeholder="(00) 00000-0000" /></label>
   <button className="btn" type="submit" disabled={busy}>{busy ? 'Salvando…' : 'Salvar contato'}</button></form>;
 }
 
