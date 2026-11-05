@@ -248,3 +248,19 @@
   .sys-quick-card { min-height: 96px; padding: 12px; gap: 14px; }
   .sys-quick-label { font-size: 13px; line-height: 1.25; }
 }
+
+/* Cadastro em etapas: barra segmentada, uma etapa por vez, navegação Voltar/Continuar. */
+.auth-stepper { display: grid; gap: 8px; margin-bottom: 4px; }
+.auth-stepper-bar { display: flex; gap: 6px; }
+.auth-stepper-bar i { flex: 1; height: 4px; border-radius: 999px; background: #e3e8e2; transition: background-color .3s var(--sys-ease); }
+.auth-stepper-bar i.done { background: var(--deep); }
+.auth-stepper-bar i.current { background: linear-gradient(90deg, var(--deep), #2f8f63); }
+.auth-stepper-label { margin: 0; color: var(--muted); font-size: 13px; font-weight: 600; }
+.legacy-editorial .auth-step { display: grid; gap: 14px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.legacy-editorial .auth-step[hidden] { display: none; }
+.legacy-editorial .auth-step .field { margin: 0; }
+.auth-step-nav { display: flex; gap: 10px; margin-top: 6px; }
+.auth-step-nav [hidden] { display: none; }
+.auth-step-nav .btn.primary { flex: 1; }
+.legacy-editorial .auth-box[data-current-step]:not([data-current-step="1"]) .field:has(#register-persona) { display: none; }
+@media (prefers-reduced-motion: no-preference) { .legacy-editorial .auth-step:not([hidden]) { animation: sys-rise .28s var(--sys-ease) both; } }

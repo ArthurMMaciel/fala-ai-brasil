@@ -63,6 +63,17 @@ function app() {
   return { get props() { return props; }, get html() { return markup; }, api: context.api, button(action) { const button = buttons.find(b => b.dataset.action === action || b.dataset.route === action); assert.ok(button, `Botão ${action} encontrado`); return button; } };
 }
 
+test('cadastro é dividido em etapas e não mostra o resumo de cobrança', () => {
+  const screen = app();
+  screen.api.route('register', { authAudience: 'worker' });
+  assert.equal((screen.html.match(/class="auth-step"/g) || []).length, 3);
+  screen.api.route('register', { authAudience: 'company' });
+  assert.equal((screen.html.match(/class="auth-step"/g) || []).length, 4);
+  assert.match(screen.html, /data-title="Plano"/);
+  assert.doesNotMatch(screen.html, /subscription-summary/);
+  assert.match(screen.html, /data-step-next/);
+});
+
 test('após o cadastro mostra a tela de confirmar e-mail, e o botão leva ao login com o e-mail preenchido', () => {
   const screen = app();
   screen.api.route('login', { authNotice: { email: 'pessoa@example.com', sent: true } });
