@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { listPartnerDirectory, loadCompanyContext, loadPartnerPhoto, uploadPartnerPhoto, type CompanyContext, type DirectoryPartner } from '../services/account';
 import { listCompanyComplaints, listPartnerCompanies, loadCompanyRanking, loadCompanyTimeline, loadPartnerProfile, requestPartner, respondCompanyComplaint, setPartnerConnection, updatePartnerProfile, updateCompanyContact, loadPartnerPlan, listMyContents, listPartnerContents, createPartnerContent, deletePartnerContent, type PartnerContent, type CompanyComplaint, type ComplaintStatusDb, type PartnerCompany, type PartnerProfileData, type RankingRow, type TimelineItem } from '../services/data';
 import { showToast } from '../app/toast';
+import { Icon, QuickActions, initials, type IconName } from './ui';
 import { formatPhone, planIncludesContent, validateCompanyContact, validateContent, whatsappLink } from '../domain/account-rules';
 
 // Portais de empresa e parceiro com dados reais (modelo v3). A empresa lê apenas versões compartilhadas, sem identidade.
@@ -13,20 +14,28 @@ const feedbackLabels = { yes: 'A resposta ajudou', partial: 'Ajudou em parte', n
 
 function dateLabel(value: string) { return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value)); }
 function formatCnpj(value: string) { return value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5'); }
-function initials(name: string) { return name.split(' ').filter(Boolean).map(part => part[0]).slice(0, 2).join('').toUpperCase(); }
+// initials vem de ./ui (compartilhado com o menu lateral).
 function hours(value: number | null | undefined) { return value === null || value === undefined ? '—' : value < 48 ? `${value} h` : `${(value / 24).toFixed(1).replace('.', ',')} dias`; }
 
 function Metric({ label, value, note }: { label: string; value: string | number; note?: string }) {
  return <article className="commercial-metric"><span>{label}</span><strong>{value}</strong>{note && <small>{note}</small>}</article>;
 }
+const sidebarIcons: Record<string, IconName> = { dashboard: 'home', complaints: 'inbox', ranking: 'chart', partners: 'users', profile: 'user', content: 'image', companies: 'building', leads: 'star', clients: 'briefcase' };
+
 function Sidebar<T extends string>({ eyebrow, name, items, view, onView }: { eyebrow: string; name: string; items: [T, string][]; view: T; onView: (view: T) => void }) {
- return <aside className="commercial-sidebar"><span className="editorial-eyebrow">{eyebrow}</span><strong className="commercial-sidebar-name">{name}</strong>{items.map(([key, label]) => <button key={key} className={view === key ? 'active' : ''} onClick={() => onView(key)}>{label}</button>)}</aside>;
+ return <aside className="commercial-sidebar"><div className="sys-account"><span className="sys-avatar" aria-hidden="true">{initials(name)}</span><span><strong className="commercial-sidebar-name">{name}</strong><small>{eyebrow}</small></span></div>
+  <nav className="sys-nav" aria-label={eyebrow}>{items.map(([key, label]) => <button key={key} className={view === key ? 'active' : ''} aria-current={view === key ? 'page' : undefined} onClick={() => onView(key)}><Icon name={sidebarIcons[key] ?? 'list'} />{label}</button>)}</nav></aside>;
 }
 
 function CompanyDashboard({ company, complaints, mine, onOpen, onView }: { company: CompanyContext; complaints: CompanyComplaint[]; mine?: RankingRow; onOpen: (id: string) => void; onView: (view: CompanyView) => void }) {
  const waiting = complaints.filter(item => item.status === 'shared');
  const answered = complaints.filter(item => item.responses > 0).length;
  return <><div className="commercial-page-head"><div><span className="editorial-eyebrow">Visão da organização</span><h1>Dashboard</h1><p>Acompanhe o que precisa de resposta e os sinais de responsividade da {company.name}.</p></div><button className="btn primary" onClick={() => onView('complaints')}>Ver manifestações</button></div>
+  <QuickActions label="Atalhos da empresa" items={[
+   { icon: 'inbox', label: 'Responder manifestações', badge: waiting.length, onClick: () => onView('complaints') },
+   { icon: 'chart', label: 'Ranking de respostas', onClick: () => onView('ranking') },
+   { icon: 'users', label: 'Parceiros', onClick: () => onView('partners') },
+  ]} />
   <div className="commercial-metrics"><Metric label="Manifestações recebidas" value={complaints.length} note="versões compartilhadas" /><Metric label="Aguardando resposta" value={waiting.length} note={waiting.length ? 'prioridade da equipe' : 'sem pendências'} /><Metric label="Taxa de resposta" value={complaints.length ? `${Math.round(100 * answered / complaints.length)}%` : '—'} note="com ao menos uma resposta" /><Metric label="Tempo médio" value={hours(mine?.avgFirstResponseHours)} note="até a primeira resposta" /></div>
   <div className="commercial-grid-two"><section className="commercial-panel"><h2>Fila de atenção</h2>{waiting.length ? waiting.slice(0, 4).map(item => <button className="commercial-list-row" key={item.id} onClick={() => onOpen(item.id)}><span><strong>{item.protocol} · {item.title}</strong><small>{item.category} · {dateLabel(item.createdAt)}</small></span><em>Responder ›</em></button>) : <p>Nenhuma manifestação aguardando resposta.</p>}</section>
    <section className="commercial-panel"><h2>Dados da empresa</h2><dl className="company-facts"><div><dt>Razão social</dt><dd>{company.legalName}</dd></div><div><dt>CNPJ</dt><dd>{formatCnpj(company.cnpj)}</dd></div><div><dt>Cidade</dt><dd>{company.city}/{company.state}</dd></div></dl><div className="commercial-callout">A empresa acessa somente a versão compartilhável revisada por quem relatou, sem identidade.</div><CompanyContactForm company={company} /></section></div></>;

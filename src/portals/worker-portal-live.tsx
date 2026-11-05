@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { closeWorkerComplaint, listCompanyDirectory, listWorkerComplaints, loadCompanyRanking, loadWorkerComplaintDetail, shareWorkerComplaint, type ComplaintFeedback, type ComplaintStatusDb, type DirectoryCompany, type RankingRow, type WorkerComplaint, type WorkerComplaintDetail } from '../services/data';
 import { showToast } from '../app/toast';
 import { ComplaintWizard } from './complaint-wizard';
+import { QuickActions } from './ui';
 
 // Portal do trabalhador com dados reais (modelo v3). O relato original nunca sai daqui; a empresa recebe só a versão revisada.
 type View = 'dashboard' | 'list' | 'detail' | 'new' | 'companies';
@@ -35,7 +36,7 @@ function Companies({ companies, onNew }: { companies: DirectoryCompany[]; onNew:
  </section>;
 }
 
-function Dashboard({ complaints, onList, onNew }: { complaints: WorkerComplaint[]; onList: () => void; onNew: () => void }) {
+function Dashboard({ complaints, onList, onNew, onCompanies }: { complaints: WorkerComplaint[]; onList: () => void; onNew: () => void; onCompanies: () => void }) {
  const [period, setPeriod] = useState<Period>('monthly');
  const now = new Date();
  const { labels, values } = useMemo(() => {
@@ -52,7 +53,12 @@ function Dashboard({ complaints, onList, onNew }: { complaints: WorkerComplaint[
  const max = Math.max(...values, 1);
  const count = (statuses: ComplaintStatusDb[]) => complaints.filter(item => statuses.includes(item.status)).length;
  return <>
-  <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Área do trabalhador</span><h2>Início</h2><p className="muted">Acompanhe o volume e o andamento das suas manifestações.</p></div><div className="nav-actions"><button className="btn" onClick={onList}>Ver manifestações</button><button className="btn primary" onClick={onNew}>Nova manifestação</button></div></div>
+  <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Área do trabalhador</span><h2>Início</h2><p className="muted">Acompanhe o volume e o andamento das suas manifestações.</p></div></div>
+  <QuickActions label="Atalhos" items={[
+   { icon: 'plus', label: 'Nova manifestação', onClick: onNew },
+   { icon: 'list', label: 'Minhas manifestações', badge: count(['answered']), onClick: onList },
+   { icon: 'building', label: 'Empresas', onClick: onCompanies },
+  ]} />
   <div className="worker-funnel">{[['Em acompanhamento', count(['received', 'shared', 'answered'])], ['Aguardando empresa', count(['shared'])], ['Respondidas', count(['answered'])], ['Finalizadas', count(['closed'])]].map(([label, value]) => <article key={String(label)}><span>{label}</span><strong>{value}</strong></article>)}</div>
   <section className="worker-dashboard-section"><div className="worker-section-heading"><div><h3>Manifestações criadas</h3><p className="muted">Quantos relatos você registrou no período.</p></div><div className="worker-chart-controls"><label>Período<select value={period} onChange={event => setPeriod(event.target.value as Period)}><option value="weekly">Últimos 7 dias</option><option value="monthly">Este mês</option><option value="yearly">Este ano</option></select></label></div></div>
    <div className={`worker-columns-chart worker-columns-${period}`} aria-label="Manifestações criadas no período">{values.map((value, index) => <div className="worker-column" key={`${labels[index]}-${index}`}><strong>{value}</strong><i style={{ height: `${Math.max(value / max * 100, value ? 16 : 4)}%` }} /><span>{labels[index]}</span></div>)}</div></section>
@@ -123,6 +129,6 @@ export function WorkerPortalLive({ initialView = 'dashboard', onViewChange }: { 
    view === 'detail' && selected ? <Detail complaint={selected} company={byId.get(selected.companyId)} onBack={() => setView('list')} onChanged={reload} /> :
    view === 'companies' ? <Companies companies={companies} onNew={startNew} /> :
    view === 'list' ? <List complaints={complaints} companies={byId} onSelect={item => { setSelectedId(item.id); setView('detail'); }} onNew={() => setView('companies')} /> :
-   <Dashboard complaints={complaints} onList={() => setView('list')} onNew={() => setView('companies')} />}
+   <Dashboard complaints={complaints} onList={() => setView('list')} onNew={() => setView('companies')} onCompanies={() => setView('companies')} />}
  </main>;
 }

@@ -78,3 +78,173 @@
 
 /* Selo do portal no login/cadastro em verde suave, como os chips "See all" da referência. */
 .legacy-editorial .auth-split .auth-box > .eyebrow { align-self: flex-start; padding: 6px 12px; border-radius: 999px; background: var(--soft); color: var(--deep); font-size: 12px; font-weight: 700; letter-spacing: .02em; text-transform: none; }
+
+:root {
+  --sys-i-home: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%20fill%3D'none'%20stroke%3D'black'%20stroke-width%3D'1.8'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%3Cpath%20d%3D'M3%2010.5%2012%203l9%207.5V20a1%201%200%200%201-1%201h-5v-6h-6v6H4a1%201%200%200%201-1-1z'%2F%3E%3C%2Fsvg%3E");
+  --sys-i-list: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%20fill%3D'none'%20stroke%3D'black'%20stroke-width%3D'1.8'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%3Cpath%20d%3D'M8%206h13M8%2012h13M8%2018h13M3.5%206h.01M3.5%2012h.01M3.5%2018h.01'%2F%3E%3C%2Fsvg%3E");
+  --sys-i-building: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%20fill%3D'none'%20stroke%3D'black'%20stroke-width%3D'1.8'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%3Cpath%20d%3D'M4%2021V5a1%201%200%200%201%201-1h9a1%201%200%200%201%201%201v16M15%209h4a1%201%200%200%201%201%201v11M8%208h3M8%2012h3M8%2016h3M3%2021h18'%2F%3E%3C%2Fsvg%3E");
+}
+
+/* ===== Portais (trabalhador e empresa): casca no estilo Emerald24 ===== */
+.legacy-editorial:has(.portal-layout) { background: linear-gradient(180deg, #164e3b 0%, #12412f 55%, #1d6b4e 100%); background-attachment: fixed; }
+.legacy-editorial:has(.portal-layout) .topbar { background: transparent; border-bottom: 0; box-shadow: none; }
+.legacy-editorial:has(.portal-layout) .topbar .brand-logo { filter: brightness(0) invert(1); }
+.legacy-editorial:has(.portal-layout) .topbar .btn { background: rgba(255, 255, 255, .1); border-color: rgba(255, 255, 255, .22); color: #fff; }
+.legacy-editorial:has(.portal-layout) .topbar .btn:hover { background: rgba(255, 255, 255, .18); }
+
+.legacy-editorial .portal-layout { grid-template-columns: 248px minmax(0, 1fr); gap: 0; min-height: calc(100vh - 80px); padding: 0 12px 12px 0; }
+.legacy-editorial .portal-layout > .sidebar { position: sticky; top: 12px; min-height: 0; padding: 12px 16px; border: 0; background: transparent; color: #fff; display: flex; flex-direction: column; gap: 4px; }
+.legacy-editorial .portal-layout > .content { min-width: 0; padding: clamp(24px, 3.4vw, 44px); border-radius: var(--sys-radius-lg); background: var(--sys-canvas); box-shadow: 0 30px 60px rgba(0, 0, 0, .18); }
+.legacy-editorial .portal-layout.commercial-legacy-layout { display: block; padding: 0 12px 12px; }
+.legacy-editorial .portal-layout.commercial-legacy-layout > .content { padding: 0; background: transparent; box-shadow: none; border-radius: 0; }
+
+/* Itens do menu: texto claro, item ativo em pílula translúcida. */
+.legacy-editorial .side-link, .commercial-sidebar .sys-nav button { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 14px; border: 0; border-radius: 14px; background: transparent; color: rgba(255, 255, 255, .78); font: inherit; font-size: 15px; text-align: left; cursor: pointer; transition: background-color .18s, color .18s; }
+.legacy-editorial .side-link:hover, .commercial-sidebar .sys-nav button:hover { background: rgba(255, 255, 255, .08); color: #fff; }
+.legacy-editorial .side-link.active, .commercial-sidebar .sys-nav button.active { background: rgba(255, 255, 255, .14); color: #fff; font-weight: 600; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12); }
+.legacy-editorial .side-link[hidden] { display: none; }
+.legacy-editorial .side-link::before { content: ""; flex: 0 0 20px; height: 20px; background: currentColor; -webkit-mask: var(--sys-i-list) center / contain no-repeat; mask: var(--sys-i-list) center / contain no-repeat; }
+.legacy-editorial .side-link[data-route="worker"]::before { -webkit-mask-image: var(--sys-i-home); mask-image: var(--sys-i-home); }
+.legacy-editorial .side-link[data-worker-view="companies"]::before { -webkit-mask-image: var(--sys-i-building); mask-image: var(--sys-i-building); }
+
+/* Portal da empresa/parceiro: menu próprio sobre o verde, conteúdo em painel claro. */
+.legacy-editorial .commercial-portal-content { grid-template-columns: 248px minmax(0, 1fr); min-height: calc(100vh - 92px); background: transparent; }
+.legacy-editorial .commercial-sidebar { position: sticky; top: 12px; align-self: start; padding: 12px 4px; border: 0; background: transparent; gap: 18px; }
+.sys-account { display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 8px; border-radius: 999px; background: #fff; color: var(--ink); box-shadow: 0 8px 20px rgba(0, 0, 0, .15); }
+.sys-account > span:last-child { display: grid; min-width: 0; }
+.sys-account strong.commercial-sidebar-name { margin: 0; color: var(--ink); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sys-account small { color: var(--muted); font-size: 11px; }
+.sys-avatar { display: grid; place-items: center; flex: 0 0 36px; height: 36px; border-radius: 50%; background: var(--deep); color: #fff; font-size: 13px; font-weight: 700; }
+.sys-nav { display: grid; gap: 4px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, .14); }
+.legacy-editorial .commercial-portal-main { padding: clamp(24px, 3.4vw, 44px); border-radius: var(--sys-radius-lg); background: var(--sys-canvas); box-shadow: 0 30px 60px rgba(0, 0, 0, .18); }
+
+/* Títulos em sans, mais leves, como na referência. */
+.legacy-editorial .worker-portal-heading h2, .legacy-editorial .worker-detail-heading h2, .legacy-editorial .commercial-page-head h1 { font-family: Inter, sans-serif; font-weight: 500; font-size: clamp(28px, 2.6vw, 36px); letter-spacing: -.02em; color: var(--ink); line-height: 1.15; }
+.legacy-editorial .commercial-page-head p, .legacy-editorial .worker-portal-heading .muted { font-size: 15px; }
+.legacy-editorial .commercial-page-head { align-items: flex-end; margin-bottom: 24px; }
+.legacy-editorial .commercial-panel h2, .legacy-editorial .worker-section-heading h3, .legacy-editorial .worker-dashboard-note h3, .legacy-editorial .worker-detail-section h3 { font-family: Inter, sans-serif; font-weight: 600; font-size: 18px; color: var(--ink); letter-spacing: -.01em; }
+
+/* Atalhos rápidos. */
+.sys-quick { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 12px; margin: 4px 0 24px; }
+.sys-quick-card { display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 22px; min-height: 108px; padding: 16px; border: 0; border-radius: var(--sys-radius); background: var(--sys-surface); color: var(--ink); text-align: left; font: inherit; cursor: pointer; box-shadow: var(--sys-shadow); transition: transform .18s var(--sys-ease), box-shadow .18s var(--sys-ease); }
+.sys-quick-card:hover { transform: translateY(-2px); box-shadow: var(--sys-shadow-lift); }
+.sys-quick-card:active { transform: translateY(0) scale(.98); }
+.sys-quick-icon { position: relative; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--deep); color: #fff; }
+.sys-quick-icon .sys-icon { width: 18px; height: 18px; }
+.sys-quick-label { font-size: 14px; font-weight: 500; }
+.sys-badge { position: absolute; top: -6px; right: -8px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--amber); color: var(--ink); font-size: 11px; font-style: normal; font-weight: 700; line-height: 20px; text-align: center; }
+
+/* Cartões e painéis brancos com sombra suave, sem borda. */
+.legacy-editorial .worker-funnel article, .legacy-editorial .commercial-metric, .legacy-editorial .commercial-panel, .legacy-editorial .worker-dashboard-section, .legacy-editorial .worker-dashboard-note, .legacy-editorial .wizard-box { border: 0; border-radius: var(--sys-radius); background: var(--sys-surface); box-shadow: var(--sys-shadow); }
+.legacy-editorial .worker-funnel article, .legacy-editorial .commercial-metric { min-height: 112px; padding: 18px 20px; }
+.legacy-editorial .worker-funnel strong, .legacy-editorial .commercial-metric strong { font-family: Inter, sans-serif; font-weight: 500; font-size: 32px; color: var(--ink); letter-spacing: -.02em; }
+.legacy-editorial .worker-funnel span, .legacy-editorial .commercial-metric span { font-size: 13px; }
+.legacy-editorial .commercial-callout { border-radius: var(--sys-radius-sm); background: var(--soft); color: var(--deep); }
+
+/* Listas e tabelas: cartão branco, cabeçalho discreto, linhas com hover. */
+.legacy-editorial .worker-table-wrap, .legacy-editorial .commercial-table-wrap { border: 0; border-radius: var(--sys-radius); background: var(--sys-surface); box-shadow: var(--sys-shadow); overflow-x: auto; }
+.legacy-editorial .worker-table th, .legacy-editorial .commercial-table th { padding: 14px 18px; background: #f7f8f6; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .02em; }
+.legacy-editorial .worker-table td, .legacy-editorial .commercial-table td { padding: 16px 18px; border-top: 1px solid #edf0ec; }
+.legacy-editorial .worker-table tbody tr:hover, .legacy-editorial .commercial-table tbody tr:hover { background: #f7faf7; }
+.legacy-editorial .commercial-list-row { padding: 14px 4px; border-top: 1px solid #edf0ec; transition: background-color .15s; }
+.legacy-editorial .commercial-list-row:hover { background: #f7faf7; }
+.legacy-editorial .commercial-list-row em { color: var(--deep); font-weight: 600; }
+.legacy-editorial .worker-status, .legacy-editorial .commercial-badge { border: 0; border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 600; }
+.legacy-editorial .worker-filters { padding: 14px; border-radius: var(--sys-radius); background: var(--sys-surface); box-shadow: var(--sys-shadow); }
+
+/* Abas com sublinhado discreto. */
+.legacy-editorial .commercial-tabs { gap: 4px; border-bottom: 1px solid #e3e8e2; }
+.legacy-editorial .commercial-tabs button { padding: 10px 16px; border-bottom-width: 2px; color: var(--muted); font-size: 14px; }
+.legacy-editorial .commercial-tabs button.active { border-bottom-color: var(--ink); color: var(--ink); font-weight: 600; }
+
+/* Modais brancos, cantos grandes, fechar redondo. */
+.legacy-editorial .commercial-modal, .legacy-editorial .worker-modal { border: 0; border-radius: var(--sys-radius-lg); background: #fff; box-shadow: 0 40px 80px rgba(9, 30, 22, .3); padding: 36px; }
+.legacy-editorial .commercial-modal-close, .legacy-editorial .worker-modal-close { top: 16px; right: 16px; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: #f0f2ef; color: var(--muted); font-size: 20px; line-height: 1; }
+.legacy-editorial .commercial-modal-backdrop, .legacy-editorial .worker-modal-backdrop { background: rgb(12 40 29 / 45%); backdrop-filter: blur(6px); }
+
+/* Assistente: opções em pílula, progresso fino. */
+.legacy-editorial .wizard-box { padding: clamp(22px, 3vw, 36px); }
+.legacy-editorial .option { border-radius: 999px; border-color: #e2e8e1; background: var(--sys-field); transition: background-color .15s, border-color .15s; }
+.legacy-editorial .option:hover { border-color: var(--deep); }
+.legacy-editorial .option.selected { border-color: var(--deep); background: var(--deep); color: #fff; }
+.legacy-editorial .progress { height: 4px; border-radius: 999px; background: #e7ece6; }
+.legacy-editorial .progress > span { border-radius: 999px; background: var(--deep); transition: width .35s var(--sys-ease); }
+
+/* Entrada suave do conteúdo. */
+@media (prefers-reduced-motion: no-preference) {
+  .legacy-editorial .worker-portal-content > *, .legacy-editorial .commercial-portal-main > * { animation: sys-rise .32s var(--sys-ease) both; }
+  .legacy-editorial .worker-portal-content > *:nth-child(2), .legacy-editorial .commercial-portal-main > *:nth-child(2) { animation-delay: .04s; }
+  .legacy-editorial .worker-portal-content > *:nth-child(3), .legacy-editorial .commercial-portal-main > *:nth-child(3) { animation-delay: .08s; }
+}
+@keyframes sys-rise { from { opacity: 0; transform: translateY(6px); } }
+
+/* Celular: menu vira faixa horizontal, conteúdo na largura toda. */
+@media (max-width: 900px) {
+  .legacy-editorial .portal-layout, .legacy-editorial .commercial-portal-content { display: block; padding: 0 8px 8px; }
+  .legacy-editorial .portal-layout > .sidebar, .legacy-editorial .commercial-sidebar { position: static; display: flex; flex-direction: row; align-items: center; overflow-x: auto; gap: 6px; padding: 4px 4px 12px; }
+  .legacy-editorial .sys-nav { display: flex; padding-top: 0; border-top: 0; }
+  .sys-account { flex: 0 0 auto; }
+  .legacy-editorial .side-link, .commercial-sidebar .sys-nav button { flex: 0 0 auto; min-height: 40px; white-space: nowrap; }
+  .legacy-editorial .portal-layout > .content, .legacy-editorial .commercial-portal-main { padding: 20px 16px; border-radius: 22px; }
+}
+
+/* Detalhe da manifestação: resumo sem recuo e acompanhamento em cartão com marcadores. */
+.legacy-editorial .worker-detail-section dd { margin: 6px 0 0; }
+.legacy-editorial .worker-detail-aside { align-self: start; padding: 22px; border-radius: var(--sys-radius); background: var(--sys-surface); box-shadow: var(--sys-shadow); }
+.legacy-editorial .worker-detail-aside .worker-detail-section { border-top: 0; padding-top: 0; }
+.legacy-editorial .worker-detail-aside .worker-timeline { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.legacy-editorial .worker-detail-aside .worker-timeline li { display: block; position: relative; min-height: 0; padding: 0 0 18px 22px; border-left: 0; }
+.legacy-editorial .worker-detail-aside .worker-timeline li::before { content: ""; position: absolute; left: 4px; top: 16px; bottom: -2px; width: 2px; background: #e3e9e2; }
+.legacy-editorial .worker-detail-aside .worker-timeline li:last-child::before { content: none; }
+.legacy-editorial .worker-detail-aside .worker-timeline li::after { content: ""; position: absolute; left: 0; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: var(--deep); box-shadow: 0 0 0 4px var(--soft); }
+.legacy-editorial .worker-detail-aside .worker-timeline strong { display: block; font-size: 14px; }
+.legacy-editorial .worker-detail-aside .worker-timeline span { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+.legacy-editorial .worker-detail-aside .worker-timeline p { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+.legacy-editorial .worker-original, .legacy-editorial .worker-share-text { border-radius: var(--sys-radius-sm); background: var(--sys-surface); box-shadow: var(--sys-shadow); }
+
+/* Empresas do trabalhador: lista em cartão, linha com ícone redondo (como "Recent Transactions"). */
+.legacy-editorial .worker-company-list { margin: 8px 0 32px; padding: 4px 18px; border: 0; border-radius: var(--sys-radius); background: var(--sys-surface); box-shadow: var(--sys-shadow); }
+.legacy-editorial .worker-company-row { position: relative; padding: 14px 0 14px 52px; border-top: 1px solid #edf0ec; }
+.legacy-editorial .worker-company-row:first-child { border-top: 0; }
+.legacy-editorial .worker-company-row::before { content: ""; position: absolute; left: 0; top: 50%; width: 38px; height: 38px; margin-top: -19px; border-radius: 50%; background: var(--soft); }
+.legacy-editorial .worker-company-row::after { content: ""; position: absolute; left: 10px; top: 50%; width: 18px; height: 18px; margin-top: -9px; background: var(--deep); -webkit-mask: var(--sys-i-building) center / contain no-repeat; mask: var(--sys-i-building) center / contain no-repeat; }
+.legacy-editorial .worker-company-row strong { font-size: 15px; font-weight: 600; }
+.legacy-editorial .worker-companies h3 { font-family: Inter, sans-serif; font-weight: 600; font-size: 18px; color: var(--ink); margin-top: 8px; }
+.legacy-editorial .worker-company-search { max-width: 420px; }
+
+/* Planos da landing em grade: lado a lado enquanto couber (mínimo de 190px por cartão), uma coluna só no celular. */
+.editorial-commercial .landing-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; align-items: stretch; }
+.editorial-commercial .landing-plans > * { height: 100%; display: flex; flex-direction: column; }
+.editorial-commercial .landing-plans > * .btn { margin-top: auto; align-self: flex-start; }
+@media (max-width: 560px) { .editorial-commercial .landing-plans { grid-template-columns: 1fr; } }
+
+/* "O percurso" em grade até telas estreitas: três colunas lado a lado; uma coluna só no celular. */
+@media (min-width: 561px) and (max-width: 760px) {
+  .landing-process ol { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+  .landing-process li { display: block; }
+  .landing-process li > span { margin-bottom: 20px; font-size: 44px; }
+  .landing-process h3 { font-size: 20px; }
+}
+
+/* Cartões de plano mais compactos para caberem lado a lado. */
+.editorial-commercial .landing-plan { padding: clamp(18px, 2.4vw, 32px); border-radius: var(--sys-radius-lg); }
+.editorial-commercial .landing-plan h3 { font-size: clamp(22px, 2.2vw, 30px); line-height: 1.1; }
+.editorial-commercial .landing-plan-price { font-size: clamp(22px, 2.4vw, 32px); line-height: 1.1; white-space: nowrap; }
+.editorial-commercial .landing-plan ul { padding-left: 18px; }
+.editorial-commercial .landing-plan .btn { width: 100%; justify-content: center; }
+.editorial-commercial .landing-plan-price { margin: 16px 0 10px; }
+.legacy-editorial .portal-layout.commercial-legacy-layout > .sidebar { display: none; }
+
+/* Símbolo da marca ao lado do nome no cabeçalho das landings. */
+.editorial-wordmark { display: inline-flex; align-items: center; gap: 12px; }
+.editorial-wordmark-symbol { width: auto; height: 30px; flex: 0 0 auto; }
+.company-header .editorial-wordmark-symbol { filter: brightness(0) invert(1); }
+@media (max-width: 560px) { .editorial-wordmark-symbol { height: 24px; } .editorial-wordmark { gap: 8px; } }
+
+/* Celular: itens do menu com largura própria; atalhos em três colunas compactas. */
+@media (max-width: 900px) {
+  .legacy-editorial .portal-layout > .sidebar .side-link { width: auto; }
+  .sys-quick { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .sys-quick-card { min-height: 96px; padding: 12px; gap: 14px; }
+  .sys-quick-label { font-size: 13px; line-height: 1.25; }
+}
