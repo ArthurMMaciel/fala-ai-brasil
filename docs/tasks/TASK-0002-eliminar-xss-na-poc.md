@@ -1,6 +1,6 @@
 # TASK-0002 — Eliminar XSS na POC
 
-- Status: em-andamento (correções e testes em PR na branch `fix/xss-poc`; CSP e revisão de segurança pendentes)
+- Status: concluída (2026-11-06; PR #13 mesclado na `main` em `cc6dc05`, deploy Production da Vercel concluído)
 - ClickUp: [TASK-0002](https://app.clickup.com/t/86aktn715)
 - Área: Segurança/Frontend
 - Prioridade: P0
@@ -74,8 +74,13 @@ Sem achados críticos ou altos. Dois achados baixos corrigidos no mesmo PR:
 - Trava de sinks restrita a dois arquivos: agora varre `src/**/*.{ts,tsx,js,jsx,mjs}` com allowlist dos 3 sinks atuais (`main.js`: 2; `auth-steps.ts`: 1). Mutação: `dangerouslySetInnerHTML` em `persona-showcase.tsx` e `innerHTML` em `toast.ts` fazem o teste falhar.
 - `npm test`: 50/50; `tsc` e build OK; galeria e diretório conferidos de novo na prévia.
 
-### Pendente
+### Encerramento (2026-11-06)
 
-- CSP compatível (o renderer legado usa atributos `style` inline nos templates; exige avaliação própria).
-- Revisão de segurança independente e E2E no fluxo autenticado real (a verificação usou prévias com dados simulados).
-- Portais React dependem do escape automático do React para texto; qualquer `dangerouslySetInnerHTML` futuro deve passar por esta tarefa.
+- Revisão de segurança independente feita pelo DevOps no PR #13: sem achados críticos ou altos; os dois baixos foram corrigidos no próprio PR.
+- Merge na `main` com merge commit `cc6dc05`, condicionado ao head `d5222d2`, após liberação escrita do responsável técnico. Deploy Production da Vercel (7610939457) concluído com sucesso; o site publicado não foi aberto (URL protegida, resposta 302).
+
+### Pendências (fora desta tarefa)
+
+- CSP: TASK-0034, no PR [ArthurMMaciel/fala-ai-brasil#14](https://github.com/ArthurMMaciel/fala-ai-brasil/pull/14) (`docs/tasks/TASK-0034-content-security-policy.md`; mesclado na `main` em `5e1a0c9`). O renderer legado usa atributos `style` inline nos templates.
+- E2E no fluxo autenticado real contra o Supabase (a verificação usou prévias com dados simulados).
+- Portais React dependem do escape automático do React para texto; qualquer `dangerouslySetInnerHTML` novo falha na trava de sinks e precisa de revisão.
