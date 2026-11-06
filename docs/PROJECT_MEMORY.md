@@ -1,6 +1,6 @@
 # Memória permanente do projeto
 
-Atualizado em: 2026-11-05
+Atualizado em: 2026-11-06
 
 - Em 2026-11-05, TASK-0028/ADR-0011: pedido do responsável para “Saiba mais” em todas as landings, persistência em `contact_solicitations` e aba da equipe com filtros e status `waiting_contact`/`contacted`. Implementação local inclui formulário sem texto livre, migration com RPCs e acesso restrito a `private.platform_admins`, e interface administrativa. Intelligence é perfil Empresa com origem própria. Base legal, aviso e prazo de retenção ainda exigem decisão; migration não aplicada em produção e equipe não provisionada. Nenhum e-mail ou CRM novo.
 
@@ -62,6 +62,10 @@ Aplicação Vite + TypeScript com landing e percursos editoriais em React, integ
 - Alterações estruturais exigem ADR; trabalho relevante exige tarefa.
 
 ## Alterações recentes
+
+- Em 2026-11-06 (TASK-0031/ADR-0010): `migration list` confirmou as 11 migrations até 20261106130100 aplicadas no remoto, inclusive `contact_solicitations` (ADR-0011 condicionava a produção a decisões de privacidade: risco em aberto). Banco local descartável via `supabase start` validou todas as migrations do zero e os 5 testes de fumaça (62 verificações). Nova migration 20261106140000 (só funções): trava de linha em `ops_decide_complaint` e ranking medido a partir da liberação. Pendente de aplicação no remoto. Para validar migrations localmente: `supabase start`, `supabase db query --local < supabase/tests/<teste>.sql`, `supabase stop --no-backup`.
+
+- Em 2026-11-06 o responsável aprovou e foi implementada a revisão humana (ADR-0010): o trabalhador solicita revisão; a equipe libera, pede ajuste ou retém; empresa só vê após liberação. Área de Operação para contas em private.platform_admins (rota ops). Favicon com o símbolo da marca.
 
 - Em 2026-11-05: cadastro em etapas; validação por toast (vermelho para erro, verde para sucesso) no lugar dos balões do navegador; telefone obrigatório no cadastro do trabalhador; máscaras e validação de CPF, CNPJ alfanumérico e telefones fixo/celular com DDD em todos os formulários. Migration 20261106120000 pendente de aplicação no banco.
 

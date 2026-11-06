@@ -9,7 +9,7 @@ import { formatPhone, maskPhone, planIncludesContent, validateCompanyContact, va
 type CompanyView = 'dashboard' | 'complaints' | 'ranking' | 'partners';
 type PartnerView = 'dashboard' | 'profile' | 'content' | 'companies' | 'leads' | 'clients';
 
-const companyStatus: Record<ComplaintStatusDb, string> = { received: 'Recebida', shared: 'Aguardando resposta', answered: 'Respondida', closed: 'Finalizada', canceled: 'Cancelada' };
+const companyStatus: Record<ComplaintStatusDb, string> = { received: 'Recebida', in_review: 'Em revisão', adjustment_requested: 'Em revisão', held: 'Em revisão', shared: 'Aguardando resposta', answered: 'Respondida', closed: 'Finalizada', canceled: 'Cancelada' };
 const feedbackLabels = { yes: 'A resposta ajudou', partial: 'Ajudou em parte', no: 'Não ajudou' } as const;
 
 function dateLabel(value: string) { return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value)); }
@@ -17,12 +17,12 @@ function formatCnpj(value: string) { return value.replace(/^(\d{2})(\d{3})(\d{3}
 // initials vem de ./ui (compartilhado com o menu lateral).
 function hours(value: number | null | undefined) { return value === null || value === undefined ? '—' : value < 48 ? `${value} h` : `${(value / 24).toFixed(1).replace('.', ',')} dias`; }
 
-function Metric({ label, value, note }: { label: string; value: string | number; note?: string }) {
+export function Metric({ label, value, note }: { label: string; value: string | number; note?: string }) {
  return <article className="commercial-metric"><span>{label}</span><strong>{value}</strong>{note && <small>{note}</small>}</article>;
 }
-const sidebarIcons: Record<string, IconName> = { dashboard: 'home', complaints: 'inbox', ranking: 'chart', partners: 'users', profile: 'user', content: 'image', companies: 'building', leads: 'star', clients: 'briefcase' };
+const sidebarIcons: Record<string, IconName> = { overview: 'home', queue: 'inbox', all: 'list', contacts: 'users', dashboard: 'home', complaints: 'inbox', ranking: 'chart', partners: 'users', profile: 'user', content: 'image', companies: 'building', leads: 'star', clients: 'briefcase' };
 
-function Sidebar<T extends string>({ eyebrow, name, items, view, onView }: { eyebrow: string; name: string; items: [T, string][]; view: T; onView: (view: T) => void }) {
+export function Sidebar<T extends string>({ eyebrow, name, items, view, onView }: { eyebrow: string; name: string; items: [T, string][]; view: T; onView: (view: T) => void }) {
  return <aside className="commercial-sidebar"><div className="sys-account"><span className="sys-avatar" aria-hidden="true">{initials(name)}</span><span><strong className="commercial-sidebar-name">{name}</strong><small>{eyebrow}</small></span></div>
   <nav className="sys-nav" aria-label={eyebrow}>{items.map(([key, label]) => <button key={key} className={view === key ? 'active' : ''} aria-current={view === key ? 'page' : undefined} onClick={() => onView(key)}><Icon name={sidebarIcons[key] ?? 'list'} />{label}</button>)}</nav></aside>;
 }

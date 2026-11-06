@@ -7,6 +7,7 @@ declare
   c uuid := '62222222-2222-2222-2222-222222222222';
   c2 uuid := '63333333-3333-3333-3333-333333333333';
   p uuid := '64444444-4444-4444-4444-444444444444';
+  adm uuid := '65555555-5555-5555-5555-555555555555';
   v_company uuid; v_partner uuid; shared_id uuid; private_id uuid; ok boolean; n int;
 begin
   insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
@@ -14,6 +15,8 @@ begin
   ('00000000-0000-0000-0000-000000000000', c, 'authenticated', 'authenticated', 'c3@teste.invalid', '{"signup_type":"company","signup":{"legal_name":"Empresa Smoke Ltda","cnpj":"45723174000110","plan_id":"company-essential","subscription_mode":"trial","address":{"zip_code":"01310100","street_type":"street","street_name":"A","number":"1","city":"São Paulo","state":"SP"}}}', now(), now()),
   ('00000000-0000-0000-0000-000000000000', c2, 'authenticated', 'authenticated', 'c4@teste.invalid', '{"signup_type":"company","signup":{"legal_name":"Outra Smoke Ltda","cnpj":"04252011000110","plan_id":"company-essential","subscription_mode":"trial","address":{"zip_code":"01310100","street_type":"street","street_name":"B","number":"2","city":"São Paulo","state":"SP"}}}', now(), now()),
   ('00000000-0000-0000-0000-000000000000', p, 'authenticated', 'authenticated', 'p3@teste.invalid', '{"signup_type":"partner","signup":{"display_name":"P","document_type":"cpf","document":"52998224725","specialty":"X","plan_id":"partner-presence","subscription_mode":"trial","address":{"zip_code":"01310100","street_type":"street","street_name":"C","number":"3","city":"São Paulo","state":"SP"}}}', now(), now());
+  insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at) values ('00000000-0000-0000-0000-000000000000', adm, 'authenticated', 'authenticated', 'adm3@teste.invalid', '{}', now(), now());
+  insert into private.platform_admins (user_id) values (adm);
   select cu.company_id into v_company from public.company_users cu where cu.user_id = c;
   select pa.id into v_partner from public.partners pa where pa.user_id = p;
 
@@ -23,6 +26,10 @@ begin
   private_id := public.create_complaint(jsonb_build_object('company_id', v_company, 'category', 'Convivência', 'title', 'Guardada sem compartilhar', 'original_content', 'Texto que não deve chegar à empresa.'), false);
   res := res || jsonb_build_object('protocolo gerado', (select protocol like 'EAB-____-____' from public.complaints where id = shared_id));
   res := res || jsonb_build_object('trabalhador vê as próprias', (select count(*) from public.complaints) = 2 and (select count(*) from public.complaint_originals) = 2);
+
+  -- ADR-0010: a versão só chega à empresa depois da liberação pela equipe.
+  perform set_config('request.jwt.claims', json_build_object('sub', adm, 'role', 'authenticated')::text, true);
+  perform public.ops_decide_complaint(shared_id, 'released', null);
 
   perform set_config('request.jwt.claims', json_build_object('sub', c, 'role', 'authenticated')::text, true);
   select count(*) into n from public.list_company_complaints();

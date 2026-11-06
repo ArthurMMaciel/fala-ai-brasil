@@ -9,9 +9,9 @@ type View = 'dashboard' | 'list' | 'detail' | 'new' | 'companies';
 export type WorkerEntryView = 'dashboard' | 'list' | 'companies';
 type Period = 'weekly' | 'monthly' | 'yearly';
 
-const statusLabels: Record<ComplaintStatusDb, string> = { received: 'Guardada', shared: 'Aguardando empresa', answered: 'Respondida', closed: 'Finalizada', canceled: 'Cancelada' };
-const eventLabels: Record<ComplaintStatusDb, string> = { received: 'Registrada', shared: 'Enviada à empresa', answered: 'Respondida', closed: 'Finalizada', canceled: 'Cancelada' };
-const statusClass: Record<ComplaintStatusDb, string> = { received: 'em-aberto', shared: 'encaminhada-para-empresa', answered: 'respondida', closed: 'finalizada', canceled: 'finalizada' };
+const statusLabels: Record<ComplaintStatusDb, string> = { received: 'Guardada', in_review: 'Em revisão', adjustment_requested: 'Ajuste solicitado', held: 'Em análise', shared: 'Aguardando empresa', answered: 'Respondida', closed: 'Finalizada', canceled: 'Cancelada' };
+const eventLabels: Record<ComplaintStatusDb, string> = { received: 'Registrada', in_review: 'Revisão solicitada', adjustment_requested: 'Ajuste solicitado', held: 'Em análise pela equipe', shared: 'Liberada para a empresa', answered: 'Respondida', closed: 'Finalizada', canceled: 'Cancelada' };
+const statusClass: Record<ComplaintStatusDb, string> = { received: 'em-aberto', in_review: 'em-revisão', adjustment_requested: 'em-revisão', held: 'em-revisão', shared: 'encaminhada-para-empresa', answered: 'respondida', closed: 'finalizada', canceled: 'finalizada' };
 const feedbackLabels: Record<ComplaintFeedback, string> = { yes: 'Sim, ajudou', partial: 'Em parte', no: 'Não ajudou' };
 
 function dateLabel(value: string) { return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value)); }
@@ -59,7 +59,7 @@ function Dashboard({ complaints, onList, onNew, onCompanies }: { complaints: Wor
    { icon: 'list', label: 'Minhas manifestações', badge: count(['answered']), onClick: onList },
    { icon: 'building', label: 'Empresas', onClick: onCompanies },
   ]} />
-  <div className="worker-funnel">{[['Em acompanhamento', count(['received', 'shared', 'answered'])], ['Aguardando empresa', count(['shared'])], ['Respondidas', count(['answered'])], ['Finalizadas', count(['closed'])]].map(([label, value]) => <article key={String(label)}><span>{label}</span><strong>{value}</strong></article>)}</div>
+  <div className="worker-funnel">{[['Em acompanhamento', count(['received', 'in_review', 'adjustment_requested', 'held', 'shared', 'answered'])], ['Em revisão', count(['in_review', 'adjustment_requested', 'held'])], ['Aguardando empresa', count(['shared'])], ['Respondidas', count(['answered'])], ['Finalizadas', count(['closed'])]].map(([label, value]) => <article key={String(label)}><span>{label}</span><strong>{value}</strong></article>)}</div>
   <section className="worker-dashboard-section"><div className="worker-section-heading"><div><h3>Manifestações criadas</h3><p className="muted">Quantos relatos você registrou no período.</p></div><div className="worker-chart-controls"><label>Período<select value={period} onChange={event => setPeriod(event.target.value as Period)}><option value="weekly">Últimos 7 dias</option><option value="monthly">Este mês</option><option value="yearly">Este ano</option></select></label></div></div>
    <div className={`worker-columns-chart worker-columns-${period}`} aria-label="Manifestações criadas no período">{values.map((value, index) => <div className="worker-column" key={`${labels[index]}-${index}`}><strong>{value}</strong><i style={{ height: `${Math.max(value / max * 100, value ? 16 : 4)}%` }} /><span>{labels[index]}</span></div>)}</div></section>
   <section className="worker-dashboard-note"><h3>O que acontece depois que eu envio?</h3><p>Você revisa a versão que a empresa vai ler e decide se envia agora. A empresa nunca vê seu relato original nem sua identidade, e você acompanha cada resposta por aqui.</p></section>
@@ -81,17 +81,19 @@ function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerCo
  const [shareText, setShareText] = useState('');
  const [busy, setBusy] = useState(false);
  const [feedback, setFeedback] = useState<ComplaintFeedback | ''>('');
- useEffect(() => { let active = true; loadWorkerComplaintDetail(complaint.id).then(value => { if (active) { setDetail(value); setShareText(''); } }); return () => { active = false; }; }, [complaint.id]);
+ useEffect(() => { let active = true; loadWorkerComplaintDetail(complaint.id).then(value => { if (active) { setDetail(value); setShareText(complaint.status === 'adjustment_requested' ? value.shared ?? '' : ''); } }); return () => { active = false; }; }, [complaint.id, complaint.status]);
+ const preRelease = ['received', 'in_review', 'adjustment_requested', 'held'].includes(complaint.status);
+ const adjustmentNote = detail?.timeline.filter(item => item.status === 'adjustment_requested').slice(-1)[0]?.content;
  async function share() {
   if (shareText.trim().length < 10) return showToast('error', 'Revise a versão para a empresa (mínimo de 10 caracteres).');
   setBusy(true); const result = await shareWorkerComplaint(complaint.id, shareText); setBusy(false);
   if (!result.ok) return showToast('error', result.message);
-  showToast('success', 'Versão enviada à empresa.'); onChanged();
+  showToast('success', 'Revisão solicitada. A equipe confere a versão antes de liberar à empresa.'); onChanged();
  }
  async function close() {
-  setBusy(true); const result = await closeWorkerComplaint(complaint.id, complaint.status === 'received' ? null : feedback || null); setBusy(false);
+  setBusy(true); const result = await closeWorkerComplaint(complaint.id, preRelease ? null : feedback || null); setBusy(false);
   if (!result.ok) return showToast('error', result.message);
-  showToast('success', complaint.status === 'received' ? 'Manifestação cancelada.' : 'Acompanhamento encerrado. Obrigado pelo retorno.'); onChanged();
+  showToast('success', preRelease ? 'Manifestação retirada. Ela não chegará à empresa.' : 'Acompanhamento encerrado. Obrigado pelo retorno.'); onChanged();
  }
  const open = !['closed', 'canceled'].includes(complaint.status);
  return <><button className="text-action worker-back" onClick={onBack}>← Voltar para manifestações</button>
@@ -99,11 +101,14 @@ function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerCo
   {!detail ? <p className="muted">Carregando detalhes…</p> : <div className="worker-detail-grid"><div>
    <section className="worker-detail-section"><h3>Resumo</h3><dl><div><dt>Empresa</dt><dd>{company?.name ?? '—'}</dd></div><div><dt>Assunto</dt><dd>{complaint.category}</dd></div><div><dt>Quando aconteceu</dt><dd>{complaint.incidentPeriod ?? '—'}</dd></div><div><dt>Recorrência</dt><dd>{complaint.recurrence ?? '—'}</dd></div></dl></section>
    <section className="worker-detail-section"><h3>Seu relato original</h3><p className="muted small">Só você vê este texto.</p><p className="worker-original">{detail.original}</p></section>
-   {detail.shared ? <section className="worker-detail-section"><h3>Versão que a empresa recebeu</h3><p className="worker-original">{detail.shared}</p></section> : complaint.status === 'received' && <section className="worker-detail-section"><h3>Compartilhar com a empresa</h3><p className="muted small">Escreva uma versão separada. Inclua o necessário para a empresa entender e responder, sem nomes, locais, datas ou detalhes que possam identificar pessoas.</p><textarea className="worker-share-text" rows={6} value={shareText} onChange={event => setShareText(event.target.value)} aria-label="Versão para a empresa" placeholder="Escreva a versão que poderá ser mostrada à empresa." /><button className="btn primary" disabled={busy} onClick={share}>Enviar esta versão à empresa</button></section>}
+   {(complaint.status === 'received' || complaint.status === 'adjustment_requested') ? <section className="worker-detail-section"><h3>{complaint.status === 'adjustment_requested' ? 'Ajustar a versão para a empresa' : 'Compartilhar com a empresa'}</h3>
+     {complaint.status === 'adjustment_requested' && adjustmentNote && <div className="commercial-callout">{adjustmentNote}</div>}
+     <p className="muted small">Escreva uma versão separada. Inclua o necessário para a empresa entender e responder, sem nomes, locais, datas ou detalhes que possam identificar pessoas. A equipe revisa antes de liberar.</p><textarea className="worker-share-text" rows={6} value={shareText} onChange={event => setShareText(event.target.value)} aria-label="Versão para a empresa" placeholder="Escreva a versão que poderá ser mostrada à empresa." /><button className="btn primary" disabled={busy} onClick={share}>{complaint.status === 'adjustment_requested' ? 'Enviar ajuste para revisão' : 'Solicitar revisão'}</button></section>
+    : detail.shared && <section className="worker-detail-section"><h3>{preRelease ? 'Versão em revisão' : 'Versão que a empresa recebeu'}</h3>{preRelease && <p className="muted small">A equipe confere esta versão antes de liberar à empresa. Até lá, a empresa não vê nada.</p>}<p className="worker-original">{detail.shared}</p></section>}
    {complaint.expectedOutcomes.length > 0 && <section className="worker-detail-section"><h3>O que você espera</h3><ul>{complaint.expectedOutcomes.map(item => <li key={item}>{item}</li>)}</ul></section>}
   </div><aside className="worker-detail-aside">
    <section className="worker-detail-section"><h3>Acompanhamento</h3><ol className="worker-timeline">{detail.timeline.map((item, index) => <li key={index} className={item.kind === 'response' ? 'worker-timeline-response' : ''}><strong>{item.kind === 'response' ? 'Resposta da empresa' : eventLabels[item.status ?? 'received']}</strong><span>{dateLabel(item.createdAt)}</span><p>{item.content}</p></li>)}</ol></section>
-   {open && <section className="worker-detail-section worker-actions"><h3>{complaint.status === 'received' ? 'Cancelar' : 'Encerrar acompanhamento'}</h3>{complaint.status !== 'received' && <label>A resposta ajudou?<select value={feedback} onChange={event => setFeedback(event.target.value as ComplaintFeedback | '')}><option value="">Prefiro não avaliar</option>{Object.entries(feedbackLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>}<button className="btn" disabled={busy} onClick={close}>{complaint.status === 'received' ? 'Cancelar manifestação' : 'Encerrar acompanhamento'}</button></section>}
+   {open && <section className="worker-detail-section worker-actions"><h3>{preRelease ? 'Retirar manifestação' : 'Encerrar acompanhamento'}</h3>{!preRelease && <label>A resposta ajudou?<select value={feedback} onChange={event => setFeedback(event.target.value as ComplaintFeedback | '')}><option value="">Prefiro não avaliar</option>{Object.entries(feedbackLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>}<button className="btn" disabled={busy} onClick={close}>{preRelease ? 'Retirar manifestação' : 'Encerrar acompanhamento'}</button></section>}
    {complaint.feedback && <section className="worker-detail-section"><h3>Sua avaliação</h3><p>{feedbackLabels[complaint.feedback]}</p></section>}
   </aside></div>}</>;
 }

@@ -285,3 +285,13 @@
 .legacy-editorial [aria-invalid="true"]:not([type="checkbox"]) { border-color: #c62f2f !important; background: #fff6f6 !important; box-shadow: 0 0 0 4px rgba(198, 47, 47, .12) !important; }
 .legacy-editorial .is-invalid > label, .legacy-editorial label.is-invalid { color: #b42323; }
 .legacy-editorial input[type="checkbox"][aria-invalid="true"] { outline: 2px solid #c62f2f; outline-offset: 2px; }
+
+/* Operação: decisão da revisão, situação "retida" e gráfico semanal. */
+.legacy-editorial .worker-status.em-revisão { background: #fbf4df; color: #855b00; }
+.legacy-editorial .worker-status.retida { background: #fde8e8; color: #a12626; }
+.ops-decision { padding: 20px !important; border-radius: var(--sys-radius); background: var(--sys-surface); box-shadow: var(--sys-shadow); border-top: 0 !important; }
+.ops-decision .field { display: grid; gap: 6px; font-weight: 600; margin-bottom: 14px; }
+.ops-decision-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.ops-metrics-secondary { margin-top: 12px; margin-bottom: 24px; }
+.ops-weekly { height: 180px; }
+.legacy-editorial .commercial-table td small { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
