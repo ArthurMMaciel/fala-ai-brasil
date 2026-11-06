@@ -22,7 +22,18 @@ A versão compartilhável agora começa vazia tanto no assistente de nova manife
 
 ## Progresso em 2026-11-06
 
-Modelo aprovado e implementado (ADR-0010): estados de revisão, fila e decisões da equipe com trilha, acesso ao original com justificativa, área de Operação com visão geral, fila, manifestações, empresas e solicitações de contato. Migrations 20261106130000/130100 pendentes de aplicação; teste de fumaça `ops_review_smoke.sql` a rodar após aplicar.
+Modelo aprovado e implementado (ADR-0010): estados de revisão, fila e decisões da equipe com trilha, acesso ao original com justificativa, área de Operação com visão geral, fila, manifestações, empresas e solicitações de contato. Migrations 20261106130000/130100 aplicadas no remoto (confirmado por `migration list` na mesma data); teste de fumaça validado em banco local (ver abaixo).
+
+### Validação e correções (2026-11-06, tarde)
+
+- `supabase migration list` (somente leitura) mostra as 11 migrations até 20261106130100 aplicadas no projeto remoto, inclusive 20261105170000 (`contact_solicitations`), que a ADR-0011 condicionava a decisões de privacidade.
+- Banco local descartável (`supabase start`, Docker) criado do zero com as 11 migrations e a nova `20261106140000_revisao_lock_e_ranking.sql`, sem erro.
+- Migration 20261106140000 (só `create or replace`, sem mudança de tabela, política ou permissão):
+  - `ops_decide_complaint` lê o status com `for update`: decisões simultâneas não geram duas decisões nem dois eventos; a segunda recebe erro.
+  - `company_ranking` mede a primeira resposta a partir do primeiro evento `shared` (liberação), não da criação; casos antigos sem esse evento usam a criação.
+- Testes de fumaça locais: `rls_smoke` 12/12, `campaigns_smoke` 8/8, `complaints_smoke` 13/13, `content_contact_smoke` 8/8, `ops_review_smoke` 21/21 (4 casos novos: decisão repetida recusada, trava da linha, uma única liberação e ranking a partir da liberação). `npm test` 42/42 e build sem erro.
+- A concorrência foi verificada pela definição da função e pela recusa de decisão repetida; não houve teste com duas conexões simultâneas.
+- Pendente: aplicar 20261106140000 no remoto (requer autorização), verificação de representante (TASK-0011) e convite seguro (TASK-0029).
 
 ## Critérios de aceite
 

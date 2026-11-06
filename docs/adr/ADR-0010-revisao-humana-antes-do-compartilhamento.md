@@ -46,7 +46,8 @@ Adotar a opção 2 para o piloto fechado, sujeita à validação de produto, ope
 - Equipe (`private.platform_admins`): `ops_list_complaints`, `ops_decide_complaint`, `ops_read_original` (justificativa obrigatória, registrada em `original_access_log`), `ops_complaint_timeline`, `ops_list_companies` e `ops_metrics` (só agregados). Decisões em `complaint_reviews`.
 - Empresa: lista e linha do tempo só com `shared`/`answered`/`closed` e sem eventos de revisão.
 - Conta da equipe criada pelo painel do Supabase não gera perfil (`handle_new_user` ignora cadastro sem tipo).
-- Teste de fumaça: `supabase/tests/ops_review_smoke.sql`. Pendentes: verificação de representante (TASK-0011), convite seguro (TASK-0029), notificações por e-mail das decisões.
+- Correções (migration `20261106140000_revisao_lock_e_ranking.sql`, só funções): `ops_decide_complaint` trava a linha (`for update`) antes de conferir o status, evitando decisão dupla em concorrência; `company_ranking` mede a primeira resposta a partir da liberação (primeiro evento `shared`), sem contar o tempo de revisão contra a empresa.
+- Teste de fumaça: `supabase/tests/ops_review_smoke.sql` (21 verificações, validado em banco local do zero em 2026-11-06). Pendentes: verificação de representante (TASK-0011), convite seguro (TASK-0029), notificações por e-mail das decisões.
 
 ## Consequências
 

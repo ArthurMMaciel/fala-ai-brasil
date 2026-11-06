@@ -6,7 +6,7 @@ declare
   w uuid := '81111111-1111-1111-1111-111111111111';
   c uuid := '82222222-2222-2222-2222-222222222222';
   a uuid := '83333333-3333-3333-3333-333333333333';
-  v_company uuid; v_id uuid; v_text text; n int;
+  v_company uuid; v_id uuid; v_id2 uuid; v_id3 uuid; v_text text; n int;
 begin
   insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
   ('00000000-0000-0000-0000-000000000000', w, 'authenticated', 'authenticated', 'w8@teste.invalid', '{"signup_type":"worker","signup":{"full_name":"W","cpf":"52998224725","phone":"41987654321","address":{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}}}', now(), now()),
@@ -54,11 +54,37 @@ begin
   res := res || jsonb_build_object('liberação muda status', exists (select 1 from public.ops_list_complaints('shared') where id = v_id));
   res := res || jsonb_build_object('decisões auditadas', (select count(*) from public.ops_complaint_timeline(v_id) where kind = 'review') = 2);
   res := res || jsonb_build_object('métricas sem erro', (public.ops_metrics() ->> 'workers') is not null);
+  -- 20261106140000: decisão repetida é recusada e a leitura do status trava a linha.
+  begin
+    perform public.ops_decide_complaint(v_id, 'released', null);
+    res := res || jsonb_build_object('decisão repetida recusada', false);
+  exception when others then res := res || jsonb_build_object('decisão repetida recusada', true); end;
+  res := res || jsonb_build_object('decisão trava a linha', pg_get_functiondef('public.ops_decide_complaint(uuid, text, text)'::regprocedure) ilike '%for update%');
+  res := res || jsonb_build_object('uma decisão de liberação', (select count(*) from public.ops_complaint_timeline(v_id) where kind = 'review' and content like 'Decisão: liberar%') = 1);
 
   perform set_config('request.jwt.claims', json_build_object('sub', c, 'role', 'authenticated')::text, true);
   res := res || jsonb_build_object('empresa vê após liberar', (select count(*) from public.list_company_complaints()) = 1);
   res := res || jsonb_build_object('empresa não vê eventos de revisão', not exists (select 1 from public.get_company_complaint_timeline(v_id) where status in ('in_review', 'adjustment_requested', 'held')));
   res := res || jsonb_build_object('empresa não lê o original', not exists (select 1 from public.list_company_complaints() where shared_content like '%Fulano%'));
+
+  -- 20261106140000: ranking conta a primeira resposta a partir da liberação, não da criação.
+  perform set_config('request.jwt.claims', json_build_object('sub', w, 'role', 'authenticated')::text, true);
+  v_id2 := public.create_complaint(jsonb_build_object('company_id', v_company, 'category', 'Carga de trabalho', 'title', 'Metas sem prazo', 'original_content', 'Relato fictício número dois para o ranking.', 'shared_content', 'Versão fictícia número dois para o ranking.'), true);
+  v_id3 := public.create_complaint(jsonb_build_object('company_id', v_company, 'category', 'Carga de trabalho', 'title', 'Escala sem folga', 'original_content', 'Relato fictício número três para o ranking.', 'shared_content', 'Versão fictícia número três para o ranking.'), true);
+  perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
+  perform public.ops_decide_complaint(v_id2, 'released', null);
+  perform public.ops_decide_complaint(v_id3, 'released', null);
+  perform set_config('request.jwt.claims', json_build_object('sub', c, 'role', 'authenticated')::text, true);
+  perform public.respond_complaint(v_id, 'Resposta institucional fictícia ao caso um.');
+  perform public.respond_complaint(v_id2, 'Resposta institucional fictícia ao caso dois.');
+  perform public.respond_complaint(v_id3, 'Resposta institucional fictícia ao caso três.');
+  execute 'reset role';
+  -- Criadas há 48 h, liberadas há 2 h, respondidas agora: o ranking deve mostrar 2 h, não 48 h.
+  update public.complaints set created_at = now() - interval '48 hours' where id in (v_id, v_id2, v_id3);
+  update public.complaint_events set created_at = now() - interval '2 hours' where complaint_id in (v_id, v_id2, v_id3) and status = 'shared';
+  execute 'set local role authenticated';
+  select avg_first_response_hours into n from public.company_ranking() where company_id = v_company;
+  res := res || jsonb_build_object('ranking conta a partir da liberação', n = 2);
 
   execute 'reset role';
   raise exception 'RESULTADOS %', res;
