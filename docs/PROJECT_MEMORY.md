@@ -63,6 +63,8 @@ Aplicação Vite + TypeScript com landing e percursos editoriais em React, integ
 
 ## Alterações recentes
 
+- Em 2026-11-06 (TASK-0034): o responsável aprovou CSP em duas fases. Fase 1: `vercel.json` com `Content-Security-Policy-Report-Only` (`script-src 'self'`, `style-src 'self' 'unsafe-inline'` por causa dos `style=""` do renderer legado, `connect-src` restrito ao Supabase público e ao ViaCEP). O build gera só um script externo, sem inline, `eval` ou `new Function`. A fase 2 (bloquear de fato e `frame-ancestors 'none'`) depende do merge da fase 1 e de nova autorização.
+
 - Em 2026-11-06 (TASK-0031/ADR-0010): `migration list` confirmou as 11 migrations até 20261106130100 aplicadas no remoto, inclusive `contact_solicitations` (ADR-0011 condicionava a produção a decisões de privacidade: risco em aberto). Banco local descartável via `supabase start` validou todas as migrations do zero e os 5 testes de fumaça (62 verificações). Nova migration 20261106140000 (só funções): trava de linha em `ops_decide_complaint` e ranking medido a partir da liberação. Pendente de aplicação no remoto. Para validar migrations localmente: `supabase start`, `supabase db query --local < supabase/tests/<teste>.sql`, `supabase stop --no-backup`.
 
 - Em 2026-11-06 o responsável aprovou e foi implementada a revisão humana (ADR-0010): o trabalhador solicita revisão; a equipe libera, pede ajuste ou retém; empresa só vê após liberação. Área de Operação para contas em private.platform_admins (rota ops). Favicon com o símbolo da marca.
