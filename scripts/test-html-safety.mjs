@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import ts from 'typescript';
 
 const output = ts.transpileModule(readFileSync('src/domain/html-safety.ts', 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2021, module: ts.ModuleKind.ES2022 } }).outputText;
@@ -28,9 +28,37 @@ test('safeHttpUrl aceita só http/https absolutos', () => {
   ]) assert.equal(safeHttpUrl(value), null, `rejeita ${JSON.stringify(value)}`);
 });
 
-test('nenhum sink HTML novo sem passar pelo inventário da TASK-0002', () => {
-  const files = ['src/app/main.js', 'src/app/auth-steps.ts'];
-  const sinks = files.flatMap(file => [...readFileSync(file, 'utf8').matchAll(/innerHTML|insertAdjacentHTML|outerHTML|dangerouslySetInnerHTML|document\.write/g)].map(() => file));
-  // main.js: renderer y() e ícone do botão de senha (SVG constante); auth-steps.ts: barra de etapas sem dados do usuário.
-  assert.deepEqual(sinks, ['src/app/main.js', 'src/app/main.js', 'src/app/auth-steps.ts']);
+// Inventário da TASK-0002: qualquer sink HTML novo em src/ precisa ser revisado e entrar nesta lista.
+const allowedSinks = {
+  'src/app/main.js': 2, // renderer y() e ícone SVG constante do botão de senha
+  'src/app/auth-steps.ts': 1, // barra de etapas, sem dado do usuário
+};
+const sinkPattern = /\binnerHTML\b|\bouterHTML\b|insertAdjacentHTML|dangerouslySetInnerHTML|document\.write(ln)?\s*\(|\bsrcdoc\b|createContextualFragment|parseFromString/g;
+
+function sourceFiles(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+    const path = `${dir}/${entry.name}`;
+    if (entry.isDirectory()) return sourceFiles(path);
+    return /\.(ts|tsx|js|jsx|mjs)$/.test(entry.name) ? [path] : [];
+  });
+}
+
+export function countSinks(files, read = file => readFileSync(file, 'utf8')) {
+  const found = {};
+  for (const file of files) {
+    const count = (read(file).match(sinkPattern) || []).length;
+    if (count) found[file] = count;
+  }
+  return found;
+}
+
+test('nenhum sink HTML novo em src/ fora do inventário da TASK-0002', () => {
+  const files = sourceFiles('src');
+  assert.ok(files.length > 20, 'varre a árvore src/ inteira');
+  assert.deepEqual(countSinks(files), allowedSinks);
+});
+
+test('a trava detecta sink novo em arquivo qualquer', () => {
+  const fake = { 'src/x.tsx': '<div dangerouslySetInnerHTML={{ __html: a }} />', 'src/y.ts': 'el.insertAdjacentHTML("beforeend", b); el.outerHTML = c;', 'src/z.ts': 'el.textContent = d; // innerText' };
+  assert.deepEqual(countSinks(Object.keys(fake), file => fake[file]), { 'src/x.tsx': 1, 'src/y.ts': 2 });
 });

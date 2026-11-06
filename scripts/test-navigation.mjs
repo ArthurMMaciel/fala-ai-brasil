@@ -260,3 +260,27 @@ test('perfis, campanhas e foto do parceiro do banco não executam HTML nem URL j
   assert.doesNotMatch(screen.html, /<img src="javascript:/i);
   assert.match(screen.html, /Nenhuma foto enviada/);
 });
+
+// TASK-0002 (revisão DevOps): mídia do parceiro no portal React só aceita http(s) em src/href.
+const portalUi = compile('src/portals/ui.tsx');
+const portalLive = compile('src/portals/portal-live.tsx', '', name => ({ '../services/account': {}, '../services/data': {}, '../app/toast': {}, './ui': portalUi, '../domain/account-rules': accountRules, '../domain/html-safety': htmlSafety }[name] ?? require(name)));
+const badUrls = ['javascript:alert(1)', 'JaVaScRiPt:alert(1)', 'data:text/html,<script>alert(1)</script>', 'data:image/svg+xml,<svg onload=alert(1)>', ' javascript:alert(1)'];
+const render = (component, props) => renderToStaticMarkup(React.createElement(component, props));
+
+test('conteúdo, avatar e foto do parceiro bloqueiam javascript: e data: em src/href', () => {
+  for (const url of badUrls) {
+    for (const kind of ['image', 'video']) {
+      const html = render(portalLive.ContentMedia, { content: { kind, url, title: 'Conteúdo' } });
+      assert.doesNotMatch(html, /(src|href)="/, `${kind} com ${url} não gera src/href`);
+      if (kind === 'video') assert.match(html, /Link de vídeo indisponível/);
+    }
+    for (const large of [false, true]) {
+      const html = render(portalLive.PartnerPhoto, { url, name: 'Marina Costa', large });
+      assert.doesNotMatch(html, /<img|src="/, `foto com ${url} não gera img`);
+      assert.match(html, />MC</, 'mostra as iniciais no lugar da foto');
+    }
+  }
+  assert.match(render(portalLive.ContentMedia, { content: { kind: 'image', url: 'https://cdn.example.com/a.png', title: 'Foto' } }), /<img src="https:\/\/cdn\.example\.com\/a\.png"/);
+  assert.match(render(portalLive.ContentMedia, { content: { kind: 'video', url: 'https://www.youtube.com/watch?v=abc', title: 'Vídeo' } }), /<a class="content-video" href="https:\/\/www\.youtube\.com\/watch\?v=abc"/);
+  assert.match(render(portalLive.PartnerPhoto, { url: 'https://x.supabase.co/storage/v1/object/public/partner-media/a.jpg', name: 'Marina', large: true }), /<img class="partner-avatar partner-photo large" src="https:/);
+});

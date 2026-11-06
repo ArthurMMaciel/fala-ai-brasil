@@ -61,10 +61,18 @@ Fontes no renderer legado (`main.js`) corrigidas: nome do usuário na saudação
 
 ### Evidências
 
-- `npm test`: 48 testes passando (42 antes + 6 novos). Novos: `scripts/test-html-safety.mjs` (encoder, filtro de URL e trava de inventário de sinks) e três cenários em `scripts/test-navigation.mjs` que renderizam o `main.js` real com `<img onerror>`, `<script>`, `'><svg onload>` e `javascript:`.
+- `npm test`: 48 testes passando na primeira entrega (42 antes + 6 novos; 50 após a revisão). Novos: `scripts/test-html-safety.mjs` (encoder, filtro de URL e trava de inventário de sinks) e três cenários em `scripts/test-navigation.mjs` que renderizam o `main.js` real com `<img onerror>`, `<script>`, `'><svg onload>` e `javascript:`.
 - Teste de mutação: removendo o escape da busca e do relato original, os dois cenários correspondentes falham.
 - `npx tsc --noEmit -p .` e `npx vite build` sem erros.
 - Navegador (prévia local `tmp/xss-preview.html`, que executa o `main.js` real com DOM real e `alert` instrumentado, e `tmp/portal-preview.html`): em busca, rascunho (etapas 6 e 9), acompanhamento, aba Relato da equipe, campanhas, seleção de perfil, foto do parceiro e conteúdos do parceiro, zero `alert` disparado, zero `img[onerror]`, zero `script` injetado, zero `href`/`src` com `javascript:`; payload visível como texto; redação de "Carlos" preservada; link `https` mantido. Conferido em 375 px sem rolagem horizontal e a landing em desktop sem erro de JavaScript novo.
+
+### Ajustes da revisão de segurança (DevOps, 2026-11-06)
+
+Sem achados críticos ou altos. Dois achados baixos corrigidos no mesmo PR:
+
+- Filtro de URL no React sem teste que falhasse: a mídia do parceiro foi extraída para `ContentMedia` e `PartnerPhoto` em `portal-live.tsx` (marcação idêntica), e um teste renderiza os dois com `javascript:` e `data:` em conteúdo, avatar e foto. Mutação: sem `safeHttpUrl`, o teste falha.
+- Trava de sinks restrita a dois arquivos: agora varre `src/**/*.{ts,tsx,js,jsx,mjs}` com allowlist dos 3 sinks atuais (`main.js`: 2; `auth-steps.ts`: 1). Mutação: `dangerouslySetInnerHTML` em `persona-showcase.tsx` e `innerHTML` em `toast.ts` fazem o teste falhar.
+- `npm test`: 50/50; `tsc` e build OK; galeria e diretório conferidos de novo na prévia.
 
 ### Pendente
 
