@@ -11,7 +11,7 @@ const require = createRequire(import.meta.url);
 function compile(file, extra = '', customRequire = require) {
   const module = { exports: {} };
   const code = ts.transpileModule(readFileSync(file, 'utf8') + extra, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2021 } }).outputText;
-  vm.runInNewContext(code, { module, exports: module.exports, require: customRequire });
+  vm.runInNewContext(code, { module, exports: module.exports, require: customRequire, URL });
   return module.exports;
 }
 const catalog = compile('src/domain/commercial.ts').commercialCatalog;
@@ -19,6 +19,7 @@ const model = compile('src/editorial/editorial-model.ts');
 const ui = compile('src/editorial/editorial-ui.tsx');
 const stories = compile('src/editorial/editorial-landing.tsx', '', name => name === './editorial-ui' ? ui : require(name));
 const accountRules = compile('src/domain/account-rules.ts');
+const htmlSafety = compile('src/domain/html-safety.ts');
 const contactService = compile('src/services/contact-solicitations.ts', '', name => name === './account' ? { isAccountServiceConfigured: () => false } : name === '../domain/account-rules' ? accountRules : require(name));
 const contactForm = compile('src/landing/contact-solicitation-form.tsx', '', name => name === '../services/contact-solicitations' ? contactService : name === '../domain/account-rules' ? accountRules : require(name));
 const showcase = compile('src/landing/persona-showcase.tsx', '', name => name === './contact-solicitation-form' ? contactForm : require(name));
@@ -54,6 +55,7 @@ function app() {
     registerAccount: async () => ({ ok: false, message: 'indisponível' }), resendConfirmation: async () => ({ ok: true, value: null }),
     signIn: async () => ({ ok: false, message: 'indisponível' }), signOut: async () => {}, loadPartnerPhoto: async () => ({ url: null }), uploadPartnerPhoto: async () => ({ ok: false, message: 'indisponível' }),
     isDemoEmail: email => email.endsWith('@escutaai.demo'), listPublicSponsors: async () => [], minPasswordLength: 8, validateRegistration: () => null,
+    escapeHtml: htmlSafety.escapeHtml, safeHttpUrl: htmlSafety.safeHttpUrl,
     brazilianStates: ['SP'], showToast() {}, createCampaign: async () => ({ ok: false, message: 'indisponível' }), deleteCampaignDraft: async () => ({ ok: true }), listCampaigns: async () => [], submitCampaign: async () => ({ ok: true }), campaignKindForPlan: () => null, campaignKindLabels: {}, campaignStatusLabels: {}, isActiveCampaign: () => false, validateCampaign: () => null, profileLabels: {}, splitStreet: () => null, streetTypeLabels: { street: 'Rua' },
     document: { createElement() { return { relList: { supports: () => true } }; }, querySelector: () => element },
     window: { scrollTo() {}, matchMedia: () => ({ matches: true }) },
@@ -192,4 +194,93 @@ test('sessão comercial é mantida na landing e plano escolhido segue para a pr�
   screen.button('landing').click();
   screen.props.onLogout();
   assert.equal(screen.api.state.user, null);
+});
+
+// TASK-0002: dados do usuário ou do banco chegam ao renderer legado (innerHTML) apenas como texto.
+const xssPayloads = ['"><img src=x onerror=alert(1)>', '<script>alert(1)</script>', "'><svg onload=alert(1)>", '`${alert(1)}`'];
+function assertInert(html, payload, shown = true) {
+  assert.doesNotMatch(html, /<img[^>]*onerror/i, 'img com onerror não pode virar elemento');
+  assert.doesNotMatch(html, /<script>alert/i, 'script não pode virar elemento');
+  assert.doesNotMatch(html, /<svg[^>]*onload/i, 'svg com onload não pode virar elemento');
+  assert.doesNotMatch(html, /(href|src)="\s*javascript:/i, 'URL javascript: não pode chegar a href/src');
+  if (shown) assert.ok(html.includes(htmlSafety.escapeHtml(payload)), `payload aparece escapado: ${payload}`);
+}
+
+test('busca, e-mail do login e nome do usuário aparecem como texto', () => {
+  for (const payload of xssPayloads) {
+    const screen = app();
+    screen.api.route('companies', { search: payload });
+    assertInert(screen.html, payload);
+    screen.api.route('login', { authNotice: { email: payload } });
+    assertInert(screen.html, payload);
+    screen.api.route('worker', { user: { name: payload, role: 'worker' } });
+    assertInert(screen.html, payload);
+  }
+});
+
+test('rascunho, relato original e manifestação criada aparecem como texto', () => {
+  for (const payload of xssPayloads) {
+    const screen = app();
+    const draft = { ...screen.api.state.complaintDraft, title: payload, originalContent: `${payload} Carlos`, incidentDate: payload, recurrence: payload };
+    let seen = '';
+    for (let step = 0; step <= 8; step++) {
+      screen.api.route('new-complaint', { complaintStep: step, complaintDraft: draft, onboardingError: payload, communicationError: payload });
+      assertInert(screen.html, payload, false);
+      seen += screen.html;
+    }
+    assert.ok(seen.includes(`value="${htmlSafety.escapeHtml(payload)}"`), 'campo de título preserva o texto digitado');
+    assert.match(seen, /<span class="redacted">Carlos<\/span>/, 'marcação de redação continua aplicada');
+    const base = screen.api.state.complaints[0];
+    screen.api.state.complaints.push({ ...base, id: 'm-xss', userId: 'u-worker', title: payload, originalContent: payload, sanitizedContent: payload });
+    screen.api.route('case', { caseId: 'm-xss' });
+    assertInert(screen.html, payload);
+    screen.api.route('admin-case', { user: { name: 'Equipe', role: 'admin' }, adminCaseId: 'm-xss', selectedTab: 'Relato' });
+    assert.equal(screen.api.state.route, 'admin-case');
+    assertInert(screen.html, payload);
+  }
+});
+
+test('perfis, campanhas e foto do parceiro do banco não executam HTML nem URL javascript:', () => {
+  for (const payload of xssPayloads) {
+    const screen = app();
+    screen.api.route('choose-profile', { accountProfiles: [{ type: payload, id: payload, name: payload }, { type: 'worker', id: '1', name: 'Pessoa' }] });
+    assertInert(screen.html, payload);
+  }
+  const screen = app();
+  const sponsor = { name: 'Patrocinador', role: 'commercial', profile: { type: 'sponsor', id: 's-1' } };
+  const campaign = { id: 'c-1', kind: 'banner', title: '<img src=x onerror=alert(1)>', description: '<script>alert(1)</script>', ctaUrl: 'javascript:alert(1)', startsAt: '2026-11-01', endsAt: '2026-11-30', status: 'rejected', reviewNote: '"><svg onload=alert(1)>' };
+  screen.api.route('commercial-account', { user: sponsor, sponsorTab: 'campaigns', campaigns: [campaign] });
+  assert.doesNotMatch(screen.html, /href="javascript:/i);
+  assert.match(screen.html, /javascript:alert\(1\)/, 'link inválido continua visível como texto');
+  assertInert(screen.html, campaign.title);
+  screen.api.route('commercial-account', { user: sponsor, sponsorTab: 'campaigns', campaigns: [{ ...campaign, ctaUrl: 'https://example.com/campanha' }] });
+  assert.match(screen.html, /<a href="https:\/\/example\.com\/campanha"/);
+  const partner = { name: '<img src=x onerror=alert(1)>', role: 'commercial', profile: { type: 'partner', id: 'p-1' } };
+  screen.api.route('commercial-account', { user: partner, partnerPhotoUrl: 'javascript:alert(1)' });
+  assert.doesNotMatch(screen.html, /<img src="javascript:/i);
+  assert.match(screen.html, /Nenhuma foto enviada/);
+});
+
+// TASK-0002 (revisão DevOps): mídia do parceiro no portal React só aceita http(s) em src/href.
+const portalUi = compile('src/portals/ui.tsx');
+const portalLive = compile('src/portals/portal-live.tsx', '', name => ({ '../services/account': {}, '../services/data': {}, '../app/toast': {}, './ui': portalUi, '../domain/account-rules': accountRules, '../domain/html-safety': htmlSafety }[name] ?? require(name)));
+const badUrls = ['javascript:alert(1)', 'JaVaScRiPt:alert(1)', 'data:text/html,<script>alert(1)</script>', 'data:image/svg+xml,<svg onload=alert(1)>', ' javascript:alert(1)'];
+const render = (component, props) => renderToStaticMarkup(React.createElement(component, props));
+
+test('conteúdo, avatar e foto do parceiro bloqueiam javascript: e data: em src/href', () => {
+  for (const url of badUrls) {
+    for (const kind of ['image', 'video']) {
+      const html = render(portalLive.ContentMedia, { content: { kind, url, title: 'Conteúdo' } });
+      assert.doesNotMatch(html, /(src|href)="/, `${kind} com ${url} não gera src/href`);
+      if (kind === 'video') assert.match(html, /Link de vídeo indisponível/);
+    }
+    for (const large of [false, true]) {
+      const html = render(portalLive.PartnerPhoto, { url, name: 'Marina Costa', large });
+      assert.doesNotMatch(html, /<img|src="/, `foto com ${url} não gera img`);
+      assert.match(html, />MC</, 'mostra as iniciais no lugar da foto');
+    }
+  }
+  assert.match(render(portalLive.ContentMedia, { content: { kind: 'image', url: 'https://cdn.example.com/a.png', title: 'Foto' } }), /<img src="https:\/\/cdn\.example\.com\/a\.png"/);
+  assert.match(render(portalLive.ContentMedia, { content: { kind: 'video', url: 'https://www.youtube.com/watch?v=abc', title: 'Vídeo' } }), /<a class="content-video" href="https:\/\/www\.youtube\.com\/watch\?v=abc"/);
+  assert.match(render(portalLive.PartnerPhoto, { url: 'https://x.supabase.co/storage/v1/object/public/partner-media/a.jpg', name: 'Marina', large: true }), /<img class="partner-avatar partner-photo large" src="https:/);
 });
