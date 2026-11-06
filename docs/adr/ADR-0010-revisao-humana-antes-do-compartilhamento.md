@@ -1,6 +1,6 @@
 # ADR-0010 — Revisão humana antes de liberar manifestação à empresa
 
-- Estado: Proposta para o piloto fechado de novembro de 2026
+- Estado: Aceita em 2026-11-06 pelo responsável; implementada nas migrations 20261106130000 e 20261106130100
 - Data: 2026-11-05
 - Tarefas: [TASK-0030](../tasks/TASK-0030-fluxos-operacionais-piloto-trabalhador-empresa.md), [TASK-0031](../tasks/TASK-0031-triagem-humana-e-liberacao-segura.md), [TASK-0029](../tasks/TASK-0029-convite-seguro-a-empresa-apos-manifestacao.md)
 - Relacionada: ADR-0009
@@ -38,6 +38,15 @@ Adotar a opção 2 para o piloto fechado, sujeita à validação de produto, ope
 3. Atualizar criação e compartilhamento para solicitar revisão; criar RPC transacional de decisão com verificação server-side do papel e do destino.
 4. Ajustar portais e mensagens, testar dois tenants, ator sem papel, repetição/concorrência, caso de alto risco, contato incorreto e ausência de consentimento.
 5. Ensaiar com dados sintéticos; registrar evidências no gate da TASK-0033. O deploy público e casos reais requerem autorização separada.
+
+## Implementação (2026-11-06)
+
+- Estados novos: `in_review` (trabalhador solicitou revisão), `adjustment_requested` (equipe devolveu com motivo visível ao trabalhador), `held` (retida; motivo só na trilha). `shared` passa a significar liberada para a empresa.
+- Trabalhador: "Solicitar revisão" no assistente e no detalhe; ajuste reenviado volta para `in_review`; retirar antes da liberação vira `canceled`.
+- Equipe (`private.platform_admins`): `ops_list_complaints`, `ops_decide_complaint`, `ops_read_original` (justificativa obrigatória, registrada em `original_access_log`), `ops_complaint_timeline`, `ops_list_companies` e `ops_metrics` (só agregados). Decisões em `complaint_reviews`.
+- Empresa: lista e linha do tempo só com `shared`/`answered`/`closed` e sem eventos de revisão.
+- Conta da equipe criada pelo painel do Supabase não gera perfil (`handle_new_user` ignora cadastro sem tipo).
+- Teste de fumaça: `supabase/tests/ops_review_smoke.sql`. Pendentes: verificação de representante (TASK-0011), convite seguro (TASK-0029), notificações por e-mail das decisões.
 
 ## Consequências
 

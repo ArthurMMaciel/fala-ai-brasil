@@ -20,6 +20,10 @@ Separar consentimento/preparação pelo trabalhador de liberação efetiva à em
 
 A versão compartilhável agora começa vazia tanto no assistente de nova manifestação quanto no compartilhamento posterior de uma manifestação guardada. O texto orienta a escrever uma versão separada, sem promessa absoluta de proteção de identidade. `npm test` passou (38 testes) e `npm run build` passou. Este ajuste reduz cópia acidental do original, mas ainda não impede envio direto pelo RPC; triagem e liberação server-side permanecem bloqueios P0.
 
+## Progresso em 2026-11-06
+
+Modelo aprovado e implementado (ADR-0010): estados de revisão, fila e decisões da equipe com trilha, acesso ao original com justificativa, área de Operação com visão geral, fila, manifestações, empresas e solicitações de contato. Migrations 20261106130000/130100 pendentes de aplicação; teste de fumaça `ops_review_smoke.sql` a rodar após aplicar.
+
 ## Critérios de aceite
 
 - Versão compartilhável começa vazia e exige elaboração consciente; não há cópia automática do original.

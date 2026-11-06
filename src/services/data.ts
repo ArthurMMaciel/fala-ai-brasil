@@ -3,7 +3,8 @@ import { onlyDigits, type CampaignKind, type ContentInput } from "../domain/acco
 import { partnerMediaBucket } from "./account";
 
 // Acesso aos dados do modelo v3 (manifestações, Hub, landing). Regras e privacidade ficam no banco (RLS e funções).
-export type ComplaintStatusDb = "received" | "shared" | "answered" | "closed" | "canceled";
+// "shared" = liberada para a empresa após revisão da equipe (ADR-0010).
+export type ComplaintStatusDb = "received" | "in_review" | "adjustment_requested" | "held" | "shared" | "answered" | "closed" | "canceled";
 export type ComplaintFeedback = "yes" | "partial" | "no";
 
 function rpcError(error: { code?: string; message: string }, fallback: string): string {

@@ -98,7 +98,7 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
   const result = await createWorkerComplaint({ companyId, category: draft.category, title: draft.title, original: draft.original, shared: share ? draft.shared : '', incidentPeriod: draft.incidentPeriod.slice(0, 80), recurrence: draft.recurrence.slice(0, 80), expectedOutcomes: draft.expectedOutcomes }, share);
   setBusy(false);
   if (!result.ok) return showToast('error', result.message);
-  showToast('success', share ? 'Manifestação registrada e enviada à empresa.' : 'Manifestação guardada. Você pode compartilhar depois.'); onCreated();
+  showToast('success', share ? 'Manifestação registrada. A equipe revisa a versão antes de liberar à empresa.' : 'Manifestação guardada. Você pode solicitar a revisão depois.'); onCreated();
  }
 
  const errorLine = error && <p className="field-error" role="alert">{error}</p>;
@@ -138,7 +138,7 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
    <div className="comparison"><div className="text-panel"><h3>Seu relato original</h3><p>{draft.original}</p></div>
     <div className="text-panel"><h3>Versão que será enviada à empresa</h3><textarea rows={8} maxLength={5000} value={draft.shared} onChange={event => { set('shared', event.target.value); setError(''); }} aria-label="Versão que será enviada à empresa" placeholder="Descreva o que a empresa precisa saber para entender e responder, sem dados que identifiquem pessoas." /></div></div>
    <p className="muted small">{contacts.length ? `Contatos indicados: ${contacts.map(item => `${item.name} (${item.role})`).join(', ')}.` : 'Nenhum contato indicado.'} Demonstração: contatos e respostas de contexto não são armazenados nem usados para contato.</p>
-   {errorLine}<div className="nav-actions"><button className="btn" type="button" onClick={() => go(5)}>Quero ajustar meu relato</button><button className="btn" type="button" disabled={busy} onClick={() => submit(false)}>Guardar sem compartilhar</button><button className="btn primary" type="button" disabled={busy} onClick={() => submit(true)}>{busy ? 'Enviando…' : 'Aprovar e enviar'}</button></div></>;
+   {errorLine}<div className="nav-actions"><button className="btn" type="button" onClick={() => go(5)}>Quero ajustar meu relato</button><button className="btn" type="button" disabled={busy} onClick={() => submit(false)}>Guardar sem compartilhar</button><button className="btn primary" type="button" disabled={busy} onClick={() => submit(true)}>{busy ? 'Enviando…' : 'Solicitar revisão'}</button></div></>;
  }
  return <><button className="text-action worker-back" onClick={onCancel}>← Voltar</button>
   <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Nova manifestação</span><h2>Nova manifestação</h2><p className="muted">Empresa selecionada: <strong>{company.name}</strong>. Etapa {step + 1} de 9 · {stepTitles[step]}</p></div></div>
