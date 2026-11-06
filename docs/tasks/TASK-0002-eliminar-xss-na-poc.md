@@ -38,7 +38,7 @@ Revisão de segurança concluída e testes automatizados verdes.
 
 ## Execução (2026-11-06)
 
-Branch `fix/xss-poc`, a partir de `fix/restaura-assistente-manifestacao`. PR: [ArthurMMaciel/fala-ai-brasil#13](https://github.com/ArthurMMaciel/fala-ai-brasil/pull/13). Comentário com o resumo registrado na tarefa do ClickUp. Nenhuma dependência nova (DOMPurify não foi necessário), nenhuma mudança em `supabase/`, regra de negócio ou visual.
+Branch `fix/xss-poc`, rebaseada sobre `main` (53ed089, após o merge do PR #12); começou a partir de `fix/restaura-assistente-manifestacao`. PR: [ArthurMMaciel/fala-ai-brasil#13](https://github.com/ArthurMMaciel/fala-ai-brasil/pull/13). Comentário com o resumo registrado na tarefa do ClickUp. Nenhuma dependência nova (DOMPurify não foi necessário), nenhuma mudança em `supabase/`, regra de negócio ou visual.
 
 ### Inventário de sinks
 
