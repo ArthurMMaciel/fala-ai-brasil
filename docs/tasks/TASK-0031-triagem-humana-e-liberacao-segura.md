@@ -33,7 +33,8 @@ Modelo aprovado e implementado (ADR-0010): estados de revisão, fila e decisões
   - `company_ranking` mede a primeira resposta a partir do primeiro evento `shared` (liberação), não da criação; casos antigos sem esse evento usam a criação.
 - Testes de fumaça locais: `rls_smoke` 12/12, `campaigns_smoke` 8/8, `complaints_smoke` 13/13, `content_contact_smoke` 8/8, `ops_review_smoke` 21/21 (4 casos novos: decisão repetida recusada, trava da linha, uma única liberação e ranking a partir da liberação). `npm test` 42/42 e build sem erro.
 - A concorrência foi verificada pela definição da função e pela recusa de decisão repetida; não houve teste com duas conexões simultâneas.
-- Pendente: aplicar 20261106140000 no remoto (requer autorização), verificação de representante (TASK-0011) e convite seguro (TASK-0029).
+- Em produção (2026-11-06, autorizado pelo responsável): PR #12 mergeado (53ed089), deploy Production da Vercel concluído com sucesso e `db push` de 20261106140000 aplicado. O remoto tem as 12 migrations; `pg_get_functiondef` confirmou `for update` em `ops_decide_complaint` e o ranking pelo evento `shared`. Os testes de fumaça não foram rodados em produção, para não criar dados.
+- Pendente: verificação de representante (TASK-0011) e convite seguro (TASK-0029), propostos na ADR-0012 (aguardando aprovação).
 
 ## Critérios de aceite
 
