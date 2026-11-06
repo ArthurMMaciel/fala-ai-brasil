@@ -37,7 +37,7 @@ begin
     res := res || jsonb_build_object('ajuste exige motivo', false);
   exception when others then res := res || jsonb_build_object('ajuste exige motivo', true); end;
   perform public.ops_decide_complaint(v_id, 'adjustment_requested', 'A versão cita o nome do gestor; retire antes.');
-  res := res || jsonb_build_object('ajuste muda status', (select status = 'adjustment_requested' from public.complaints where id = v_id));
+  res := res || jsonb_build_object('ajuste muda status', exists (select 1 from public.ops_list_complaints('adjustment_requested') where id = v_id));
 
   perform set_config('request.jwt.claims', json_build_object('sub', w, 'role', 'authenticated')::text, true);
   perform public.share_complaint(v_id, 'O relato descreve mensagens frequentes fora do horário combinado.');
@@ -51,7 +51,7 @@ begin
   v_text := public.ops_read_original(v_id, 'Avaliar risco descrito no relato antes de liberar.');
   res := res || jsonb_build_object('acesso ao original registrado', v_text like '%Fulano%' and (select count(*) from public.ops_complaint_timeline(v_id) where kind = 'access') = 1);
   perform public.ops_decide_complaint(v_id, 'released', null);
-  res := res || jsonb_build_object('liberação muda status', (select status = 'shared' from public.complaints where id = v_id));
+  res := res || jsonb_build_object('liberação muda status', exists (select 1 from public.ops_list_complaints('shared') where id = v_id));
   res := res || jsonb_build_object('decisões auditadas', (select count(*) from public.ops_complaint_timeline(v_id) where kind = 'review') = 2);
   res := res || jsonb_build_object('métricas sem erro', (public.ops_metrics() ->> 'workers') is not null);
 
