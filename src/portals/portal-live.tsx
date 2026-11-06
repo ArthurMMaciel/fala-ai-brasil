@@ -4,6 +4,7 @@ import { listCompanyComplaints, listPartnerCompanies, loadCompanyRanking, loadCo
 import { showToast } from '../app/toast';
 import { Icon, QuickActions, initials, type IconName } from './ui';
 import { formatPhone, maskPhone, planIncludesContent, validateCompanyContact, validateContent, whatsappLink } from '../domain/account-rules';
+import { safeHttpUrl } from '../domain/html-safety';
 
 // Portais de empresa e parceiro com dados reais (modelo v3). A empresa lê apenas versões compartilhadas, sem identidade.
 type CompanyView = 'dashboard' | 'complaints' | 'ranking' | 'partners';
@@ -60,7 +61,7 @@ function CompanyContactForm({ company }: { company: CompanyContext }) {
 
 function ContentGallery({ contents, onDelete }: { contents: PartnerContent[]; onDelete?: (content: PartnerContent) => void }) {
  return <div className="content-gallery">{contents.map(content => <article className="content-card" key={content.id}>
-  {content.kind === 'image' ? <img src={content.url} alt={content.title} loading="lazy" /> : <a className="content-video" href={content.url} target="_blank" rel="noopener noreferrer"><span aria-hidden="true">▶</span> Assistir vídeo</a>}
+  {content.kind === 'image' ? safeHttpUrl(content.url) && <img src={safeHttpUrl(content.url)!} alt={content.title} loading="lazy" /> : safeHttpUrl(content.url) ? <a className="content-video" href={safeHttpUrl(content.url)!} target="_blank" rel="noopener noreferrer"><span aria-hidden="true">▶</span> Assistir vídeo</a> : <span className="content-video">Link de vídeo indisponível</span>}
   <div><strong>{content.title}</strong>{content.caption && <p>{content.caption}</p>}{onDelete && <button className="btn ghost" onClick={() => onDelete(content)}>Remover</button>}</div>
  </article>)}</div>;
 }
@@ -115,7 +116,7 @@ function PartnerDirectoryLive() {
  useEffect(() => { setContents([]); if (!selected) return; let active = true; listPartnerContents(selected.id).then(rows => { if (active) setContents(rows); }); return () => { active = false; }; }, [selected?.id]);
  useEffect(() => { let active = true; listPartnerDirectory().then(rows => { if (active) setPartners(rows); }); return () => { active = false; }; }, [version]);
  const rows = (partners ?? []).filter(partner => (tab === 'all' || partner.featured) && `${partner.name} ${partner.specialty} ${partner.city} ${partner.state}`.toLowerCase().includes(search.toLowerCase()));
- const avatar = (partner: DirectoryPartner, large = false) => partner.avatarUrl ? <img className={`partner-avatar partner-photo${large ? ' large' : ''}`} src={partner.avatarUrl} alt={`Foto de ${partner.name}`} /> : <div className={`partner-avatar${large ? ' large' : ''}`} style={{ background: 'var(--soft)' }} aria-hidden="true">{initials(partner.name)}</div>;
+ const avatar = (partner: DirectoryPartner, large = false) => safeHttpUrl(partner.avatarUrl) ? <img className={`partner-avatar partner-photo${large ? ' large' : ''}`} src={safeHttpUrl(partner.avatarUrl)!} alt={`Foto de ${partner.name}`} /> : <div className={`partner-avatar${large ? ' large' : ''}`} style={{ background: 'var(--soft)' }} aria-hidden="true">{initials(partner.name)}</div>;
  async function contact(partner: DirectoryPartner) {
   const result = await requestPartner(partner.id);
   if (!result.ok) return showToast('error', result.message);
@@ -175,7 +176,7 @@ function PartnerProfileEditor({ partnerId, profile, onSaved }: { partnerId: stri
    <p className="muted small">Cidade: {profile.city}/{profile.state}. Endereço e documento não aparecem para empresas.</p>
    <button className="btn primary" type="submit" disabled={busy}>{busy ? 'Salvando…' : 'Salvar alterações'}</button>
   </form></section>
-  <section className="commercial-panel"><h2>Foto de perfil</h2>{photo ? <img className="partner-avatar partner-photo large" src={photo} alt={`Foto de ${form.displayName}`} /> : <div className="partner-avatar large" style={{ background: 'var(--soft)' }} aria-hidden="true">{initials(form.displayName)}</div>}
+  <section className="commercial-panel"><h2>Foto de perfil</h2>{safeHttpUrl(photo) ? <img className="partner-avatar partner-photo large" src={safeHttpUrl(photo)!} alt={`Foto de ${form.displayName}`} /> : <div className="partner-avatar large" style={{ background: 'var(--soft)' }} aria-hidden="true">{initials(form.displayName)}</div>}
    <label className="btn partner-photo-upload">{photo ? 'Trocar foto' : 'Enviar foto'}<input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={busy} onChange={event => upload(event.target.files?.[0])} /></label>
    <p className="muted small">JPG, PNG ou WebP até 5 MB. A foto aparece no diretório de parceiros.</p></section>
  </div>;

@@ -47,7 +47,7 @@ Aplicação Vite + TypeScript com landing e percursos editoriais em React, integ
 
 ## Riscos conhecidos
 
-- POC pode executar HTML inserido pelo usuário por uso de `innerHTML`.
+- POC podia executar HTML inserido pelo usuário por uso de `innerHTML`; mitigado em 2026-11-06 (TASK-0002) com escape centralizado e testes de payload. Ainda sem CSP.
 - Credenciais demo e autorização existem apenas no cliente.
 - Não há isolamento entre organizações nem separação real de dados sensíveis.
 - A promessa de proteção de identidade ainda não é sustentada por controles técnicos.
@@ -62,6 +62,8 @@ Aplicação Vite + TypeScript com landing e percursos editoriais em React, integ
 - Alterações estruturais exigem ADR; trabalho relevante exige tarefa.
 
 ## Alterações recentes
+
+- Em 2026-11-06 (TASK-0002, branch `fix/xss-poc`): dados do usuário e do banco que entravam crus no `innerHTML` do renderer legado (`src/app/main.js`) passam a ser escapados por `escapeHtml` de `src/domain/html-safety.ts`; links e mídias (campanha, foto e conteúdos do parceiro) aceitam só `http`/`https` via `safeHttpUrl`. Sem dependência nova nem mudança visual. 48 testes (6 novos com `<img onerror>`, `<script>` e `javascript:`) e build passaram. CSP e revisão de segurança independente seguem pendentes.
 
 - Em 2026-11-06 (TASK-0031/ADR-0010): `migration list` confirmou as 11 migrations até 20261106130100 aplicadas no remoto, inclusive `contact_solicitations` (ADR-0011 condicionava a produção a decisões de privacidade: risco em aberto). Banco local descartável via `supabase start` validou todas as migrations do zero e os 5 testes de fumaça (62 verificações). Nova migration 20261106140000 (só funções): trava de linha em `ops_decide_complaint` e ranking medido a partir da liberação. Pendente de aplicação no remoto. Para validar migrations localmente: `supabase start`, `supabase db query --local < supabase/tests/<teste>.sql`, `supabase stop --no-backup`.
 
