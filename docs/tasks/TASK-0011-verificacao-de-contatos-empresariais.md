@@ -3,7 +3,7 @@
 - Status: proposta
 - ClickUp: [TASK-0011](https://app.clickup.com/t/86aktn72m)
 - Área: Produto/Integrações/Segurança
-- Prioridade: P1
+- Prioridade: P0 para o piloto fechado de novembro
 - Estimativa: 3–5 dias
 - Impacto: evita envio a terceiro incorreto ou malicioso
 

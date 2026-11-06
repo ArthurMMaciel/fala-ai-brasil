@@ -3,7 +3,7 @@
 - Status: proposta
 - ClickUp: [TASK-0018](https://app.clickup.com/t/86aktngf0)
 - Área: Integrações / Backend / Produto / Financeiro
-- Prioridade: P1
+- Prioridade: P2; automação de cobrança fora do piloto fechado de novembro
 - Data do levantamento: 2026-10-07
 - Responsável: liderança técnica; decisões comerciais pelo responsável do produto
 - Estimativa: refinar após ST-01 e fundação da API; não estimar prazo de produção sem backend e políticas aprovadas.

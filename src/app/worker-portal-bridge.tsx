@@ -17,10 +17,14 @@ function normalizeSidebar() {
  let manifestations = sidebar.querySelector<HTMLButtonElement>('[data-worker-view="manifestations"]');
  if (!manifestations) { manifestations = document.createElement('button'); manifestations.className = 'side-link'; manifestations.type = 'button'; manifestations.dataset.workerView = 'manifestations'; manifestations.textContent = 'Manifestações'; sidebar.append(manifestations); }
  manifestations.classList.toggle('active', activeView === 'list');
+ if (activeView === 'list') manifestations.setAttribute('aria-current', 'page'); else manifestations.removeAttribute('aria-current');
  let companies = sidebar.querySelector<HTMLButtonElement>('[data-worker-view="companies"]');
  if (!companies) { companies = document.createElement('button'); companies.className = 'side-link'; companies.type = 'button'; companies.dataset.workerView = 'companies'; companies.textContent = 'Empresas'; sidebar.append(companies); }
  companies.classList.toggle('active', activeView === 'companies');
- sidebar.querySelector<HTMLElement>('[data-route="worker"]')?.classList.toggle('active', activeView === 'dashboard');
+ if (activeView === 'companies') companies.setAttribute('aria-current', 'page'); else companies.removeAttribute('aria-current');
+ const dashboard = sidebar.querySelector<HTMLElement>('[data-route="worker"]');
+ dashboard?.classList.toggle('active', activeView === 'dashboard');
+ if (activeView === 'dashboard') dashboard?.setAttribute('aria-current', 'page'); else dashboard?.removeAttribute('aria-current');
 }
 function workerContent() { return workerShell()?.querySelector<HTMLElement>('.content'); }
 function clickCompanies(complaint?: { id: string }) {
@@ -53,12 +57,13 @@ function mount(view: WorkerEntryView) {
  normalizeSidebar();
  addRelatedNote();
  if (mounted && mountedContainer !== content) { root?.unmount(); root = undefined; mounted = false; }
- if (mounted) { root?.render(<WorkerPortalLive initialView={view} />); return; }
+ if (mounted) { root?.render(<WorkerPortalLive initialView={view} onViewChange={syncView} />); return; }
  root = createRoot(content);
  mounted = true;
  mountedContainer = content;
- root.render(<WorkerPortalLive initialView={view} />);
+ root.render(<WorkerPortalLive initialView={view} onViewChange={syncView} />);
 }
+function syncView(view: WorkerEntryView) { activeView = view; normalizeSidebar(); }
 
 if (app) {
  app.addEventListener('click', event => {

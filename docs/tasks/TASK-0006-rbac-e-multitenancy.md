@@ -3,7 +3,7 @@
 - Status: proposta
 - ClickUp: [TASK-0006](https://app.clickup.com/t/86aktn721)
 - Área: Segurança/Backend
-- Prioridade: P1
+- Prioridade: P0 para o piloto fechado de novembro
 - Estimativa: 5–8 dias
 - Impacto: impede acesso entre empresas e papéis
 

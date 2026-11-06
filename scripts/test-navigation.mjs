@@ -18,9 +18,13 @@ const catalog = compile('src/domain/commercial.ts').commercialCatalog;
 const model = compile('src/editorial/editorial-model.ts');
 const ui = compile('src/editorial/editorial-ui.tsx');
 const stories = compile('src/editorial/editorial-landing.tsx', '', name => name === './editorial-ui' ? ui : require(name));
+const accountRules = compile('src/domain/account-rules.ts');
+const contactService = compile('src/services/contact-solicitations.ts', '', name => name === './account' ? { isAccountServiceConfigured: () => false } : name === '../domain/account-rules' ? accountRules : require(name));
+const contactForm = compile('src/landing/contact-solicitation-form.tsx', '', name => name === '../services/contact-solicitations' ? contactService : name === '../domain/account-rules' ? accountRules : require(name));
+const showcase = compile('src/landing/persona-showcase.tsx', '', name => name === './contact-solicitation-form' ? contactForm : require(name));
 const tracking = compile('src/editorial/editorial-tracking.tsx', '', name => name === './editorial-ui' ? ui : name === './editorial-model' ? model : require(name));
 const experience = compile('src/editorial/editorial-experience.tsx', '', name => name === './editorial-ui' ? ui : name === './editorial-model' ? model : name === './editorial-tracking' ? tracking : require(name));
-const landing = compile('src/landing/landing-react.tsx', '\nexport { Landing };', name => ({ '../domain/commercial': { commercialCatalog: catalog }, '../editorial/editorial-ui': ui, '../editorial/editorial-landing': stories, '../editorial/editorial-experience': experience }[name] ?? require(name)));
+const landing = compile('src/landing/landing-react.tsx', '\nexport { Landing };', name => ({ '../domain/commercial': { commercialCatalog: catalog }, '../editorial/editorial-ui': ui, '../editorial/editorial-landing': stories, '../editorial/editorial-experience': experience, './persona-showcase': showcase }[name] ?? require(name)));
 
 // Minimal host for the legacy renderer: checks transitions and bound actions without a browser.
 function app() {
@@ -59,6 +63,17 @@ function app() {
   vm.runInContext(source + '\nglobalThis.api={state:o,route:m,responses:ve};', context);
   return { get props() { return props; }, get html() { return markup; }, api: context.api, button(action) { const button = buttons.find(b => b.dataset.action === action || b.dataset.route === action); assert.ok(button, `Botão ${action} encontrado`); return button; } };
 }
+
+test('cadastro é dividido em etapas e não mostra o resumo de cobrança', () => {
+  const screen = app();
+  screen.api.route('register', { authAudience: 'worker' });
+  assert.equal((screen.html.match(/class="auth-step"/g) || []).length, 3);
+  screen.api.route('register', { authAudience: 'company' });
+  assert.equal((screen.html.match(/class="auth-step"/g) || []).length, 4);
+  assert.match(screen.html, /data-title="Plano"/);
+  assert.doesNotMatch(screen.html, /subscription-summary/);
+  assert.match(screen.html, /data-step-next/);
+});
 
 test('após o cadastro mostra a tela de confirmar e-mail, e o botão leva ao login com o e-mail preenchido', () => {
   const screen = app();
@@ -102,12 +117,36 @@ test('landing mostra apenas planos do perfil ativo e acesso gratuito para trabal
     screen.props.onAudienceChange(audience);
     const html = renderToStaticMarkup(React.createElement(landing.Landing, screen.props));
     assert.match(html, /id="solucoes-e-planos"/);
+    assert.match(html, /\/media\/escuta-ai-brasil-institucional\.mp4/);
+    assert.doesNotMatch(html, /\/media\/[a-z]+\.webp/);
+    assert.equal((html.match(/class="landing-process"/g) || []).length, 1);
+    assert.doesNotMatch(html, /editorial-hero|editorial-section/);
     assert.match(html, /brand\/escuta-ai-brasil.svg/);
     assert.doesNotMatch(html, /brand-mark|Funcionário/);
     assert.equal((html.match(/class="landing-plan"/g) || []).length, catalog.filter(p => p.audience === audience).length);
     for (const plan of catalog) assert.equal(html.includes(`aria-label="Escolher plano ${plan.name}"`), plan.audience === audience);
     if (audience === 'worker') assert.match(html, /Criar conta gratuita/);
+    assert.match(html, /id="saiba-mais"/);
+    assert.match(html, /Solicitar contato/);
   }
+});
+
+test('solicitação de contato exige dados mínimos e mantém o perfil da landing', () => {
+  const input = { profile: 'worker', origin: 'worker', name: 'Ana', email: 'ana@example.com', phone: '(11) 98765-4321', organization: '', website: '' };
+  assert.equal(contactService.validateContactSolicitation(input), null);
+  assert.match(contactService.validateContactSolicitation({ ...input, email: 'inválido' }), /e-mail válido/);
+  assert.match(contactService.validateContactSolicitation({ ...input, phone: '123' }), /DDD/);
+});
+
+test('solicitações contato aparecem apenas no menu da equipe da plataforma', () => {
+  const screen = app();
+  screen.api.route('admin-contacts');
+  assert.equal(screen.api.state.route, 'landing');
+  screen.api.state.user = { id: 'staff', name: 'Equipe', role: 'platform_admin', profile: { type: 'system', id: 'staff' } };
+  screen.api.route('admin-contacts');
+  assert.equal(screen.api.state.route, 'admin-contacts');
+  assert.match(screen.html, /Solicitações contato/);
+  assert.match(screen.html, /id="contact-admin-root"/);
 });
 
 test('avaliação e finalização do caso respondem e não duplicam o encerramento', () => {
@@ -128,7 +167,7 @@ test('avaliação e finalização do caso respondem e não duplicam o encerramen
 
 test('desmontagem descarta a raiz React antes de remontar a landing', () => {
   let created = 0, unmounted = 0;
-  const lifecycle = compile('src/landing/landing-react.tsx', '', name => name === 'react-dom/client' ? { createRoot() { created++; return { render() {}, unmount() { unmounted++; } }; } } : ({ '../domain/commercial': { commercialCatalog: catalog }, '../editorial/editorial-ui': ui, '../editorial/editorial-landing': stories, '../editorial/editorial-experience': experience }[name] ?? require(name)));
+  const lifecycle = compile('src/landing/landing-react.tsx', '', name => name === 'react-dom/client' ? { createRoot() { created++; return { render() {}, unmount() { unmounted++; } }; } } : ({ '../domain/commercial': { commercialCatalog: catalog }, '../editorial/editorial-ui': ui, '../editorial/editorial-landing': stories, '../editorial/editorial-experience': experience, './persona-showcase': showcase }[name] ?? require(name)));
   lifecycle.mountLanding({}, {});
   lifecycle.mountLanding({}, {});
   assert.equal(created, 1);

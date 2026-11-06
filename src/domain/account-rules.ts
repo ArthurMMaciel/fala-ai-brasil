@@ -49,9 +49,58 @@ export function maskCpf(value: string): string {
   return d.replace(/^(\d{3})(\d)/, "$1.$2").replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3").replace(/\.(\d{3})(\d{1,2})$/, ".$1-$2");
 }
 
+// CNPJ alfanumérico (Receita Federal, a partir de julho de 2026): 12 posições de 0-9/A-Z e 2 dígitos verificadores.
+// CNPJs só numéricos continuam válidos. Guardamos sem pontuação e em maiúsculas.
+export function normalizeCnpj(value: string): string {
+  return value.toUpperCase().replace(/[^0-9A-Z]/g, "");
+}
+
 export function maskCnpj(value: string): string {
-  const d = onlyDigits(value).slice(0, 14);
-  return d.replace(/^(\d{2})(\d)/, "$1.$2").replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3").replace(/\.(\d{3})(\d)/, ".$1/$2").replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+  const raw = normalizeCnpj(value);
+  const base = raw.slice(0, 12);
+  const dv = raw.slice(12).replace(/\D/g, "").slice(0, 2);
+  const c = base + dv;
+  const parts = [c.slice(0, 2), c.slice(2, 5), c.slice(5, 8), c.slice(8, 12), c.slice(12, 14)];
+  let out = parts[0];
+  if (parts[1]) out += "." + parts[1];
+  if (parts[2]) out += "." + parts[2];
+  if (parts[3]) out += "/" + parts[3];
+  if (parts[4]) out += "-" + parts[4];
+  return out;
+}
+
+// Telefones brasileiros: DDD válido + 8 dígitos (fixo, começa com 2 a 5) ou 9 dígitos (celular, começa com 9).
+const validDdds = new Set([11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 24, 27, 28, 31, 32, 33, 34, 35, 37, 38, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 53, 54, 55, 61, 62, 63, 64, 65, 66, 67, 68, 69, 71, 73, 74, 75, 77, 79, 81, 82, 83, 84, 85, 86, 87, 88, 89, 91, 92, 93, 94, 95, 96, 97, 98, 99]);
+
+export function normalizePhone(value: string): string {
+  let digits = onlyDigits(value);
+  if ((digits.length === 12 || digits.length === 13) && digits.startsWith("55")) digits = digits.slice(2);
+  return digits;
+}
+
+export function phoneKind(value: string): "mobile" | "landline" | null {
+  const digits = normalizePhone(value);
+  if (!validDdds.has(Number(digits.slice(0, 2)))) return null;
+  const local = digits.slice(2);
+  if (/^(\d)\1+$/.test(local)) return null;
+  if (local.length === 9 && local[0] === "9") return "mobile";
+  if (local.length === 8 && /^[2-5]/.test(local)) return "landline";
+  return null;
+}
+
+export function isValidPhone(value: string, kind: "mobile" | "landline" | "any" = "any"): boolean {
+  const found = phoneKind(value);
+  return found !== null && (kind === "any" || found === kind);
+}
+
+export function maskPhone(value: string): string {
+  const d = normalizePhone(value).slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  const ddd = d.slice(0, 2), local = d.slice(2);
+  const mobile = local[0] === "9";
+  const head = mobile ? local.slice(0, 5) : local.slice(0, 4);
+  const tail = mobile ? local.slice(5, 9) : local.slice(4, 8);
+  return `(${ddd}) ${head}${tail ? "-" + tail : ""}`;
 }
 
 function allSameDigit(digits: string): boolean {
@@ -71,11 +120,13 @@ export function isValidCpf(value: string): boolean {
 }
 
 export function isValidCnpj(value: string): boolean {
-  const cnpj = onlyDigits(value);
-  if (cnpj.length !== 14 || allSameDigit(cnpj)) return false;
+  const cnpj = normalizeCnpj(value);
+  if (!/^[0-9A-Z]{12}\d{2}$/.test(cnpj) || /^(.)\1+$/.test(cnpj)) return false;
+  // Cada caractere vale o código ASCII menos 48 (0-9 → 0-9, A → 17, ..., Z → 42), como no cálculo da Receita.
+  const charValue = (char: string) => char.charCodeAt(0) - 48;
   const check = (length: number) => {
     const weights = length === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-    const sum = weights.reduce((total, weight, i) => total + Number(cnpj[i]) * weight, 0);
+    const sum = weights.reduce((total, weight, i) => total + charValue(cnpj[i]) * weight, 0);
     const rest = sum % 11;
     return rest < 2 ? 0 : 11 - rest;
   };
@@ -120,6 +171,7 @@ export interface RegistrationInput {
   name: string;
   tradeName?: string;
   cpf?: string;
+  phone?: string;
   cnpj?: string;
   documentType?: string;
   document?: string;
@@ -145,6 +197,7 @@ export function validateRegistration(input: RegistrationInput): string | null {
   if (!input.name.trim()) return input.type === "company" ? "Informe a razão social." : "Informe o nome.";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email.trim())) return "Informe um e-mail válido.";
   if (input.type === "worker" && !isValidCpf(input.cpf ?? "")) return "Informe um CPF válido.";
+  if (input.type === "worker" && !isValidPhone(input.phone ?? "")) return "Informe um telefone com DDD: celular com 9 dígitos ou fixo com 8.";
   if ((input.type === "company" || input.type === "sponsor") && !isValidCnpj(input.cnpj ?? "")) return "Informe um CNPJ válido.";
   if (input.type === "partner") {
     if (input.documentType === "cpf" ? !isValidCpf(input.document ?? "") : input.documentType === "cnpj" ? !isValidCnpj(input.document ?? "") : true) {
@@ -179,21 +232,21 @@ export function buildProfilePayload(input: RegistrationInput): Record<string, un
   const plan = input.type === "worker" ? {} : { plan_id: input.planId, subscription_mode: input.subscriptionMode };
   switch (input.type) {
     case "worker":
-      return { full_name: input.name.trim(), cpf: onlyDigits(input.cpf ?? ""), address };
+      return { full_name: input.name.trim(), cpf: onlyDigits(input.cpf ?? ""), phone: normalizePhone(input.phone ?? ""), address };
     case "company":
-      return { legal_name: input.name.trim(), trade_name: input.tradeName?.trim() || undefined, cnpj: onlyDigits(input.cnpj ?? ""), address, ...plan };
+      return { legal_name: input.name.trim(), trade_name: input.tradeName?.trim() || undefined, cnpj: normalizeCnpj(input.cnpj ?? ""), address, ...plan };
     case "partner":
       return {
         display_name: input.name.trim(),
         document_type: input.documentType,
-        document: onlyDigits(input.document ?? ""),
+        document: input.documentType === "cnpj" ? normalizeCnpj(input.document ?? "") : onlyDigits(input.document ?? ""),
         specialty: input.specialty?.trim(),
         description: input.description?.trim() || undefined,
         address,
         ...plan,
       };
     case "sponsor":
-      return { name: input.name.trim(), cnpj: onlyDigits(input.cnpj ?? ""), address, ...plan };
+      return { name: input.name.trim(), cnpj: normalizeCnpj(input.cnpj ?? ""), address, ...plan };
   }
 }
 
@@ -294,8 +347,7 @@ export function validateContent(input: ContentInput): string | null {
 export function validateCompanyContact(email: string, phone: string): string | null {
   const mail = email.trim();
   if (mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) return "Informe um e-mail válido ou deixe em branco.";
-  const digits = onlyDigits(phone);
-  if (phone.trim() && (digits.length < 10 || digits.length > 11)) return "Informe o telefone com DDD (10 ou 11 dígitos) ou deixe em branco.";
+  if (phone.trim() && !isValidPhone(phone)) return "Confira o telefone: DDD + celular com 9 dígitos (começando com 9) ou fixo com 8. Ou deixe em branco.";
   return null;
 }
 
@@ -304,6 +356,5 @@ export function whatsappLink(phone: string): string {
 }
 
 export function formatPhone(phone: string): string {
-  const d = onlyDigits(phone);
-  return d.length === 11 ? d.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3") : d.replace(/^(\d{2})(\d{4})(\d{4})$/, "($1) $2-$3");
+  return maskPhone(phone);
 }
