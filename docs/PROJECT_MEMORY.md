@@ -47,7 +47,7 @@ Aplicação Vite + TypeScript com landing e percursos editoriais em React, integ
 
 ## Riscos conhecidos
 
-- POC pode executar HTML inserido pelo usuário por uso de `innerHTML`.
+- POC podia executar HTML inserido pelo usuário por uso de `innerHTML`; mitigado em 2026-11-06 (TASK-0002) com escape centralizado e testes de payload. Ainda sem CSP.
 - Credenciais demo e autorização existem apenas no cliente.
 - Não há isolamento entre organizações nem separação real de dados sensíveis.
 - A promessa de proteção de identidade ainda não é sustentada por controles técnicos.
@@ -64,6 +64,10 @@ Aplicação Vite + TypeScript com landing e percursos editoriais em React, integ
 ## Alterações recentes
 
 - Em 2026-11-06, com autorização do responsável: PR #12 mergeado na `main` (merge commit 53ed089); deploy Production da Vercel em 53ed089 concluído com sucesso; `db push` aplicou 20261106140000 no remoto, que passa a ter as 12 migrations. `pg_get_functiondef` confirmou `for update` em `ops_decide_complaint` e o ranking medido a partir do evento `shared`. A revisão humana e a área de Operação estão em produção. Na CLI 3 do Supabase, `db push`, `migration list` e `db query` miram o banco local por padrão: use `--remote` para o projeto linkado.
+
+- Em 2026-11-06 (TASK-0034): o responsável aprovou CSP em duas fases. Fase 1: `vercel.json` com `Content-Security-Policy-Report-Only` (`script-src 'self'`, `style-src 'self' 'unsafe-inline'` por causa dos `style=""` do renderer legado, `connect-src` restrito ao Supabase público e ao ViaCEP). O build gera só um script externo, sem inline, `eval` ou `new Function`. A fase 2 (bloquear de fato e `frame-ancestors 'none'`) depende do merge da fase 1 e de nova autorização.
+
+- Em 2026-11-06 (TASK-0002, branch `fix/xss-poc`): dados do usuário e do banco que entravam crus no `innerHTML` do renderer legado (`src/app/main.js`) passam a ser escapados por `escapeHtml` de `src/domain/html-safety.ts`; links e mídias (campanha, foto e conteúdos do parceiro) aceitam só `http`/`https` via `safeHttpUrl`. Sem dependência nova nem mudança visual. Revisão de segurança do DevOps sem achados críticos/altos; trava de sinks HTML cobre todo `src/`. 50 testes e build passaram. Concluída: PR #13 mesclado na `main` (`cc6dc05`) e deploy Production da Vercel concluído. Pendentes: CSP (TASK-0034, PR #14) e E2E autenticado.
 
 - Em 2026-11-06 (TASK-0031/ADR-0010): `migration list` confirmou as 11 migrations até 20261106130100 aplicadas no remoto, inclusive `contact_solicitations` (ADR-0011 condicionava a produção a decisões de privacidade: risco em aberto). Banco local descartável via `supabase start` validou todas as migrations do zero e os 5 testes de fumaça (62 verificações). Nova migration 20261106140000 (só funções): trava de linha em `ops_decide_complaint` e ranking medido a partir da liberação. Aplicada no remoto em 2026-11-06 (ver entrada seguinte). Para validar migrations localmente: `supabase start`, `supabase db query --local < supabase/tests/<teste>.sql`, `supabase stop --no-backup`.
 
