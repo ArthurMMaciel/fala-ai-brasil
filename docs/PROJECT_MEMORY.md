@@ -63,6 +63,8 @@ Aplicação Vite + TypeScript com landing e percursos editoriais em React, integ
 
 ## Alterações recentes
 
+- Em 2026-11-08 o responsável aprovou a rodada 2 (ADR-0013 resposta revisada, TASK-0036 ranking sem volume e sem posição, ADR-0014 Meu perfil), na ordem C → B → A, com A depois da ADR-0012. Pacote C implementado no banco na branch `feat/meu-perfil` (migration 20261108120000): RPCs de perfil, CPF/CNPJ/razão social só pela equipe, trilha sem valores, dígitos de CPF/CNPJ validados no banco (também no cadastro) e fim do update direto (membro da empresa não altera mais o endereço). 92/92 verificações locais. Não aplicado no remoto; sai em PR único com o front.
+
 - Em 2026-11-06 (TASK-0034): o responsável aprovou CSP em duas fases. Fase 1: `vercel.json` com `Content-Security-Policy-Report-Only` (`script-src 'self'`, `style-src 'self' 'unsafe-inline'` por causa dos `style=""` do renderer legado, `connect-src` restrito ao Supabase público e ao ViaCEP). O build gera só um script externo, sem inline, `eval` ou `new Function`. A fase 2 (bloquear de fato e `frame-ancestors 'none'`) depende do merge da fase 1 e de nova autorização.
 
 - Em 2026-11-06 (TASK-0002, branch `fix/xss-poc`): dados do usuário e do banco que entravam crus no `innerHTML` do renderer legado (`src/app/main.js`) passam a ser escapados por `escapeHtml` de `src/domain/html-safety.ts`; links e mídias (campanha, foto e conteúdos do parceiro) aceitam só `http`/`https` via `safeHttpUrl`. Sem dependência nova nem mudança visual. 48 testes (6 novos com `<img onerror>`, `<script>` e `javascript:`) e build passaram. CSP e revisão de segurança independente seguem pendentes.
