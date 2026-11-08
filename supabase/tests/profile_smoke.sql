@@ -9,6 +9,7 @@ declare
   m uuid := '94444444-4444-4444-4444-444444444444';
   a uuid := '95555555-5555-5555-5555-555555555555';
   bad uuid := '96666666-6666-6666-6666-666666666666';
+  o uuid := '97777777-7777-7777-7777-777777777777';
   addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}';
   v_worker uuid; v_company uuid; v_company_addr uuid; ok boolean; n int;
 begin
@@ -25,8 +26,10 @@ begin
   ('00000000-0000-0000-0000-000000000000', w2, 'authenticated', 'authenticated', 'w10@teste.invalid', jsonb_build_object('signup_type', 'worker', 'signup', jsonb_build_object('full_name', 'Outro Trabalhador', 'cpf', '11144477735', 'address', addr)), now(), now()),
   ('00000000-0000-0000-0000-000000000000', c, 'authenticated', 'authenticated', 'c9@teste.invalid', jsonb_build_object('signup_type', 'company', 'signup', jsonb_build_object('legal_name', 'Empresa Perfil Ltda', 'cnpj', '11.444.777/0001-61', 'plan_id', 'company-essential', 'subscription_mode', 'trial', 'address', addr)), now(), now()),
   ('00000000-0000-0000-0000-000000000000', m, 'authenticated', 'authenticated', 'm9@teste.invalid', '{}', now(), now()),
-  ('00000000-0000-0000-0000-000000000000', a, 'authenticated', 'authenticated', 'a9@teste.invalid', '{}', now(), now());
+  ('00000000-0000-0000-0000-000000000000', a, 'authenticated', 'authenticated', 'a9@teste.invalid', '{}', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', o, 'authenticated', 'authenticated', 'o9@teste.invalid', '{}', now(), now());
   insert into private.platform_admins (user_id) values (a);
+  insert into private.document_officers (user_id) values (o);
   select id into v_worker from public.workers where user_id = w;
   select company_id into v_company from public.company_users where user_id = c;
   select address_id into v_company_addr from public.companies where id = v_company;
@@ -114,7 +117,7 @@ begin
   -- 4) Equipe: troca de documento com justificativa; trilha sem valores e fechada.
   perform set_config('request.jwt.claims', json_build_object('sub', c, 'role', 'authenticated')::text, true);
   begin
-    perform public.ops_change_document('company_cnpj', v_company, '45723174000110', 'Correção pedida pela empresa.');
+    perform public.ops_change_document('company_cnpj', v_company, '45723174000110', 'Correção pedida pela empresa.', 'Contrato social 2026');
     res := res || jsonb_build_object('empresa não troca documento pela equipe', false);
   exception when others then res := res || jsonb_build_object('empresa não troca documento pela equipe', true); end;
   begin
@@ -124,16 +127,27 @@ begin
 
   perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
   begin
-    perform public.ops_change_document('company_cnpj', v_company, '45723174000110', 'curta');
-    res := res || jsonb_build_object('troca exige justificativa', false);
-  exception when others then res := res || jsonb_build_object('troca exige justificativa', true); end;
+    perform public.ops_change_document('company_cnpj', v_company, '45723174000110', 'Correção pedida pela empresa por ofício.', 'Ofício 12/2026');
+    res := res || jsonb_build_object('admin sem privilégio de documentos recusado', false);
+  exception when insufficient_privilege then res := res || jsonb_build_object('admin sem privilégio de documentos recusado', true); end;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', o, 'role', 'authenticated')::text, true);
   begin
-    perform public.ops_change_document('company_cnpj', v_company, '11444777000162', 'Correção pedida pela empresa por ofício.');
+    perform public.ops_change_document('company_cnpj', v_company, '45723174000110', 'curta', 'Ofício 12/2026');
+    res := res || jsonb_build_object('troca exige motivo', false);
+  exception when others then res := res || jsonb_build_object('troca exige motivo', true); end;
+  begin
+    perform public.ops_change_document('company_cnpj', v_company, '45723174000110', 'Correção pedida pela empresa por ofício.', '');
+    res := res || jsonb_build_object('troca exige referência do documento', false);
+  exception when others then res := res || jsonb_build_object('troca exige referência do documento', true); end;
+  begin
+    perform public.ops_change_document('company_cnpj', v_company, '11444777000162', 'Correção pedida pela empresa por ofício.', 'Ofício 12/2026');
     res := res || jsonb_build_object('troca valida dígitos', false);
   exception when others then res := res || jsonb_build_object('troca valida dígitos', true); end;
-  perform public.ops_change_document('company_cnpj', v_company, '45.723.174/0001-10', 'Correção pedida pela empresa por ofício.');
-  perform public.ops_change_document('company_legal_name', v_company, 'Empresa Perfil Serviços Ltda', 'Alteração contratual registrada na Junta.');
-  perform public.ops_change_document('worker_cpf', v_worker, '111.444.777-35', 'Erro de digitação confirmado com a trabalhadora.');
+  perform public.ops_change_document('company_cnpj', v_company, '45.723.174/0001-10', 'Correção pedida pela empresa por ofício.', 'Ofício 12/2026');
+  perform public.ops_change_document('company_legal_name', v_company, 'Empresa Perfil Serviços Ltda', 'Alteração contratual registrada na Junta.', 'Contrato social, 3ª alteração');
+  perform public.ops_change_document('worker_cpf', v_worker, '111.444.777-35', 'Erro de digitação confirmado com a trabalhadora.', 'Documento de identidade conferido');
+  perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
   res := res || jsonb_build_object('equipe troca documentos',
     (select cnpj = '45723174000110' and legal_name = 'Empresa Perfil Serviços Ltda' from public.companies where id = v_company)
     and (select cpf = '11144477735' from public.workers where id = v_worker));
@@ -142,8 +156,8 @@ begin
   res := res || jsonb_build_object('trilha do trabalhador: 1 própria + 1 da equipe (repetição sem mudança não grava)', n = 2);
   select fields @> '{full_name,phone,address.city,address.state,address.number}' into ok from public.ops_profile_changes(v_worker) where source = 'self';
   res := res || jsonb_build_object('trilha registra nomes dos campos', ok);
-  res := res || jsonb_build_object('trilha da equipe com justificativa',
-    (select count(*) from public.ops_profile_changes(v_company) where source = 'platform' and justification is not null) = 2);
+  res := res || jsonb_build_object('trilha da troca com quem, motivo e referência',
+    (select count(*) from public.ops_profile_changes(v_company) where source = 'platform' and justification is not null and evidence_ref is not null and actor_user_id = o) = 2);
   res := res || jsonb_build_object('trilha sem valores',
     not exists (select 1 from public.ops_profile_changes(v_company) where array_to_string(fields, ',') ~ '[0-9]{8}|@|Perfil'));
 

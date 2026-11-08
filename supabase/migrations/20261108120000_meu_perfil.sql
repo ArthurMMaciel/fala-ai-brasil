@@ -1,6 +1,7 @@
 -- ADR-0014 / TASK-0037: "Meu perfil" do trabalhador e da empresa (aprovado pelo responsável em 2026-11-08).
 -- - Edição só por RPC validada; o update direto nas tabelas sai (vai no mesmo PR do front novo).
--- - CPF, CNPJ e razão social travados: troca só pela equipe (private.platform_admins), com justificativa.
+-- - CPF, CNPJ e razão social travados: troca só por quem tem o privilégio private.document_officers (decisão C4:
+--   só o responsável, mediante documento), com motivo e referência do documento conferido. platform_admin não basta.
 -- - Trilha sem valores em profile_change_log (só nomes dos campos).
 -- - Dígitos verificadores de CPF e CNPJ (inclusive alfanumérico) validados no banco, também no cadastro.
 -- - Correção: membros da empresa deixam de alterar o endereço dela (a política addresses_update usava owns_address,
@@ -102,8 +103,9 @@ create table public.profile_change_log (
   fields text[] not null check (cardinality(fields) > 0),
   source text not null check (source in ('self', 'platform')),
   justification text check (justification is null or char_length(justification) between 10 and 500),
+  evidence_ref text check (evidence_ref is null or char_length(evidence_ref) between 3 and 200),
   created_at timestamptz not null default now(),
-  check (source = 'self' or justification is not null)
+  check (source = 'self' or (justification is not null and evidence_ref is not null))
 );
 create index profile_change_log_entity_idx on public.profile_change_log (entity_id, created_at);
 alter table public.profile_change_log enable row level security;
@@ -240,21 +242,32 @@ begin
 end;
 $$;
 
--- 6) Equipe troca CPF, CNPJ ou razão social, com justificativa. Papel: private.platform_admins (ADR-0014, C4 em aberto).
-create function public.ops_change_document(p_entity text, p_id uuid, p_new_value text, p_justification text)
+-- 6) Troca de CPF, CNPJ ou razão social (decisão C4): privilégio próprio, separado de platform_admin,
+--    concedido só à conta do responsável por script operacional (nunca pelo cadastro público). Exige motivo e
+--    referência curta do documento conferido; o arquivo não é guardado. A trilha não guarda valores (C3).
+create table private.document_officers (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  granted_at timestamptz not null default now()
+);
+revoke all on private.document_officers from public, anon, authenticated;
+
+create function public.ops_change_document(p_entity text, p_id uuid, p_new_value text, p_justification text, p_evidence_ref text)
 returns void language plpgsql security definer set search_path = '' as $$
-declare v_just text := btrim(coalesce(p_justification, '')); v_value text;
+declare v_just text := btrim(coalesce(p_justification, '')); v_ref text := btrim(coalesce(p_evidence_ref, '')); v_value text;
 begin
-  if not public.is_platform_admin() then raise exception 'acesso negado' using errcode = '42501'; end if;
-  if char_length(v_just) not between 10 and 500 then raise exception 'Informe a justificativa com 10 a 500 caracteres.' using errcode = 'P0001'; end if;
+  if not exists (select 1 from private.document_officers where user_id = auth.uid()) then
+    raise exception 'acesso negado' using errcode = '42501';
+  end if;
+  if char_length(v_just) not between 10 and 500 then raise exception 'Informe o motivo com 10 a 500 caracteres.' using errcode = 'P0001'; end if;
+  if char_length(v_ref) not between 3 and 200 then raise exception 'Informe a referência do documento conferido (3 a 200 caracteres).' using errcode = 'P0001'; end if;
 
   if p_entity = 'worker_cpf' then
     v_value := regexp_replace(coalesce(p_new_value, ''), '\D', '', 'g');
     if not private.valid_cpf(v_value) then raise exception 'CPF inválido.' using errcode = 'P0001'; end if;
     update public.workers set cpf = v_value where id = p_id;
     if not found then raise exception 'Trabalhador não encontrado.' using errcode = 'P0001'; end if;
-    insert into public.profile_change_log (actor_user_id, entity_type, entity_id, fields, source, justification)
-    values (auth.uid(), 'worker', p_id, '{cpf}', 'platform', v_just);
+    insert into public.profile_change_log (actor_user_id, entity_type, entity_id, fields, source, justification, evidence_ref)
+    values (auth.uid(), 'worker', p_id, '{cpf}', 'platform', v_just, v_ref);
   elsif p_entity = 'company_cnpj' then
     v_value := upper(regexp_replace(coalesce(p_new_value, ''), '[^0-9A-Za-z]', '', 'g'));
     if not private.valid_cnpj(v_value) then raise exception 'CNPJ inválido.' using errcode = 'P0001'; end if;
@@ -262,15 +275,15 @@ begin
       update public.companies set cnpj = v_value where id = p_id;
     exception when unique_violation then raise exception 'Já existe uma empresa com este CNPJ.' using errcode = 'P0001'; end;
     if not found then raise exception 'Empresa não encontrada.' using errcode = 'P0001'; end if;
-    insert into public.profile_change_log (actor_user_id, entity_type, entity_id, fields, source, justification)
-    values (auth.uid(), 'company', p_id, '{cnpj}', 'platform', v_just);
+    insert into public.profile_change_log (actor_user_id, entity_type, entity_id, fields, source, justification, evidence_ref)
+    values (auth.uid(), 'company', p_id, '{cnpj}', 'platform', v_just, v_ref);
   elsif p_entity = 'company_legal_name' then
     v_value := btrim(coalesce(p_new_value, ''));
     if char_length(v_value) not between 2 and 160 then raise exception 'Informe a razão social.' using errcode = 'P0001'; end if;
     update public.companies set legal_name = v_value where id = p_id;
     if not found then raise exception 'Empresa não encontrada.' using errcode = 'P0001'; end if;
-    insert into public.profile_change_log (actor_user_id, entity_type, entity_id, fields, source, justification)
-    values (auth.uid(), 'company', p_id, '{legal_name}', 'platform', v_just);
+    insert into public.profile_change_log (actor_user_id, entity_type, entity_id, fields, source, justification, evidence_ref)
+    values (auth.uid(), 'company', p_id, '{legal_name}', 'platform', v_just, v_ref);
   else
     raise exception 'Tipo de alteração inválido.' using errcode = 'P0001';
   end if;
@@ -279,26 +292,31 @@ $$;
 
 -- Trilha de um trabalhador ou empresa, para a equipe (sem valores).
 create function public.ops_profile_changes(p_entity_id uuid)
-returns table (entity_type text, fields text[], source text, justification text, created_at timestamptz)
+returns table (entity_type text, fields text[], source text, justification text, evidence_ref text, actor_user_id uuid, created_at timestamptz)
 language plpgsql stable security definer set search_path = '' as $$
 begin
-  if not public.is_platform_admin() then raise exception 'acesso negado' using errcode = '42501'; end if;
+  if not public.is_platform_admin() and not exists (select 1 from private.document_officers where user_id = auth.uid()) then raise exception 'acesso negado' using errcode = '42501'; end if;
   return query
-  select l.entity_type, l.fields, l.source, l.justification, l.created_at
+  select l.entity_type, l.fields, l.source, l.justification, l.evidence_ref, l.actor_user_id, l.created_at
   from public.profile_change_log l where l.entity_id = p_entity_id order by l.created_at desc;
 end;
 $$;
 
 revoke execute on function public.update_worker_profile(jsonb), public.update_company_profile(uuid, jsonb),
-  public.ops_change_document(text, uuid, text, text), public.ops_profile_changes(uuid) from public, anon;
+  public.ops_change_document(text, uuid, text, text, text), public.ops_profile_changes(uuid) from public, anon;
 grant execute on function public.update_worker_profile(jsonb), public.update_company_profile(uuid, jsonb),
-  public.ops_change_document(text, uuid, text, text), public.ops_profile_changes(uuid) to authenticated;
+  public.ops_change_document(text, uuid, text, text, text), public.ops_profile_changes(uuid) to authenticated;
 
 -- 7) Fim do update direto (vai junto com o front que usa as RPCs).
 drop policy workers_update on public.workers;
 drop policy companies_update on public.companies;
 drop policy addresses_update on public.addresses;
 revoke update on public.workers, public.companies, public.addresses from authenticated;
+
+-- Concessão do privilégio de documentos (fora do cadastro e fora das migrations; rodar uma vez, pelo SQL Editor,
+-- com o id da conta do responsável conferido no painel de Auth):
+--   insert into private.document_officers (user_id) values ('<id da conta do responsável>');
+-- Revogação: delete from private.document_officers where user_id = '<id>';
 
 -- Rollback (só com decisão registrada):
 --   grant update (full_name, phone) on public.workers to authenticated;

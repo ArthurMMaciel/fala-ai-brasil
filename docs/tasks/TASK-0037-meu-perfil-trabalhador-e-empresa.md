@@ -28,8 +28,9 @@ Compatibilidade do `revoke` com o front em produção e troca de e-mail sem dupl
 
 ## Progresso em 2026-11-08
 
-- Decisões: razão social travada (C1), membro só lê (C2), trilha sem valores (C3). C4 modelado de forma neutra (`platform_admins` com justificativa). C5: conferir a dupla confirmação de e-mail no remoto.
-- Migration `20261108120000_meu_perfil.sql` e teste `profile_smoke.sql` (30/30). Banco local recriado do zero com as 13 migrations; os 6 testes de fumaça passaram (92 verificações).
+- Decisões: razão social travada (C1), membro só lê (C2), trilha sem valores (C3), troca de CPF/CNPJ/razão social só pelo responsável com documento (C4, privilégio `private.document_officers` e `evidence_ref`). C5: conferir a dupla confirmação de e-mail no remoto.
+- Migration `20261108120000_meu_perfil.sql` e teste `profile_smoke.sql` (32/32). Banco local recriado do zero com as 13 migrations; os 6 testes de fumaça passaram (94 verificações).
+- Pendente: conceder `private.document_officers` à conta do responsável no remoto, após a aplicação (script manual).
 - Pendente: telas "Meu perfil" (Front, a partir desta branch), PR único banco + tela e aplicação no remoto com autorização.
 
 ## Rollback

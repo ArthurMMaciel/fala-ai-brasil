@@ -10,7 +10,7 @@
 - C1: razão social travada junto com o CNPJ. Troca só pela equipe.
 - C2: membro da empresa só lê; só o dono edita.
 - C3: trilha sem valores.
-- C4 (em aberto): quem da equipe troca CPF, CNPJ e razão social e com que comprovação. Modelado de forma neutra: qualquer conta em `private.platform_admins`, com justificativa obrigatória; a comprovação fica no procedimento operacional, fora do banco.
+- C4 (decidido em 2026-11-08): **só o responsável** troca CPF, CNPJ e razão social, mediante documento. Privilégio próprio `private.document_officers`, separado de `platform_admins` e concedido só à conta dele por script operacional, fora do cadastro e das migrations. Outros integrantes da equipe não trocam. A troca exige motivo e referência curta do documento conferido (`evidence_ref`, como na ADR-0012), sem guardar o arquivo.
 - C5 (pendente): conferir no painel que a troca de e-mail exige dupla confirmação no remoto antes de liberar a tela.
 
 ## Estado anterior do código (conferido no banco local, igual às 12 migrations de produção)
@@ -44,7 +44,7 @@ D2. **Campos editáveis.**
 | Empresa (somente o dono) | nome fantasia, e-mail e telefone de contato, endereço | CNPJ, **razão social** (recomendado travar junto com o CNPJ) |
 | Empresa (membro) | nada; só leitura | — |
 
-D3. **CPF, CNPJ e razão social só pela equipe**, com `ops_change_document(p_entity text, p_id uuid, p_new_value text, p_justification text)`. Exige `private.platform_admins`, justificativa de 10 a 500 caracteres e validação de dígitos no banco. A trilha guarda o fato e a justificativa, sem o valor antigo nem o novo.
+D3. **CPF, CNPJ e razão social só pelo responsável** (C4), com `ops_change_document(p_entity text, p_id uuid, p_new_value text, p_justification text, p_evidence_ref text)`. Exige vínculo em `private.document_officers`, motivo de 10 a 500 caracteres, referência do documento de 3 a 200 caracteres e validação de dígitos no banco. A trilha guarda quem, quando, qual campo, motivo e referência, sem o valor antigo nem o novo.
 
 D4. **E-mail de login pelo Supabase Auth**: `supabase.auth.updateUser({ email })`. O `config.toml` já tem `double_confirm_changes = true`, então a troca exige confirmação no endereço atual e no novo. A confirmação no projeto remoto precisa ser conferida no painel antes de liberar a tela. Nenhuma RPC mexe em `auth.users`. O e-mail de contato da empresa (`contact_email`) é outro dado, editado pela RPC.
 
@@ -81,6 +81,7 @@ erDiagram
     text_array fields "nomes dos campos, sem valores"
     text source "self|platform"
     text justification "obrigatória quando platform"
+    text evidence_ref "referência do documento conferido, obrigatória quando platform"
     timestamptz created_at
   }
 ```
@@ -95,15 +96,15 @@ Não há tabela nem coluna nova nas entidades existentes. Mudam grants, polític
 | endereço do trabalhador | lê e altera por RPC | — | — | — |
 | nome fantasia e contato da empresa | — | lê e altera por RPC | lê | lê |
 | endereço da empresa | — | lê e altera por RPC | lê | lê |
-| CPF, CNPJ, razão social | lê o próprio CPF | lê | lê | altera por `ops_change_document` |
+| CPF, CNPJ, razão social | lê o próprio CPF | lê | lê | só quem está em `private.document_officers` (o responsável) altera por `ops_change_document` |
 | `profile_change_log` | — | — | — | lê |
 
 ## Funções (assinaturas previstas)
 
 - `update_worker_profile(p jsonb) → void`. Chaves: `full_name`, `phone`, `address` (objeto com os campos do cadastro). Aceita atualização parcial e ignora chaves desconhecidas; `cpf` presente gera o erro "O CPF só pode ser alterado pela equipe."
 - `update_company_profile(p_company uuid, p jsonb) → void`. Só o dono (`is_company_owner`). Chaves: `trade_name`, `contact_email`, `contact_phone`, `address`. `cnpj` ou `legal_name` geram o erro "Este dado só pode ser alterado pela equipe."
-- `ops_change_document(p_entity text, p_id uuid, p_new_value text, p_justification text) → void`.
-- `ops_profile_changes(p_entity_id uuid) → table(fields text[], source text, justification text, created_at timestamptz)`.
+- `ops_change_document(p_entity text, p_id uuid, p_new_value text, p_justification text, p_evidence_ref text) → void`.
+- `ops_profile_changes(p_entity_id uuid) → table(entity_type text, fields text[], source text, justification text, evidence_ref text, actor_user_id uuid, created_at timestamptz)`, para `platform_admins` e `document_officers`.
 - `private.valid_cpf(text)`, `private.valid_cnpj(text) → boolean`.
 
 `updateCompanyContact` em `src/services/data.ts` passa a chamar `update_company_profile`. O front de produção atual usa `companies.update` para o contato; por isso o `revoke` só pode entrar junto com o front novo ou depois dele.
@@ -134,7 +135,7 @@ Reconceder os `grant update` por coluna e recriar as políticas antigas. As RPCs
 1. Travar a razão social junto com o CNPJ (recomendado) ou mantê-la editável pelo dono.
 2. Membro da empresa só lê (recomendado), corrigindo o achado 2, ou também edita endereço e contato.
 3. Trilha sem valores (recomendado) ou com valores antigos, o que exige base legal e retenção.
-4. Quem na equipe pode trocar CPF, CNPJ e razão social, e que comprovação pedir.
+4. ~~Quem troca CPF, CNPJ e razão social~~: decidido (C4), só o responsável, mediante documento.
 5. Confirmar no painel que a troca de e-mail exige dupla confirmação no remoto.
 
 ## Implementação (2026-11-08)
@@ -142,8 +143,9 @@ Reconceder os `grant update` por coluna e recriar as políticas antigas. As RPCs
 Migration `20261108120000_meu_perfil.sql`:
 - `private.valid_cpf(text)` e `private.valid_cnpj(text)` (CNPJ alfanumérico: valor = ASCII − 48). `private.create_profile` passa a recusar documento com dígito inválido (`22023`, "CPF inválido"/"CNPJ inválido").
 - `private.update_address(uuid, jsonb)`: exige o endereço completo e devolve os campos alterados.
-- `update_worker_profile(p jsonb)`, `update_company_profile(p_company uuid, p jsonb)`, `ops_change_document(p_entity text, p_id uuid, p_new_value text, p_justification text)` (`worker_cpf`, `company_cnpj`, `company_legal_name`) e `ops_profile_changes(p_entity_id uuid)`.
+- `update_worker_profile(p jsonb)`, `update_company_profile(p_company uuid, p jsonb)`, `ops_change_document(p_entity text, p_id uuid, p_new_value text, p_justification text, p_evidence_ref text)` (`worker_cpf`, `company_cnpj`, `company_legal_name`; só `private.document_officers`) e `ops_profile_changes(p_entity_id uuid)`.
+- `private.document_officers (user_id, granted_at)`: concessão manual pelo SQL Editor com o id da conta do responsável (comando no fim da migration); nunca por migration nem pelo cadastro.
 - Tabela `profile_change_log`, sem grant a `anon`/`authenticated`.
 - Saem as políticas `workers_update`, `companies_update` e `addresses_update` e o `update` direto do `authenticated` nas três tabelas. `owns_address` continua valendo para leitura (o membro lê o endereço da empresa); a edição passa a exigir dono pela RPC.
-- Teste de fumaça: `supabase/tests/profile_smoke.sql` (30 verificações). `content_contact_smoke.sql` passou a usar `update_company_profile`.
+- Teste de fumaça: `supabase/tests/profile_smoke.sql` (32 verificações, inclusive admin sem o privilégio recusado e troca sem referência recusada). `content_contact_smoke.sql` passou a usar `update_company_profile`.
 - O `revoke` vai no mesmo PR do front novo: o front de produção ainda usa `companies.update` para o contato da empresa.
