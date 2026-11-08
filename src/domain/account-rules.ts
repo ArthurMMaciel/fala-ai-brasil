@@ -260,8 +260,17 @@ const authMessages: Record<string, string> = {
   over_request_rate_limit: "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente de novo.",
   email_send_failed: "Não conseguimos enviar o e-mail de confirmação agora. Nenhuma conta foi criada; tente novamente em alguns minutos.",
   signup_disabled: "O cadastro está temporariamente indisponível.",
+  // O gatilho de cadastro recusou os dados (CPF/CNPJ com dígito inválido, entre outros): o Auth devolve 500 sem a mensagem do banco.
+  profile_rejected: "Não foi possível concluir o cadastro. Confira o CPF/CNPJ e os demais dados.",
   unexpected_failure: "Não foi possível concluir o cadastro. Se a empresa já estiver cadastrada, peça acesso a quem a cadastrou; caso contrário, confira os dados.",
 };
+
+/** Código do erro do signUp: separa falha de SMTP e recusa do gatilho de cadastro, que chegam como 500 genérico. */
+export function signUpErrorCode(error: { code?: string; message: string }): string | undefined {
+  if (/sending confirmation email/i.test(error.message)) return "email_send_failed";
+  if (/database error saving new user/i.test(error.message)) return "profile_rejected";
+  return error.code;
+}
 
 export function authErrorMessage(code: string | undefined): string {
   return (code && authMessages[code]) || "Não foi possível concluir agora. Tente novamente em instantes.";

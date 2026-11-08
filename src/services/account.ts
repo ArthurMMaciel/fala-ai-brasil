@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { appRoleFor, authErrorMessage, buildProfilePayload, type CampaignInput, type CampaignKind, type CampaignStatus, type ProfileType, type RegistrationInput } from "../domain/account-rules";
+import { appRoleFor, authErrorMessage, buildProfilePayload, signUpErrorCode, type CampaignInput, type CampaignKind, type CampaignStatus, type ProfileType, type RegistrationInput } from "../domain/account-rules";
 
 // ADR-0009: somente a chave pública no navegador; o acesso real é controlado por RLS.
 const url = import.meta.env.VITE_SUPABASE_URL;
@@ -71,8 +71,8 @@ export async function registerAccount(input: RegistrationInput): Promise<AuthRes
     },
   });
   if (error) {
-    // O Auth devolve 500 sem código específico quando o SMTP recusa o envio.
-    const code = /sending confirmation email/i.test(error.message) ? "email_send_failed" : error.code;
+    // O Auth devolve 500 genérico quando o SMTP recusa o envio ou o gatilho de cadastro recusa os dados.
+    const code = signUpErrorCode(error);
     return { ok: false, code, message: authErrorMessage(code) };
   }
   // Com confirmação ativa, e-mail já cadastrado retorna usuário sem identidades e nenhum e-mail novo.
