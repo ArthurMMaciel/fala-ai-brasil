@@ -147,5 +147,5 @@ Migration `20261108120000_meu_perfil.sql`:
 - `private.document_officers (user_id, granted_at)`: concessão manual pelo SQL Editor com o id da conta do responsável (comando no fim da migration); nunca por migration nem pelo cadastro.
 - Tabela `profile_change_log`, sem grant a `anon`/`authenticated`.
 - Saem as políticas `workers_update`, `companies_update` e `addresses_update` e o `update` direto do `authenticated` nas três tabelas. `owns_address` continua valendo para leitura (o membro lê o endereço da empresa); a edição passa a exigir dono pela RPC.
-- Teste de fumaça: `supabase/tests/profile_smoke.sql` (32 verificações, inclusive admin sem o privilégio recusado e troca sem referência recusada). `content_contact_smoke.sql` passou a usar `update_company_profile`.
+- Teste de fumaça: `supabase/tests/profile_smoke.sql` (33 verificações, inclusive admin sem o privilégio recusado, admin com o privilégio aceito e troca sem referência recusada). `content_contact_smoke.sql` passou a usar `update_company_profile`.
 - O `revoke` vai no mesmo PR do front novo: o front de produção ainda usa `companies.update` para o contato da empresa.

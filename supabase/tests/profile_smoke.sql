@@ -29,6 +29,7 @@ begin
   ('00000000-0000-0000-0000-000000000000', a, 'authenticated', 'authenticated', 'a9@teste.invalid', '{}', now(), now()),
   ('00000000-0000-0000-0000-000000000000', o, 'authenticated', 'authenticated', 'o9@teste.invalid', '{}', now(), now());
   insert into private.platform_admins (user_id) values (a);
+  insert into private.platform_admins (user_id) values (o);  -- o é admin e tem o privilégio de documentos
   insert into private.document_officers (user_id) values (o);
   select id into v_worker from public.workers where user_id = w;
   select company_id into v_company from public.company_users where user_id = c;
@@ -148,9 +149,6 @@ begin
   perform public.ops_change_document('company_legal_name', v_company, 'Empresa Perfil Serviços Ltda', 'Alteração contratual registrada na Junta.', 'Contrato social, 3ª alteração');
   perform public.ops_change_document('worker_cpf', v_worker, '111.444.777-35', 'Erro de digitação confirmado com a trabalhadora.', 'Documento de identidade conferido');
   perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
-  res := res || jsonb_build_object('equipe troca documentos',
-    (select cnpj = '45723174000110' and legal_name = 'Empresa Perfil Serviços Ltda' from public.companies where id = v_company)
-    and (select cpf = '11144477735' from public.workers where id = v_worker));
 
   select count(*) into n from public.ops_profile_changes(v_worker);
   res := res || jsonb_build_object('trilha do trabalhador: 1 própria + 1 da equipe (repetição sem mudança não grava)', n = 2);
@@ -162,5 +160,9 @@ begin
     not exists (select 1 from public.ops_profile_changes(v_company) where array_to_string(fields, ',') ~ '[0-9]{8}|@|Perfil'));
 
   execute 'reset role';
+  -- Conferência como dono do banco (a equipe não lê companies/workers pela RLS).
+  res := res || jsonb_build_object('admin com privilégio de documentos troca CPF, CNPJ e razão social',
+    coalesce((select cnpj = '45723174000110' and legal_name = 'Empresa Perfil Serviços Ltda' from public.companies where id = v_company)
+    and (select cpf = '11144477735' from public.workers where id = v_worker), false));
   raise exception 'RESULTADOS %', res;
 end $$;
