@@ -1,7 +1,7 @@
 # TASK-0036 — Ranking sem número de manifestações e sem posição
 
 - Status: proposta (modelo aguardando aprovação do responsável; sem migration)
-- ClickUp: (preencher após a criação; texto pronto no fim deste documento)
+- ClickUp: [TASK-0036](https://app.clickup.com/t/17tu7rpc383)
 - Área: Backend/Produto/Privacidade
 - Prioridade: P1
 - Estimativa: 1 a 1,5 dia (função, front dos dois portais e teste de fumaça)

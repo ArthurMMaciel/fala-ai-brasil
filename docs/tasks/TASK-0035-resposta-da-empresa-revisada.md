@@ -1,7 +1,7 @@
 # TASK-0035 — Resposta da empresa revisada pela equipe
 
 - Status: proposta (modelo aguardando aprovação do responsável; sem migration)
-- ClickUp: (preencher após a criação; texto pronto no fim deste documento)
+- ClickUp: [TASK-0035](https://app.clickup.com/t/17tu7rpc382)
 - Área: Backend/Produto/Privacidade
 - Prioridade: P1
 - Estimativa: 3 a 4 dias após a aprovação (migrations, funções, portais, Operação e testes)
