@@ -1,7 +1,7 @@
 # TASK-0037 — "Meu perfil" do trabalhador e da empresa
 
 - Status: em-andamento (modelo aceito em 2026-11-08; banco pronto na branch `feat/meu-perfil`, aguardando o front para PR conjunto)
-- ClickUp: (preencher após a criação; texto pronto no fim deste documento)
+- ClickUp: [TASK-0037](https://app.clickup.com/t/17tu7rpc384)
 - Área: Backend/Frontend/Privacidade
 - Prioridade: P2
 - Estimativa: 2 a 3 dias após a aprovação
