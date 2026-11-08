@@ -33,6 +33,15 @@ Compatibilidade do `revoke` com o front em produção e troca de e-mail sem dupl
 - Pendente: conceder `private.document_officers` à conta do responsável no remoto, após a aplicação (script manual).
 - Pendente: telas "Meu perfil" (Front, a partir desta branch), PR único banco + tela e aplicação no remoto com autorização.
 
+## Front (2026-11-08, branch `feat/meu-perfil-ui` a partir de `feat/meu-perfil`)
+
+- Telas "Meu perfil" no portal do trabalhador (item no menu lateral) e no da empresa (item "Meu perfil"). Editáveis: trabalhador nome, telefone e endereço; dono da empresa nome fantasia, contato e endereço. CPF, CNPJ e razão social aparecem só para leitura com "Para alterar, fale com a equipe." Membro da empresa vê tudo só para leitura, inclusive o contato do Dashboard.
+- Envio parcial (só os campos alterados) para `update_worker_profile` e `update_company_profile`; validação no navegador com as mesmas mensagens, erros do banco (P0001) no toast. `updateCompanyContact` passou a usar a RPC.
+- E-mail de acesso: exibido; a troca por `supabase.auth.updateUser` está implementada atrás de `emailChangeEnabled = false` (`src/domain/profile.ts`) até a conferência da dupla confirmação no remoto (C5).
+- Cadastro com CPF/CNPJ inválido: no banco local o Auth devolve 500 "Database error saving new user", sem a mensagem do gatilho; o front mantém a mensagem genérica (a validação do navegador já barra dígito inválido).
+- Testes: `scripts/test-profile.mjs` (7) e suíte 57/57; conferido no banco local com contas fictícias (trabalhador, dona e membro), desktop e 375 px.
+- Pendente: consulta de CEP (ViaCEP) no formulário do perfil, tela de troca de documento na Operação e navegação pelo menu lateral real do trabalhador logado (conferida só na prévia).
+
 ## Rollback
 Reconceder os `update` por coluna e recriar as políticas antigas.
 

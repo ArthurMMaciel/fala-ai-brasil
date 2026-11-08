@@ -3,10 +3,11 @@ import { closeWorkerComplaint, listCompanyDirectory, listWorkerComplaints, loadC
 import { showToast } from '../app/toast';
 import { ComplaintWizard } from './complaint-wizard';
 import { QuickActions } from './ui';
+import { WorkerProfile } from './profile-live';
 
 // Portal do trabalhador com dados reais (modelo v3). O relato original nunca sai daqui; a empresa recebe só a versão revisada.
-type View = 'dashboard' | 'list' | 'detail' | 'new' | 'companies';
-export type WorkerEntryView = 'dashboard' | 'list' | 'companies';
+type View = 'dashboard' | 'list' | 'detail' | 'new' | 'companies' | 'profile';
+export type WorkerEntryView = 'dashboard' | 'list' | 'companies' | 'profile';
 type Period = 'weekly' | 'monthly' | 'yearly';
 
 const statusLabels: Record<ComplaintStatusDb, string> = { received: 'Guardada', in_review: 'Em revisão', adjustment_requested: 'Ajuste solicitado', held: 'Em análise', shared: 'Aguardando empresa', answered: 'Respondida', closed: 'Finalizada', canceled: 'Cancelada' };
@@ -123,13 +124,14 @@ export function WorkerPortalLive({ initialView = 'dashboard', onViewChange }: { 
  const startNew = (companyId: string) => { setNewCompanyId(companyId); setView('new'); };
  const [version, setVersion] = useState(0);
  useEffect(() => { setView(initialView); }, [initialView]);
- useEffect(() => { onViewChange?.(view === 'dashboard' ? 'dashboard' : view === 'companies' || view === 'new' ? 'companies' : 'list'); }, [view, onViewChange]);
+ useEffect(() => { onViewChange?.(view === 'dashboard' ? 'dashboard' : view === 'profile' ? 'profile' : view === 'companies' || view === 'new' ? 'companies' : 'list'); }, [view, onViewChange]);
  useEffect(() => { let active = true; Promise.all([listWorkerComplaints(), listCompanyDirectory()]).then(([rows, directory]) => { if (active) { setComplaints(rows); setCompanies(directory); } }); return () => { active = false; }; }, [version]);
  const byId = useMemo(() => new Map(companies.map(company => [company.id, company])), [companies]);
  const selected = complaints?.find(item => item.id === selectedId);
  const reload = () => setVersion(value => value + 1);
  return <main className="worker-portal-content" id="main-content" tabIndex={-1}>
-  {complaints === null ? <p className="muted">Carregando suas manifestações…</p> :
+  {view === 'profile' ? <WorkerProfile /> :
+   complaints === null ? <p className="muted">Carregando suas manifestações…</p> :
    view === 'new' ? <ComplaintWizard key={newCompanyId} companies={companies} initialCompanyId={newCompanyId} onCancel={() => setView('companies')} onCreated={() => { reload(); setView('list'); }} /> :
    view === 'detail' && selected ? <Detail complaint={selected} company={byId.get(selected.companyId)} onBack={() => setView('list')} onChanged={reload} /> :
    view === 'companies' ? <Companies companies={companies} onNew={startNew} /> :

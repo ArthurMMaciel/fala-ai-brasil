@@ -5,9 +5,10 @@ import { showToast } from '../app/toast';
 import { Icon, QuickActions, initials, type IconName } from './ui';
 import { formatPhone, maskPhone, planIncludesContent, validateCompanyContact, validateContent, whatsappLink } from '../domain/account-rules';
 import { safeHttpUrl } from '../domain/html-safety';
+import { CompanyProfile } from './profile-live';
 
 // Portais de empresa e parceiro com dados reais (modelo v3). A empresa lê apenas versões compartilhadas, sem identidade.
-type CompanyView = 'dashboard' | 'complaints' | 'ranking' | 'partners';
+type CompanyView = 'dashboard' | 'complaints' | 'ranking' | 'partners' | 'profile';
 type PartnerView = 'dashboard' | 'profile' | 'content' | 'companies' | 'leads' | 'clients';
 
 const companyStatus: Record<ComplaintStatusDb, string> = { received: 'Recebida', in_review: 'Em revisão', adjustment_requested: 'Em revisão', held: 'Em revisão', shared: 'Aguardando resposta', answered: 'Respondida', closed: 'Finalizada', canceled: 'Cancelada' };
@@ -53,6 +54,7 @@ function CompanyContactForm({ company }: { company: CompanyContext }) {
   setBusy(true); const result = await updateCompanyContact(company.id, email, phone); setBusy(false);
   result.ok ? showToast('success', 'Contato salvo. Parceiros com quem você demonstrou interesse ou que atendem sua empresa podem usá-lo.') : showToast('error', result.message);
  }
+ if (!company.isOwner) return <div className="company-contact-form"><h3>Contato para parceiros</h3><dl className="company-facts"><div><dt>E-mail de contato</dt><dd>{company.contactEmail || '—'}</dd></div><div><dt>Telefone de contato</dt><dd>{company.contactPhone ? formatPhone(company.contactPhone) : '—'}</dd></div></dl><p className="muted small">Só o responsável pela conta da empresa altera o contato.</p></div>;
  return <form className="company-contact-form" onSubmit={save}><h3>Contato para parceiros</h3><p className="muted small">Opcional. Só parceiros com quem sua empresa demonstrou interesse ou que atendem vocês veem estes dados.</p>
   <label className="field">E-mail de contato<input type="email" value={email} maxLength={160} onChange={event => setEmail(event.target.value)} placeholder="contato@empresa.com.br" /></label>
   <label className="field">Telefone ou WhatsApp<input type="tel" inputMode="tel" autoComplete="tel-national" value={phone} maxLength={15} onChange={event => setPhone(maskPhone(event.target.value))} placeholder="(00) 00000-0000" /></label>
@@ -149,16 +151,18 @@ export function CompanyPortalLive({ companyId }: { companyId: string }) {
  const [ranking, setRanking] = useState<RankingRow[] | null>(null);
  const [openId, setOpenId] = useState<string | null>(null);
  const [version, setVersion] = useState(0);
- useEffect(() => { let active = true; loadCompanyContext(companyId).then(value => { if (active) setCompany(value); }).catch(() => active && setCompany(null)); return () => { active = false; }; }, [companyId]);
+ const [contextVersion, setContextVersion] = useState(0);
+ useEffect(() => { let active = true; loadCompanyContext(companyId).then(value => { if (active) setCompany(value); }).catch(() => active && setCompany(null)); return () => { active = false; }; }, [companyId, contextVersion]);
  useEffect(() => { let active = true; Promise.all([listCompanyComplaints(), loadCompanyRanking()]).then(([rows, rank]) => { if (active) { setComplaints(rows); setRanking(rank); } }); return () => { active = false; }; }, [companyId, version]);
  const mine = useMemo(() => ranking?.find(row => row.isMine), [ranking]);
  const open = (id: string | null) => { setOpenId(id); setView('complaints'); };
- const items: [CompanyView, string][] = [['dashboard', 'Dashboard'], ['complaints', 'Manifestações'], ['ranking', 'Ranking'], ['partners', 'Parceiros']];
+ const items: [CompanyView, string][] = [['dashboard', 'Dashboard'], ['complaints', 'Manifestações'], ['ranking', 'Ranking'], ['partners', 'Parceiros'], ['profile', 'Meu perfil']];
  return <main className="commercial-portal-content"><Sidebar eyebrow="Área da empresa" name={company?.name ?? 'Carregando…'} items={items} view={view} onView={next => { setView(next); setOpenId(null); }} /><section className="commercial-portal-main">
   {company === undefined || complaints === null ? <p className="muted">Carregando dados da empresa…</p> : company === null ? <section className="commercial-panel"><h2>Não foi possível carregar sua empresa</h2><p>Saia e entre novamente. Se continuar, fale com o suporte.</p></section> :
    view === 'dashboard' ? <CompanyDashboard company={company} complaints={complaints} mine={mine} onOpen={open} onView={setView} /> :
    view === 'complaints' ? <CompanyComplaints complaints={complaints} openId={openId} onOpen={setOpenId} onChanged={() => setVersion(value => value + 1)} /> :
-   view === 'ranking' ? <CompanyRanking rows={ranking} company={company} complaints={complaints} /> : <PartnerDirectoryLive />}
+   view === 'ranking' ? <CompanyRanking rows={ranking} company={company} complaints={complaints} /> :
+   view === 'profile' ? <CompanyProfile companyId={companyId} onSaved={() => setContextVersion(value => value + 1)} /> : <PartnerDirectoryLive />}
  </section></main>;
 }
 

@@ -7,7 +7,7 @@ import { partnerMediaBucket } from "./account";
 export type ComplaintStatusDb = "received" | "in_review" | "adjustment_requested" | "held" | "shared" | "answered" | "closed" | "canceled";
 export type ComplaintFeedback = "yes" | "partial" | "no";
 
-function rpcError(error: { code?: string; message: string }, fallback: string): string {
+export function rpcError(error: { code?: string; message: string }, fallback: string): string {
   return error.code === "P0001" ? error.message : fallback;
 }
 
@@ -143,10 +143,10 @@ export async function listPublicSponsors(): Promise<PublicSponsor[]> {
   return (data ?? []).map((row: { id: string; name: string; campaign_title: string; campaign_kind: CampaignKind }) => ({ id: row.id, name: row.name, campaignTitle: row.campaign_title, campaignKind: row.campaign_kind }));
 }
 
-// Contato da empresa (só o dono da conta altera; RLS companies_update).
+// Contato da empresa: só o dono altera, pela RPC update_company_profile (ADR-0014; o update direto foi revogado).
 export async function updateCompanyContact(companyId: string, email: string, phone: string): Promise<AuthResult<null>> {
-  const { error } = await supabase().from("companies").update({ contact_email: email.trim().toLowerCase() || null, contact_phone: onlyDigits(phone) || null }).eq("id", companyId);
-  return error ? { ok: false, message: "Não foi possível salvar o contato. Só o responsável pela conta da empresa pode alterá-lo." } : { ok: true, value: null };
+  const { error } = await supabase().rpc("update_company_profile", { p_company: companyId, p: { contact_email: email.trim().toLowerCase(), contact_phone: onlyDigits(phone) } });
+  return error ? { ok: false, message: rpcError(error, "Não foi possível salvar o contato. Só o responsável pela conta da empresa pode alterá-lo.") } : { ok: true, value: null };
 }
 
 // Conteúdos do parceiro: linhas de media com título. Fotos no bucket público, vídeos por link.
