@@ -36,7 +36,9 @@ D5. **Convite manual assistido no piloto.** A equipe gera o convite na Operaçã
 
 D6. **O aceite do convite não dá acesso a manifestações.** O aceite liga a conta à empresa com vínculo `pending`. O acesso só vem com a verificação da D3. O link não carrega nem permite descobrir o ID da manifestação ou da empresa.
 
-D7. **Risco registrado na decisão da equipe.** `complaint_reviews` ganha `risk_level` (`low`, `medium`, `high`), obrigatório na decisão. Com risco `high`, não é possível criar convite para aquela empresa enquanto o caso estiver aberto, e a liberação exige uma segunda pessoa da equipe. Viável no piloto: o responsável informou 4 pessoas na Operação (2026-11-08). A segunda decisão precisa vir de outra conta de `platform_admins`, conferida no banco.
+D7. **Risco registrado na decisão da equipe (confirmado pelo responsável em 2026-11-08).** Duas regras separadas:
+- **Regra de risco:** a equipe registra `risk_level` (`low`, `medium`, `high`) em toda decisão de `complaint_reviews`. Com risco `high`: (1) nenhum convite ou lembrete automático é criado para aquela empresa enquanto o caso estiver aberto, só tarefa manual; (2) a liberação à empresa exige uma segunda pessoa da equipe, de outra conta de `platform_admins`, conferida no banco. Viável no piloto: são 4 pessoas na Operação.
+- **Regra de urgência:** a urgência é só por tempo (D12: 7 e 15 dias). O `risk_level` não muda prazo, ordem da fila nem prioridade, e o tema da manifestação também não. Risco alto muda **o canal** (manual em vez de automático) e **quem libera** (duas pessoas), nunca a urgência.
 
 D8. **Opt-out.** Uma lista de e-mails que pediram para não receber convites, guardada só como hash do e-mail normalizado. Antes de gerar o convite, o hash é conferido nessa lista.
 
