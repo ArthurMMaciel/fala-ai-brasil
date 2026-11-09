@@ -149,3 +149,11 @@ Migration `20261108120000_meu_perfil.sql`:
 - Saem as políticas `workers_update`, `companies_update` e `addresses_update` e o `update` direto do `authenticated` nas três tabelas. `owns_address` continua valendo para leitura (o membro lê o endereço da empresa); a edição passa a exigir dono pela RPC.
 - Teste de fumaça: `supabase/tests/profile_smoke.sql` (33 verificações, inclusive admin sem o privilégio recusado, admin com o privilégio aceito e troca sem referência recusada). `content_contact_smoke.sql` passou a usar `update_company_profile`.
 - O `revoke` vai no mesmo PR do front novo: o front de produção ainda usa `companies.update` para o contato da empresa.
+
+## Adendo de 2026-11-09: CPF único por trabalhador
+
+- **Contexto:** `public.workers.cpf` não tinha restrição de unicidade; só `companies.cnpj` tinha. A 20261109130000 passou a recusar CPF repetido na troca pela equipe (`ops_change_document`), mas o cadastro ainda aceitava.
+- **Decisão do responsável:** CPF único no banco, com mensagem genérica no cadastro.
+- **Implementação:** migration `20261109140000_cpf_unico.sql`, com a restrição `workers_cpf_key` e `private.create_profile` relançando `unique_violation` como 'Não foi possível concluir o cadastro.' (23505), sem DETAIL. Cobre o signUp (gatilho) e `add_profile`, os únicos caminhos de INSERT em `workers`.
+- **Privacidade:** o valor não vai ao erro nem ao log. No **signUp**, CPF repetido e inválido chegam iguais ao front (o Auth devolve 500 genérico nos dois casos). No **`add_profile`**, que só uma conta logada chama, os códigos diferem: inválido devolve 22023 'CPF inválido' e repetido devolve 23505, e o front mostra mensagens diferentes. Essa exceção fica registrada. O risco residual de enumeração (CPF válido mais erro) fica registrado. Opções futuras, para decidir juntas e à parte: rate limit de signup, captcha no cadastro e `private.create_profile` devolver o mesmo código e a mesma mensagem para CPF inválido e repetido, o que fecharia a diferença no `add_profile`.
+- **Rollback:** `alter table public.workers drop constraint workers_cpf_key;` e reaplicar `private.create_profile` de `20261108120000_meu_perfil.sql`. Nenhum dado muda.

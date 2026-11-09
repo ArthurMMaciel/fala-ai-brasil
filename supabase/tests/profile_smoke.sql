@@ -1,4 +1,4 @@
--- Teste de fumaça do "Meu perfil" (ADR-0014, migrations 20261108120000 e 20261109130000). Executa tudo e desfaz.
+-- Teste de fumaça do "Meu perfil" (ADR-0014, migrations 20261108120000, 20261109130000 e 20261109140000). Executa tudo e desfaz.
 -- Rodar no banco local: npx supabase db query --local < supabase/tests/profile_smoke.sql
 do $$
 declare
@@ -10,8 +10,9 @@ declare
   a uuid := '95555555-5555-5555-5555-555555555555';
   bad uuid := '96666666-6666-6666-6666-666666666666';
   o uuid := '97777777-7777-7777-7777-777777777777';
+  dup uuid := '98888888-8888-8888-8888-888888888888';
   addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}';
-  v_worker uuid; v_company uuid; v_company_addr uuid; ok boolean; n int;
+  v_worker uuid; v_company uuid; v_company_addr uuid; ok boolean; n int; v_detail text; v_msg text;
 begin
   -- 1) Dígitos verificadores no banco.
   res := res || jsonb_build_object('cpf válido aceito', private.valid_cpf('52998224725'));
@@ -41,6 +42,39 @@ begin
     ('00000000-0000-0000-0000-000000000000', bad, 'authenticated', 'authenticated', 'bad9@teste.invalid', jsonb_build_object('signup_type', 'worker', 'signup', jsonb_build_object('full_name', 'Inválido', 'cpf', '52998224724', 'address', addr)), now(), now());
     res := res || jsonb_build_object('cadastro com cpf inválido recusado', false);
   exception when others then res := res || jsonb_build_object('cadastro com cpf inválido recusado', true); end;
+
+  -- 20261109140000: CPF único (workers_cpf_key) com erro genérico, sem o CPF, no signUp e no add_profile.
+  res := res || jsonb_build_object('restrição workers_cpf_key existe',
+    exists (select 1 from pg_constraint where conname = 'workers_cpf_key' and conrelid = 'public.workers'::regclass and contype = 'u'));
+  begin
+    insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
+    ('00000000-0000-0000-0000-000000000000', dup, 'authenticated', 'authenticated', 'dup9@teste.invalid', jsonb_build_object('signup_type', 'worker', 'signup', jsonb_build_object('full_name', 'CPF Repetido', 'cpf', '111.444.777-35', 'address', addr)), now(), now());
+    res := res || jsonb_build_object('signUp com CPF de outro trabalhador recusado, genérico e sem o CPF', false);
+  exception when others then
+    get stacked diagnostics v_msg = message_text, v_detail = pg_exception_detail;
+    res := res || jsonb_build_object('signUp com CPF de outro trabalhador recusado, genérico e sem o CPF',
+      sqlstate = '23505' and v_msg = 'Não foi possível concluir o cadastro.' and coalesce(v_detail, '') = '');
+  end;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claims', json_build_object('sub', m, 'role', 'authenticated')::text, true);
+  begin
+    perform public.add_profile('worker', jsonb_build_object('full_name', 'Membro Trabalhador', 'cpf', '529.982.247-25', 'address', addr));
+    res := res || jsonb_build_object('add_profile com CPF de outro trabalhador recusado, genérico e sem o CPF', false);
+  exception when others then
+    get stacked diagnostics v_msg = message_text, v_detail = pg_exception_detail;
+    res := res || jsonb_build_object('add_profile com CPF de outro trabalhador recusado, genérico e sem o CPF',
+      sqlstate = '23505' and v_msg = 'Não foi possível concluir o cadastro.' and coalesce(v_detail, '') = '');
+  end;
+  perform set_config('request.jwt.claims', json_build_object('sub', w, 'role', 'authenticated')::text, true);
+  begin
+    perform public.add_profile('worker', jsonb_build_object('full_name', 'Segundo Perfil', 'cpf', '390.533.447-05', 'address', addr));
+    res := res || jsonb_build_object('add_profile de quem já é trabalhador recusado com a mesma mensagem', false);
+  exception when others then
+    res := res || jsonb_build_object('add_profile de quem já é trabalhador recusado com a mesma mensagem', sqlstate = '23505' and sqlerrm = 'Não foi possível concluir o cadastro.');
+  end;
+  execute 'reset role';
+  res := res || jsonb_build_object('tentativas não criaram trabalhador',
+    (select count(*) from public.workers where user_id in (dup, m)) = 0 and (select count(*) from public.workers where user_id = w) = 1);
 
   execute 'set local role authenticated';
 
