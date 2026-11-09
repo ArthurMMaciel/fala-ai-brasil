@@ -1,6 +1,6 @@
 # TASK-0037 — "Meu perfil" do trabalhador e da empresa
 
-- Status: em-andamento (em produção desde 2026-11-09; pendentes a concessão de `document_officers`, a migration 20261109130000 e a decisão sobre CPF único)
+- Status: em-andamento (em produção desde 2026-11-09; pendentes a concessão de `document_officers` e a migration 20261109140000 do CPF único)
 - ClickUp: [TASK-0037](https://app.clickup.com/t/17tu7rpc384)
 - Área: Backend/Frontend/Privacidade
 - Prioridade: P2
@@ -46,7 +46,13 @@ Compatibilidade do `revoke` com o front em produção e troca de e-mail sem dupl
 
 - Em 2026-11-09, com liberação escrita do responsável: `db push` de `20261108120000` e `20261109120000` no remoto. Conferido: 6 funções e 2 tabelas novas, `UPDATE` direto de `authenticated` em `workers`, `companies` e `addresses` revogado. O PR #23 foi mergeado em seguida (1b98184). `private.document_officers` segue vazio: a concessão é do responsável.
 - **CPF de outro trabalhador na troca pela equipe** (corrigido na migration `20261109130000_troca_cpf_duplicado.sql`, ainda não aplicada no remoto): o ramo `worker_cpf` de `ops_change_document` aceitava o CPF de outro trabalhador. `public.workers.cpf` **não tem restrição de unicidade**, só `companies.cnpj` tem, então tratar `unique_violation` não bastava. A função passa a conferir a duplicidade antes do update, com "Já existe um trabalhador com este CPF." (P0001). Teste: `profile_smoke.sql`. Em 2026-11-09, o remoto tinha 8 trabalhadores e nenhum CPF repetido (contagem só de leitura).
-- **Decisão pendente: CPF único no banco.** Um índice único em `workers.cpf` também barraria o CPF repetido no cadastro, mas criaria um risco de privacidade: o cadastro passaria a revelar se um CPF já tem conta numa plataforma de escuta psicossocial (enumeração). Exige proposta de modelo e decisão do responsável, com o tratamento do erro no cadastro.
+- **CPF único no banco: decidido pelo responsável em 2026-11-09** (modelo aprovado pelo Gestor no mesmo dia). Migration `20261109140000_cpf_unico.sql`:
+  - restrição `workers_cpf_key` (`unique (cpf)`);
+  - `private.create_profile`, usado pelo signUp e por `add_profile`, captura `unique_violation` e relança 'Não foi possível concluir o cadastro.' (23505), sem DETAIL nem nome de restrição. O CPF não aparece no erro nem no log do banco.
+  - No front, o signUp segue em `profile_rejected` ('Confira o CPF/CNPJ e os demais dados.') e o `add_profile` segue na mensagem de 23505, sem diferenciar CPF repetido de inválido.
+  - Limite conhecido: a mensagem genérica reduz a enumeração, mas não a elimina. Quem envia um CPF válido e recebe erro conclui que ele provavelmente tem conta. Rate limit de signup e captcha ficam para decisão à parte.
+  - Antes do push: contagem de duplicados em produção, só leitura e sem CPF, que precisa dar 0 (deu 0 em 8 trabalhadores às 18:02 UTC de 2026-11-09). Push num horário de pouco uso, com revisão do DevOps e liberação do responsável.
+- **Registro, sem mudança:** `partners.document` (parceiro pessoa física com CPF) também não tem restrição de unicidade.
 
 ## Rollback
 Reconceder os `update` por coluna e recriar as políticas antigas.

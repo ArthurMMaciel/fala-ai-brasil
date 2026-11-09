@@ -149,3 +149,11 @@ Migration `20261108120000_meu_perfil.sql`:
 - Saem as políticas `workers_update`, `companies_update` e `addresses_update` e o `update` direto do `authenticated` nas três tabelas. `owns_address` continua valendo para leitura (o membro lê o endereço da empresa); a edição passa a exigir dono pela RPC.
 - Teste de fumaça: `supabase/tests/profile_smoke.sql` (33 verificações, inclusive admin sem o privilégio recusado, admin com o privilégio aceito e troca sem referência recusada). `content_contact_smoke.sql` passou a usar `update_company_profile`.
 - O `revoke` vai no mesmo PR do front novo: o front de produção ainda usa `companies.update` para o contato da empresa.
+
+## Adendo de 2026-11-09: CPF único por trabalhador
+
+- **Contexto:** `public.workers.cpf` não tinha restrição de unicidade; só `companies.cnpj` tinha. A 20261109130000 passou a recusar CPF repetido na troca pela equipe (`ops_change_document`), mas o cadastro ainda aceitava.
+- **Decisão do responsável:** CPF único no banco, com mensagem genérica no cadastro.
+- **Implementação:** migration `20261109140000_cpf_unico.sql`, com a restrição `workers_cpf_key` e `private.create_profile` relançando `unique_violation` como 'Não foi possível concluir o cadastro.' (23505), sem DETAIL. Cobre o signUp (gatilho) e `add_profile`, os únicos caminhos de INSERT em `workers`.
+- **Privacidade:** a mensagem não distingue CPF repetido de inválido, e o valor não vai ao erro nem ao log. O risco residual de enumeração (CPF válido mais erro) fica registrado; rate limit e captcha ficam para decisão à parte.
+- **Rollback:** `alter table public.workers drop constraint workers_cpf_key;` e reaplicar `private.create_profile` de `20261108120000_meu_perfil.sql`. Nenhum dado muda.
