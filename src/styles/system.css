@@ -295,3 +295,18 @@
 .ops-metrics-secondary { margin-top: 12px; margin-bottom: 24px; }
 .ops-weekly { height: 180px; }
 .legacy-editorial .commercial-table td small { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
+
+/* Meu perfil do trabalhador e da empresa (ADR-0014). */
+.profile-layout { align-items: start; }
+.profile-side { display: grid; gap: 20px; align-content: start; }
+.profile-address { margin: 4px 0 0; padding: 0; border: 0; min-width: 0; }
+.profile-address legend { padding: 0; margin-bottom: 10px; font-weight: 700; color: var(--deep); }
+.profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.profile-grid .field { display: grid; gap: 6px; font-weight: 600; margin: 0; min-width: 0; }
+.profile-grid .profile-wide { grid-column: 1 / -1; }
+.profile-layout dd { overflow-wrap: anywhere; min-width: 0; }
+.profile-side .commercial-panel, .profile-layout > .commercial-panel { margin: 0; }
+@media (max-width: 640px) {
+  .profile-grid { grid-template-columns: minmax(0, 1fr); }
+  .profile-locked .company-facts div, .profile-side .company-facts div, .profile-layout .company-facts div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}

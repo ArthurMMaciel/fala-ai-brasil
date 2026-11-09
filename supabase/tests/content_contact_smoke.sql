@@ -35,10 +35,10 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', c, 'role', 'authenticated')::text, true);
   res := res || jsonb_build_object('empresa vê conteúdos do parceiro', (select count(*) from public.list_partner_contents(v_partner)) = 1);
   res := res || jsonb_build_object('empresa não lê media diretamente', (select count(*) from public.media) = 0);
-  update public.companies set contact_email = 'contato@smoke.invalid', contact_phone = '41999990000' where id = v_company;
+  perform public.update_company_profile(v_company, '{"contact_email":"contato@smoke.invalid","contact_phone":"41999990000"}');
   perform public.company_request_partner(v_partner);
   perform set_config('request.jwt.claims', json_build_object('sub', c2, 'role', 'authenticated')::text, true);
-  update public.companies set contact_email = 'outra@smoke.invalid' where id = v_company2;
+  perform public.update_company_profile(v_company2, '{"contact_email":"outra@smoke.invalid"}');
 
   perform set_config('request.jwt.claims', json_build_object('sub', w, 'role', 'authenticated')::text, true);
   res := res || jsonb_build_object('trabalhador não vê conteúdos', (select count(*) from public.list_partner_contents(v_partner)) = 0);

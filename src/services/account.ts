@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { appRoleFor, authErrorMessage, buildProfilePayload, type CampaignInput, type CampaignKind, type CampaignStatus, type ProfileType, type RegistrationInput } from "../domain/account-rules";
+import { appRoleFor, authErrorMessage, buildProfilePayload, signUpErrorCode, type CampaignInput, type CampaignKind, type CampaignStatus, type ProfileType, type RegistrationInput } from "../domain/account-rules";
 
 // ADR-0009: somente a chave pública no navegador; o acesso real é controlado por RLS.
 const url = import.meta.env.VITE_SUPABASE_URL;
@@ -20,7 +20,7 @@ export function supabase(): SupabaseClient {
 }
 
 // Um VITE_SITE_URL local copiado para a Vercel quebraria o link do e-mail; fora do localhost vale a origem atual.
-function redirectUrl(): string {
+export function redirectUrl(): string {
   const configured = import.meta.env.VITE_SITE_URL;
   const local = (value: string) => /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(value);
   return configured && !(local(configured) && !local(window.location.origin)) ? configured : window.location.origin;
@@ -71,8 +71,8 @@ export async function registerAccount(input: RegistrationInput): Promise<AuthRes
     },
   });
   if (error) {
-    // O Auth devolve 500 sem código específico quando o SMTP recusa o envio.
-    const code = /sending confirmation email/i.test(error.message) ? "email_send_failed" : error.code;
+    // O Auth devolve 500 genérico quando o SMTP recusa o envio ou o gatilho de cadastro recusa os dados.
+    const code = signUpErrorCode(error);
     return { ok: false, code, message: authErrorMessage(code) };
   }
   // Com confirmação ativa, e-mail já cadastrado retorna usuário sem identidades e nenhum e-mail novo.
@@ -259,18 +259,21 @@ export interface CompanyContext {
   state: string;
   contactEmail: string | null;
   contactPhone: string | null;
+  /** Dono da conta da empresa (company_users.role = owner). Membro só lê (ADR-0014, C2). */
+  isOwner: boolean;
 }
 
 // Empresa da conta logada (RLS: só empresas das quais o usuário é membro).
 export async function loadCompanyContext(companyId: string): Promise<CompanyContext | null> {
-  const { data } = await supabase()
-    .from("companies")
-    .select("id, legal_name, trade_name, cnpj, contact_email, contact_phone, address:address_id (city, state)")
-    .eq("id", companyId)
-    .maybeSingle();
+  const db = supabase();
+  const { data: auth } = await db.auth.getUser();
+  const [{ data }, { data: membership }] = await Promise.all([
+    db.from("companies").select("id, legal_name, trade_name, cnpj, contact_email, contact_phone, address:address_id (city, state)").eq("id", companyId).maybeSingle(),
+    db.from("company_users").select("role").eq("company_id", companyId).eq("user_id", auth.user?.id ?? "").maybeSingle(),
+  ]);
   if (!data) return null;
   const address = (Array.isArray(data.address) ? data.address[0] : data.address) as { city?: string; state?: string } | null;
-  return { id: data.id, name: data.trade_name || data.legal_name, legalName: data.legal_name, cnpj: data.cnpj, city: address?.city ?? "", state: address?.state ?? "", contactEmail: data.contact_email, contactPhone: data.contact_phone };
+  return { id: data.id, name: data.trade_name || data.legal_name, legalName: data.legal_name, cnpj: data.cnpj, city: address?.city ?? "", state: address?.state ?? "", contactEmail: data.contact_email, contactPhone: data.contact_phone, isOwner: membership?.role === "owner" };
 }
 
 export interface DirectoryPartner {
