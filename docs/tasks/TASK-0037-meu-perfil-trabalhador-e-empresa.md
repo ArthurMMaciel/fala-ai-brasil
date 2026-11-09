@@ -49,7 +49,7 @@ Compatibilidade do `revoke` com o front em produção e troca de e-mail sem dupl
 - **CPF único no banco: decidido pelo responsável em 2026-11-09** (modelo aprovado pelo Gestor no mesmo dia). Migration `20261109140000_cpf_unico.sql`:
   - restrição `workers_cpf_key` (`unique (cpf)`);
   - `private.create_profile`, usado pelo signUp e por `add_profile`, captura `unique_violation` e relança 'Não foi possível concluir o cadastro.' (23505), sem DETAIL nem nome de restrição. O CPF não aparece no erro nem no log do banco.
-  - No front, o signUp segue em `profile_rejected` ('Confira o CPF/CNPJ e os demais dados.') e o `add_profile` segue na mensagem de 23505, sem diferenciar CPF repetido de inválido.
+  - No front, o signUp segue em `profile_rejected` ('Confira o CPF/CNPJ e os demais dados.') e o `add_profile` segue na mensagem de 23505. Só o signUp não diferencia CPF repetido de inválido. No `add_profile`, que exige login, inválido devolve 22023 e repetido devolve 23505, e o front mostra mensagens diferentes (exceção registrada no adendo ao ADR-0014).
   - Limite conhecido: a mensagem genérica reduz a enumeração, mas não a elimina. Quem envia um CPF válido e recebe erro conclui que ele provavelmente tem conta. Rate limit de signup e captcha ficam para decisão à parte.
   - Antes do push: contagem de duplicados em produção, só leitura e sem CPF, que precisa dar 0 (deu 0 em 8 trabalhadores às 18:02 UTC de 2026-11-09). Push num horário de pouco uso, com revisão do DevOps e liberação do responsável.
 - **Registro, sem mudança:** `partners.document` (parceiro pessoa física com CPF) também não tem restrição de unicidade.
