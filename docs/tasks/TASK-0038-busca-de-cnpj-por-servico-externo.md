@@ -1,7 +1,7 @@
 # TASK-0038 — Busca de CNPJ por serviço externo, via Edge Function
 
 - Status: proposta (aguardando aprovação do responsável; sem código nem migration)
-- ClickUp: (preencher após a criação; texto pronto no fim deste documento)
+- ClickUp: [TASK-0038](https://app.clickup.com/t/17tu7rpc7ph)
 - Área: Backend/DevOps/Privacidade
 - Prioridade: P1 (é a fonte (b) da base de empresas do piloto, ADR-0012 D9)
 - Estimativa: 1 a 1,5 dia para a função e os testes (parecer do DevOps, R4.1), mais cerca de 0,5 dia para as RPCs e o teste de banco, depois da migration da ADR-0012
