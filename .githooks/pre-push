@@ -1,0 +1,49 @@
+#!/bin/sh
+# Rede de segurança do push direto na main (TASK-0041): cada push na main vira deploy de Production na Vercel.
+# Bloqueia o push se os testes ou o build falharem. Ativação, uma vez por clone:
+#   git config core.hooksPath .githooks
+# Só para emergência e com aviso ao DevOps: git push --no-verify
+
+remote="$1"
+pushes_main=0
+pushes_other_head=0
+head_sha=$(git rev-parse HEAD)
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$remote_ref" = "refs/heads/main" ] || continue
+  case "$local_sha" in 0000000000000000000000000000000000000000) continue ;; esac
+  pushes_main=1
+  [ "$local_sha" = "$head_sha" ] || pushes_other_head=1
+done
+
+[ "$pushes_main" -eq 1 ] || exit 0
+
+echo "pre-push: push para main em $remote; rodando npm test e npm run build..."
+
+if [ "$pushes_other_head" -eq 1 ]; then
+  echo "pre-push: BLOQUEADO. O commit enviado para main não é o HEAD desta pasta; os testes rodariam em outro código."
+  echo "          Faça checkout do commit que vai subir e tente de novo."
+  exit 1
+fi
+
+if ! git diff --quiet HEAD -- . ':(exclude)package-lock.json'; then
+  echo "pre-push: aviso: há alterações não commitadas em arquivos versionados; os testes rodam na pasta como está, não só no commit."
+fi
+
+log="${TMPDIR:-/tmp}/pre-push-$$.log"
+if ! npm test --silent >"$log" 2>&1; then
+  grep -E "^not ok|^# (pass|fail)|Error|assert" "$log" | head -40
+  echo "pre-push: BLOQUEADO. npm test falhou; nada foi enviado. Saída completa: $log"
+  exit 1
+fi
+grep -E "^# (tests|pass|fail)" "$log" | tr '\n' ' '; echo
+
+if ! npm run build --silent >"$log" 2>&1; then
+  tail -40 "$log"
+  echo "pre-push: BLOQUEADO. npm run build falhou; nada foi enviado. Saída completa: $log"
+  exit 1
+fi
+rm -f "$log"
+
+echo "pre-push: testes e build ok."
+exit 0

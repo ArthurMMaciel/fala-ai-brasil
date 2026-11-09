@@ -1,0 +1,64 @@
+# Alarme do push direto na main (TASK-0041). Não bloqueia a Vercel: avisa por e-mail do GitHub quando falha.
+# Repositório público: Actions sem custo. Sem secrets: só código público e a URL pública de produção.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  deployment_status:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}-${{ github.event.deployment.id || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  test-build:
+    if: github.event_name != 'deployment_status'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: index.html sem script inline (CSP)
+        run: |
+          if grep -E '<script' dist/index.html | grep -vq ' src='; then
+            echo "dist/index.html tem script inline"; exit 1
+          fi
+
+  production-smoke:
+    # A Vercel publica deployment_status no GitHub. Só o deploy de Production concluído com sucesso.
+    if: github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Production'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SITE: https://fala-ai-brasil.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha }}
+      - name: Landing, bundle e cabeçalho CSP
+        run: |
+          set -eu
+          sleep 20
+          curl -fsS -D headers.txt -o index.html "$SITE/"
+          # Nome e valor do cabeçalho vêm do vercel.json do commit: vale para Report-Only (fase 1) e para a fase 2.
+          name=$(node -e 'console.log(require("./vercel.json").headers[0].headers[0].key)')
+          expected=$(node -e 'console.log(require("./vercel.json").headers[0].headers[0].value)')
+          served=$(grep -i "^$name:" headers.txt | sed 's/^[^:]*: //' | tr -d '\r')
+          if [ "$served" != "$expected" ]; then
+            echo "$name servido difere do vercel.json do commit"; echo "servido:  $served"; echo "esperado: $expected"; exit 1
+          fi
+          js=$(grep -oE '/assets/index-[A-Za-z0-9_-]+\.js' index.html | head -1)
+          [ -n "$js" ] || { echo "landing sem bundle principal"; exit 1; }
+          curl -fsS -o /dev/null "$SITE$js"
+          echo "ok: landing 200, bundle $js 200, CSP igual ao vercel.json"
