@@ -310,3 +310,14 @@
   .profile-grid { grid-template-columns: minmax(0, 1fr); }
   .profile-locked .company-facts div, .profile-side .company-facts div, .profile-layout .company-facts div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 }
+
+/* Responsividade das empresas (TASK-0036): no celular, cada empresa vira um cartão com as faixas visíveis. */
+@media (max-width: 640px) {
+  .commercial-table-wrap:has(.responsiveness-table) { overflow: visible; }
+  .responsiveness-table, .responsiveness-table tbody, .responsiveness-table tr, .responsiveness-table td { display: block; width: 100%; min-width: 0; }
+  .responsiveness-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .responsiveness-table tr { padding: 12px 0; border-bottom: 1px solid var(--sys-field-line); }
+  .responsiveness-table td { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 4px 0; border: 0; text-align: right; }
+  .responsiveness-table td::before { content: attr(data-label); color: var(--muted); font-size: 13px; text-align: left; }
+  .responsiveness-table td:first-child { font-weight: 600; }
+}

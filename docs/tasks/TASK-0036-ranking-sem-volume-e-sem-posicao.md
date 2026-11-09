@@ -98,3 +98,11 @@ Reconceder `execute` em `company_ranking()` (antes do `drop`) e voltar o front. 
 
 Título: TASK-0036 — Ranking sem número de manifestações e sem posição
 Descrição: Proposta para que `company_ranking` deixe de devolver a contagem de manifestações e números exatos (substituídos por faixas), com ordenação por nome e tela sem posição. Nova função `company_responsiveness()`, com revogação e remoção da antiga após o deploy do front. Prioridade P1. Documento: docs/tasks/TASK-0036-ranking-sem-volume-e-sem-posicao.md. Status: proposta, aguardando aprovação do responsável.
+
+## Implementação (front, 2026-11-09)
+
+- `src/services/data.ts`: `listCompanyResponsiveness()` e `loadMyCompanyResponsiveness()` no lugar de `loadCompanyRanking()`; nenhum código chama mais `company_ranking`.
+- `src/portals/responsiveness.tsx` (novo): tabela compartilhada (Empresa, Cidade, Taxa e Tempo de resposta em selos; Satisfação só aparece quando houver dado), sem posição, contagem ou percentual; painel "Sua empresa" com os números exatos de `my_company_responsiveness` e o aviso de 3 manifestações quando `listed = false`. Abaixo de 640 px cada empresa vira um cartão.
+- Portal da empresa: menu "Responsividade", título "Responsividade das empresas" e texto de método; o Dashboard usa taxa e tempo da própria empresa. Portal do trabalhador: a mesma lista na aba Empresas.
+- Testes: `scripts/test-responsiveness.mjs` (rótulos, ordem recebida, ausência de posição e números, satisfação condicional, painel da própria empresa e trava contra `company_ranking`). Conferido no Supabase local em desktop e 375 px.
+- Sobe para a main só depois do aviso do Back de que as funções estão em produção; depois disso o Back revoga e remove `company_ranking()`.

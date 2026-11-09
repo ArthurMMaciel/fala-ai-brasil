@@ -93,11 +93,20 @@ export async function respondCompanyComplaint(id: string, content: string): Prom
   return error ? { ok: false, message: rpcError(error, "Não foi possível enviar a resposta.") } : { ok: true, value: null };
 }
 
-export interface RankingRow { companyId: string; name: string; city: string; state: string; received: number; responseRate: number; avgFirstResponseHours: number | null; isMine: boolean }
+// Responsividade (TASK-0036): faixas, em ordem de nome, sem contagem nem posição. Substitui company_ranking.
+export interface ResponsivenessRow { companyId: string; name: string; city: string; state: string; responseBand: string | null; responseTimeBand: string | null; satisfactionBand: string | null; isMine: boolean }
 
-export async function loadCompanyRanking(): Promise<RankingRow[]> {
-  const { data } = await supabase().rpc("company_ranking");
-  return (data ?? []).map((row: { company_id: string; name: string; city: string; state: string; received: number; response_rate: number; avg_first_response_hours: number | null; is_mine: boolean }) => ({ companyId: row.company_id, name: row.name, city: row.city, state: row.state, received: row.received, responseRate: row.response_rate, avgFirstResponseHours: row.avg_first_response_hours, isMine: row.is_mine }));
+export async function listCompanyResponsiveness(): Promise<ResponsivenessRow[]> {
+  const { data } = await supabase().rpc("company_responsiveness");
+  return (data ?? []).map((row: { company_id: string; name: string; city: string; state: string; response_band: string | null; response_time_band: string | null; satisfaction_band: string | null; is_mine: boolean }) => ({ companyId: row.company_id, name: row.name, city: row.city, state: row.state, responseBand: row.response_band, responseTimeBand: row.response_time_band, satisfactionBand: row.satisfaction_band, isMine: row.is_mine }));
+}
+
+// Números exatos só da própria empresa (my_company_responsiveness); vazio para quem não é de empresa.
+export interface MyResponsiveness { companyId: string; name: string; released: number; answered: number; responseRate: number | null; avgFirstResponseHours: number | null; responseBand: string | null; responseTimeBand: string | null; listed: boolean }
+
+export async function loadMyCompanyResponsiveness(): Promise<MyResponsiveness[]> {
+  const { data } = await supabase().rpc("my_company_responsiveness");
+  return (data ?? []).map((row: { company_id: string; name: string; released: number; answered: number; response_rate: number | null; avg_first_response_hours: number | null; response_band: string | null; response_time_band: string | null; listed: boolean }) => ({ companyId: row.company_id, name: row.name, released: row.released, answered: row.answered, responseRate: row.response_rate, avgFirstResponseHours: row.avg_first_response_hours, responseBand: row.response_band, responseTimeBand: row.response_time_band, listed: row.listed }));
 }
 
 export async function requestPartner(partnerId: string): Promise<AuthResult<null>> {
