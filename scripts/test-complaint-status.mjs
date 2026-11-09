@@ -68,3 +68,35 @@ test('Operação não repete "Resposta da empresa" na linha do tempo', () => {
   const ops = readFileSync('src/portals/ops-portal-live.tsx', 'utf8');
   assert.match(ops.match(/const eventLabels: Record<ComplaintStatusDb, string> = \{([^}]*)\}/)[1], /answered: 'Respondida'/);
 });
+
+// Desempate da linha do tempo do trabalhador, com o critério do banco (migration 20261109120000).
+const plain = value => JSON.parse(JSON.stringify(value));
+const at = '2026-11-09T12:00:00.123456+00:00';
+const later = '2026-11-09T12:00:01.000000+00:00';
+
+test('linha do tempo: created_at, depois resposta antes do evento, depois ordem do enum, depois id', () => {
+  const items = [
+    { id: 'e3', kind: 'event', status: 'answered', createdAt: later },
+    { id: 'r1', kind: 'response', status: null, createdAt: later },
+    { id: 'e2', kind: 'event', status: 'in_review', createdAt: at },
+    { id: 'e1', kind: 'event', status: 'received', createdAt: at },
+  ];
+  assert.deepEqual(plain(items.sort(domain.compareTimeline).map(item => item.id)), ['e1', 'e2', 'r1', 'e3']);
+});
+
+test('linha do tempo: microssegundos, status desconhecido e id como último critério', () => {
+  const sorted = [
+    { id: 'b', kind: 'event', status: 'shared', createdAt: '2026-11-09T12:00:00.123457+00:00' },
+    { id: 'a', kind: 'event', status: 'shared', createdAt: '2026-11-09T12:00:00.123456+00:00' },
+  ].sort(domain.compareTimeline);
+  assert.deepEqual(plain(sorted.map(item => item.id)), ['a', 'b'], 'mesmo milissegundo, microssegundo decide');
+  const tie = [{ id: 'f0', kind: 'event', status: 'novo', createdAt: at }, { id: '0a', kind: 'event', status: 'canceled', createdAt: at }, { id: '0b', kind: 'event', status: 'canceled', createdAt: at }].sort(domain.compareTimeline);
+  assert.deepEqual(plain(tie.map(item => item.id)), ['0a', '0b', 'f0'], 'desconhecido vai por último; id desempata');
+});
+
+test('data.ts ordena a linha do tempo do trabalhador pelo comparador e lê o id das duas tabelas', () => {
+  const data = readFileSync('src/services/data.ts', 'utf8');
+  assert.match(data, /\]\.sort\(compareTimeline\)/);
+  assert.match(data, /from\("complaint_events"\)\.select\("id, /);
+  assert.match(data, /from\("company_responses"\)\.select\("id, /);
+});
