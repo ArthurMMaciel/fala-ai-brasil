@@ -5,6 +5,7 @@ import { showToast } from '../app/toast';
 import { Icon, QuickActions, initials, type IconName } from './ui';
 import { formatPhone, maskPhone, planIncludesContent, validateCompanyContact, validateContent, whatsappLink } from '../domain/account-rules';
 import { safeHttpUrl } from '../domain/html-safety';
+import { statusLabel } from '../domain/complaint-status';
 
 // Portais de empresa e parceiro com dados reais (modelo v3). A empresa lê apenas versões compartilhadas, sem identidade.
 type CompanyView = 'dashboard' | 'complaints' | 'ranking' | 'partners';
@@ -87,7 +88,7 @@ function CompanyComplaints({ complaints, openId, onOpen, onChanged }: { complain
  return <><div className="commercial-page-head"><div><span className="editorial-eyebrow">Operação da empresa</span><h1>Manifestações</h1><p>Leia a versão compartilhável, responda e acompanhe o retorno.</p></div><label className="commercial-search">Pesquisar<input value={search} onChange={event => setSearch(event.target.value)} placeholder="Protocolo ou assunto" /></label></div>
   <div className="commercial-filter-row"><select value={status} onChange={event => setStatus(event.target.value)} aria-label="Situação"><option value="">Todas as situações</option><option value="shared">Aguardando resposta</option><option value="answered">Respondida</option><option value="closed">Finalizada</option></select></div>
   {rows.length === 0 ? <section className="commercial-panel"><h2>{complaints.length ? 'Nenhuma manifestação encontrada' : 'Nenhuma manifestação por enquanto'}</h2><p>{complaints.length ? 'Revise a busca ou a situação.' : 'Quando uma manifestação for compartilhada com sua empresa, ela aparece aqui.'}</p></section> :
-  <section className="commercial-panel">{rows.map(item => <button className="commercial-list-row" key={item.id} onClick={() => onOpen(item.id)}><span><strong>{item.protocol} · {item.title}</strong><small>{item.category} · {dateLabel(item.createdAt)}{item.responses ? ` · ${item.responses} resposta${item.responses > 1 ? 's' : ''}` : ''}</small></span><em>{companyStatus[item.status]} ›</em></button>)}</section>}</>;
+  <section className="commercial-panel">{rows.map(item => <button className="commercial-list-row" key={item.id} onClick={() => onOpen(item.id)}><span><strong>{item.protocol} · {item.title}</strong><small>{item.category} · {dateLabel(item.createdAt)}{item.responses ? ` · ${item.responses} resposta${item.responses > 1 ? 's' : ''}` : ''}</small></span><em>{statusLabel(companyStatus, item.status)} ›</em></button>)}</section>}</>;
 }
 
 function CompanyComplaintDetail({ item, onBack, onChanged }: { item: CompanyComplaint; onBack: () => void; onChanged: () => void }) {
@@ -102,9 +103,9 @@ function CompanyComplaintDetail({ item, onBack, onChanged }: { item: CompanyComp
   showToast('success', 'Resposta enviada. A pessoa que relatou será informada.'); setText(''); setVersion(value => value + 1); onChanged();
  }
  return <><button className="text-action" onClick={onBack}>← Voltar para manifestações</button>
-  <div className="commercial-page-head"><div><span className="editorial-eyebrow">Manifestação {item.protocol}</span><h1>{item.title}</h1><p>{item.category} · recebida em {dateLabel(item.createdAt)} · {companyStatus[item.status]}</p></div></div>
+  <div className="commercial-page-head"><div><span className="editorial-eyebrow">Manifestação {item.protocol}</span><h1>{item.title}</h1><p>{item.category} · recebida em {dateLabel(item.createdAt)} · {statusLabel(companyStatus, item.status)}</p></div></div>
   <div className="commercial-grid-two"><section className="commercial-panel"><h2>Versão compartilhada</h2><p>{item.shared}</p><div className="commercial-callout">Texto revisado e autorizado por quem relatou. A identidade e o relato original não são compartilhados.</div>{item.feedback && <p><strong>Avaliação do retorno:</strong> {feedbackLabels[item.feedback]}</p>}</section>
-   <section className="commercial-panel"><h2>Histórico</h2>{timeline === null ? <p className="muted">Carregando…</p> : <ol className="worker-timeline">{timeline.map((entry, index) => <li key={index} className={entry.kind === 'response' ? 'worker-timeline-response' : ''}><strong>{entry.kind === 'response' ? 'Resposta enviada' : companyStatus[entry.status ?? 'shared']}</strong><span>{dateLabel(entry.createdAt)}</span><p>{entry.content}</p></li>)}</ol>}</section></div>
+   <section className="commercial-panel"><h2>Histórico</h2>{timeline === null ? <p className="muted">Carregando…</p> : <ol className="worker-timeline">{timeline.map((entry, index) => <li key={index} className={entry.kind === 'response' ? 'worker-timeline-response' : ''}><strong>{entry.kind === 'response' ? 'Resposta enviada' : statusLabel(companyStatus, entry.status ?? 'shared')}</strong><span>{dateLabel(entry.createdAt)}</span><p>{entry.content}</p></li>)}</ol>}</section></div>
   {['shared', 'answered'].includes(item.status) && <section className="commercial-panel"><h2>{item.status === 'shared' ? 'Responder' : 'Enviar nova atualização'}</h2><p className="muted small">Responda de forma institucional. Não tente identificar quem relatou.</p><textarea className="company-response-text" rows={5} maxLength={5000} value={text} onChange={event => setText(event.target.value)} aria-label="Resposta da empresa" /><div className="nav-actions"><button className="btn primary" disabled={busy || text.trim().length < 10} onClick={send}>Enviar resposta</button></div></section>}</>;
 }
 
