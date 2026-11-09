@@ -284,3 +284,29 @@ test('conteúdo, avatar e foto do parceiro bloqueiam javascript: e data: em src/
   assert.match(render(portalLive.ContentMedia, { content: { kind: 'video', url: 'https://www.youtube.com/watch?v=abc', title: 'Vídeo' } }), /<a class="content-video" href="https:\/\/www\.youtube\.com\/watch\?v=abc"/);
   assert.match(render(portalLive.PartnerPhoto, { url: 'https://x.supabase.co/storage/v1/object/public/partner-media/a.jpg', name: 'Marina', large: true }), /<img class="partner-avatar partner-photo large" src="https:/);
 });
+
+// Login da equipe (bug achado pelo DevOps): m() checava o.user antes de gravar o usuário recém-autenticado em a.user.
+test('conta platform_admin entra direto na Operação e em Solicitações de contato', () => {
+  const admin = { name: 'Equipe', role: 'platform_admin', profile: { type: 'system', id: 's-1' } };
+  for (const route of ['ops', 'admin-contacts']) {
+    const screen = app();
+    assert.equal(screen.api.state.user ?? null, null, 'começa sem sessão');
+    screen.api.route(route, { user: admin });
+    assert.equal(screen.api.state.route, route, `${route} abre no mesmo passo do login`);
+    assert.equal(screen.api.state.user?.role, 'platform_admin');
+    assert.match(screen.html, route === 'ops' ? /id="ops-root"/ : /id="contact-admin-root"/);
+  }
+});
+
+test('Operação continua fechada para quem não é da equipe, mesmo vindo no login', () => {
+  for (const user of [{ name: 'Pessoa', role: 'worker' }, { name: 'Empresa', role: 'admin' }, null]) {
+    const screen = app();
+    screen.api.route('ops', { user });
+    assert.notEqual(screen.api.state.route, 'ops');
+    assert.doesNotMatch(screen.html, /id="ops-root"/);
+  }
+  const screen = app();
+  screen.api.route('ops', { user: { name: 'Equipe', role: 'platform_admin' } });
+  screen.api.route('ops', { user: null });
+  assert.equal(screen.api.state.route, 'ops', 'saída com user:null não reabre a rota (permanece onde estava, sem gravar)');
+});
