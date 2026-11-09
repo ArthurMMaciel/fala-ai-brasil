@@ -14,5 +14,6 @@ Cada push na `main` vira deploy de Production na Vercel ([TASK-0041](../tasks/TA
 
 - Ative o hook uma vez por clone: `git config core.hooksPath .githooks`. Ele roda `npm test` e `npm run build` e bloqueia o push para `main` se algum falhar.
 - `git push --no-verify` só em emergência, avisando o DevOps.
+- A Vercel roda `npm test && npm run build` (`buildCommand` no `vercel.json`): teste quebrado não publica, e a produção fica no deploy anterior.
 - O GitHub Actions (`ci`) repete testes e build em cada push e confere a produção depois de cada deploy. Uma falha chega por e-mail do GitHub.
 - Se a produção quebrar: Instant Rollback na Vercel para o último deploy bom, feito pelo responsável, e correção na `main` em seguida.

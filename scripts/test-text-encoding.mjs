@@ -3,8 +3,15 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-test('textos versionados usam UTF-8 sem caracteres corrompidos', () => {
-  const files = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' }).split('\0');
+// Sem repositório git (ex.: build da Vercel, TASK-0041), o teste é pulado; o CI do GitHub e o pre-push rodam com git.
+function versionedFiles() {
+  try { return execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).split('\0'); }
+  catch { return null; }
+}
+
+test('textos versionados usam UTF-8 sem caracteres corrompidos', t => {
+  const files = versionedFiles();
+  if (!files) return t.skip('sem repositório git neste ambiente');
   const decoder = new TextDecoder('utf-8', { fatal: true });
   // Common signatures of UTF-8 decoded as Windows-1252, plus replacement characters.
   const corrupted = /[\u00c2\u00c3][\u0080-\u00bf\u0152\u0153\u0160\u0161\u0178\u017d\u017e\u0192\u02c6\u02dc\u2013-\u2022\u2026\u2030\u2039\u203a\u20ac\u2122]|\u00e2[\u0080-\u009f\u20ac]|\u00f0\u0178|\ufffd/;

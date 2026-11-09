@@ -27,8 +27,13 @@ Barreiras baratas e sem custo:
 - Testes dos smoke SQL no CI: exigem Supabase em Docker no runner. Fica como melhoria.
 - Teste de console da landing no CI: exige navegador. O DevOps confere o console a cada deploy (item 2 da fila).
 
-## Opção mais forte, para decisão do responsável
-Trocar o comando de build da Vercel para `npm test && npm run build`, por `buildCommand` no `vercel.json`. Um push com teste quebrado faria o build falhar, e a produção ficaria no deploy anterior. Não depende de hook local nem de `--no-verify`. O custo é de cerca de 6 s por build. É mudança de configuração de produção, então depende de autorização.
+## Testes no build da Vercel (aprovado pelo responsável em 2026-11-09)
+`buildCommand: npm test && npm run build` no `vercel.json`. Um push com teste quebrado faz o build falhar, e a produção fica no deploy anterior. Não depende do hook local nem de `--no-verify`. O custo é de cerca de 6 s por build.
+- O build da Vercel não tem a pasta `.git`. Por isso, o teste de codificação, que lista os arquivos com `git ls-files`, é pulado ali; o CI do GitHub e o hook o rodam normalmente.
+- Simulado antes do push numa cópia sem `.git`, com `npm ci`: 71 testes passaram, 1 foi pulado, e o build terminou ok.
+- Rollback: remover a chave `buildCommand` do `vercel.json`.
+
+O `core.hooksPath` foi ativado na pasta principal no mesmo dia, também com autorização do responsável.
 
 ## Critérios de aceite
 - O hook bloqueia o push para `main` com teste ou build quebrado e libera com tudo verde. Testado com um `npm` falso que falha no teste e no build.
