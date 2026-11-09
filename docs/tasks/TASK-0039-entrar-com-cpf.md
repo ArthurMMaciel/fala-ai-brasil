@@ -1,7 +1,7 @@
 # TASK-0039 — Entrar com CPF e senha (trabalhador)
 
 - Status: proposta (aguardando decisão do responsável; sem código)
-- ClickUp: (preencher após a criação; texto pronto no fim deste documento; a consulta de 2026-11-09, só de leitura, não achou tarefa equivalente)
+- ClickUp: [TASK-0039](https://app.clickup.com/t/17tu7rpcghj)
 - Área: Backend/Frontend/Segurança/Privacidade
 - Prioridade: P2
 - Estimativa: 1,5 a 2 dias após a aprovação (função, tabela de tentativas, tela e testes), sem contar o captcha

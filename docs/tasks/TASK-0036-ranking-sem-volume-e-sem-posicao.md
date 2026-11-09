@@ -1,6 +1,6 @@
 # TASK-0036 — Ranking sem número de manifestações e sem posição
 
-- Status: em-andamento (funções novas na migration 20261110120000, testada no local; aguarda o front e o db push com liberação do responsável)
+- Status: em-andamento (funções novas na migration 20261109150000, testada no local; aguarda o front e o db push com liberação do responsável)
 - ClickUp: [TASK-0036](https://app.clickup.com/t/17tu7rpc383)
 - Área: Backend/Produto/Privacidade
 - Prioridade: P1
@@ -74,7 +74,7 @@ Enquanto o passo 3 não acontece, o volume continua legível pela função antig
 
 ## Implementação (backend)
 
-- Migration `20261110120000_responsividade_sem_volume.sql`:
+- Migration `20261109150000_responsividade_sem_volume.sql`:
   - `public.company_responsiveness()`: faixas, corte de 3, ordem por nome e `satisfaction_band` nula até a ADR-0013;
   - `public.my_company_responsiveness()`: números exatos só das empresas do próprio usuário, com `listed`;
   - `private.company_response_stats()` concentra o cálculo, para a ADR-0013 mudar só ali.

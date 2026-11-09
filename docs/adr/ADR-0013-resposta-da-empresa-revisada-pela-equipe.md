@@ -1,6 +1,6 @@
 # ADR-0013 — Resposta da empresa revisada pela equipe antes de chegar ao trabalhador
 
-- Estado: **Proposta**, aguardando aprovação do responsável. Nenhuma migration foi criada.
+- Estado: **Aceita** pelo responsável em 2026-11-08 (registro na TASK-0035 do ClickUp); passada ao ADR em 2026-11-09. Implementação nas migrations `20261109160000`, `20261109170000` e `20261109180000`.
 - Data: 2026-11-08
 - Tarefa: [TASK-0035](../tasks/TASK-0035-resposta-da-empresa-revisada.md)
 - Relacionadas: ADR-0010 (revisão antes de liberar à empresa), [TASK-0036](../tasks/TASK-0036-ranking-sem-volume-e-sem-posicao.md) (ranking), TASK-0031
@@ -184,3 +184,27 @@ Mudanças de RLS:
 3. Avaliação por resposta liberada, com o ranking usando a primeira (D5), ou só no encerramento, como hoje.
 4. Peso de `partial` (0,5) e se a satisfação entra no ranking no piloto.
 5. SLA da equipe para revisar respostas e quem cobre a fila.
+
+## Decisões do responsável (2026-11-08)
+
+1. **3B:** o trabalhador vê a descrição da equipe e, abaixo, a resposta original revisada. Texto inadequado é devolvido, nunca suavizado.
+2. A empresa vê o estado da resposta e o motivo da devolução, mas **não** vê a descrição da equipe.
+3. Avaliação por resposta liberada. Para o prazo, conta a primeira resposta liberada.
+4. `partial` = 0,5. **A satisfação fica fora do ranking no piloto:** `satisfaction_band` continua nula em `company_responsiveness`. A avaliação é gravada e aparece só para a equipe e, agregada (com 3 ou mais avaliações), para a própria empresa (`my_company_satisfaction`). Com isso, a parte de satisfação da D6 fica para depois do piloto.
+5. SLA de revisão de 2 dias úteis; a fila é coberta pelos 4 administradores da plataforma.
+
+## Implementação (2026-11-09)
+
+Ordem de publicação aprovada:
+- (a) `20261109160000_status_resposta_em_revisao.sql`: valor de enum `answer_in_review`;
+- (b) `20261109170000_resposta_revisada_estrutura.sql`: colunas, tabelas `company_response_reviews` e `response_ratings`, funções novas e ajustes de status, sem mudar o comportamento;
+- (c) front tolerante (Front);
+- (d) `20261109180000_resposta_revisada_ativa.sql`: novo `respond_complaint`, default `in_review` e RLS do trabalhador só para respostas liberadas.
+
+Cada db push depende da liberação do responsável. Diferenças em relação ao texto original:
+- O cálculo do ranking vive em `private.company_response_stats` (TASK-0036). `company_ranking`, que será removida, não muda.
+- As linhas do tempo da equipe e da empresa ganham o tipo `response_review`, com peso 1 no desempate.
+- A devolução não gera evento em `complaint_events`, para não aparecer ao trabalhador.
+- Quando a empresa só tem respostas devolvidas, o caso volta a `shared`; se já houve resposta liberada, volta a `answered`.
+
+Teste: `supabase/tests/response_review_smoke.sql`.

@@ -1,7 +1,7 @@
 # TASK-0040 — Arquivos de prova enviados pelo trabalhador
 
 - Status: proposta (aguardando decisão do responsável; sem código)
-- ClickUp: (preencher após a criação; texto pronto no fim deste documento; a consulta de 2026-11-09, só de leitura, não achou tarefa equivalente)
+- ClickUp: [TASK-0040](https://app.clickup.com/t/17tu7rpcghk)
 - Área: Backend/Frontend/DevOps/Privacidade/Jurídico
 - Prioridade: P2
 - Estimativa: 3 a 5 dias após a aprovação (bucket, quarentena, cópia limpa, RPCs, telas dos três portais e testes). O teste de viabilidade da conversão de PDF vem antes.

@@ -1,6 +1,6 @@
 # TASK-0035 — Resposta da empresa revisada pela equipe
 
-- Status: proposta (modelo aguardando aprovação do responsável; sem migration)
+- Status: em-andamento (decisões de 2026-11-08 passadas à ADR-0013; migrations (a), (b) e (d) escritas e testadas no local; db push por passo, com liberação do responsável)
 - ClickUp: [TASK-0035](https://app.clickup.com/t/17tu7rpc382)
 - Área: Backend/Produto/Privacidade
 - Prioridade: P1

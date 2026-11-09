@@ -1,4 +1,4 @@
--- Teste de fumaça da lista de responsividade (TASK-0036, migration 20261110120000). Executa tudo e desfaz.
+-- Teste de fumaça da lista de responsividade (TASK-0036, migration 20261109150000). Executa tudo e desfaz.
 -- Rodar no banco local: npx supabase db query --local < supabase/tests/responsiveness_smoke.sql
 do $$
 declare
