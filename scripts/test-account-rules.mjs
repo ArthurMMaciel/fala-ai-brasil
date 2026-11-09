@@ -150,3 +150,12 @@ test('CNPJ alfanumérico, máscaras e telefones fixo/celular com DDD', () => {
   assert.match(rules.validateRegistration({ ...worker, phone: '' }), /telefone/);
   assert.equal(rules.buildProfilePayload({ ...worker }).phone, '41987654321');
 });
+
+test('cadastro recusado pelo gatilho (500 genérico do Auth) vira mensagem sobre CPF/CNPJ', () => {
+  const rejected = { status: 500, code: 'unexpected_failure', message: 'Database error saving new user' };
+  assert.equal(rules.signUpErrorCode(rejected), 'profile_rejected');
+  assert.equal(rules.authErrorMessage(rules.signUpErrorCode(rejected)), 'Não foi possível concluir o cadastro. Confira o CPF/CNPJ e os demais dados.');
+  assert.equal(rules.signUpErrorCode({ message: 'Error sending confirmation email' }), 'email_send_failed');
+  assert.equal(rules.signUpErrorCode({ code: 'weak_password', message: 'Password is too weak' }), 'weak_password');
+  assert.equal(rules.isValidCpf('529.982.247-24'), false, 'validação de dígitos no navegador continua');
+});
