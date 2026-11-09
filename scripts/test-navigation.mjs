@@ -309,4 +309,5 @@ test('Operação continua fechada para quem não é da equipe, mesmo vindo no lo
   screen.api.route('ops', { user: { name: 'Equipe', role: 'platform_admin' } });
   screen.api.route('ops', { user: null });
   assert.equal(screen.api.state.route, 'ops', 'saída com user:null não reabre a rota (permanece onde estava, sem gravar)');
+  assert.equal(screen.api.state.user?.role, 'platform_admin', 'user:null barrado não foi gravado');
 });
