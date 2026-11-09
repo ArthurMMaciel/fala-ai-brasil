@@ -3,6 +3,7 @@ import { closeWorkerComplaint, listCompanyDirectory, listWorkerComplaints, loadC
 import { showToast } from '../app/toast';
 import { ComplaintWizard } from './complaint-wizard';
 import { QuickActions } from './ui';
+import { statusLabel } from '../domain/complaint-status';
 
 // Portal do trabalhador com dados reais (modelo v3). O relato original nunca sai daqui; a empresa recebe só a versão revisada.
 type View = 'dashboard' | 'list' | 'detail' | 'new' | 'companies';
@@ -15,7 +16,7 @@ const statusClass: Record<ComplaintStatusDb, string> = { received: 'em-aberto', 
 const feedbackLabels: Record<ComplaintFeedback, string> = { yes: 'Sim, ajudou', partial: 'Em parte', no: 'Não ajudou' };
 
 function dateLabel(value: string) { return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value)); }
-function Status({ status }: { status: ComplaintStatusDb }) { return <span className={`worker-status ${statusClass[status]}`}>{statusLabels[status]}</span>; }
+function Status({ status }: { status: ComplaintStatusDb }) { return <span className={`worker-status ${statusLabel(statusClass, status, 'em-aberto')}`}>{statusLabel(statusLabels, status)}</span>; }
 
 function hours(value: number | null) { return value === null ? '—' : value < 48 ? `${value} h` : `${(value / 24).toFixed(1).replace('.', ',')} dias`; }
 
@@ -107,7 +108,7 @@ function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerCo
     : detail.shared && <section className="worker-detail-section"><h3>{preRelease ? 'Versão em revisão' : 'Versão que a empresa recebeu'}</h3>{preRelease && <p className="muted small">A equipe confere esta versão antes de liberar à empresa. Até lá, a empresa não vê nada.</p>}<p className="worker-original">{detail.shared}</p></section>}
    {complaint.expectedOutcomes.length > 0 && <section className="worker-detail-section"><h3>O que você espera</h3><ul>{complaint.expectedOutcomes.map(item => <li key={item}>{item}</li>)}</ul></section>}
   </div><aside className="worker-detail-aside">
-   <section className="worker-detail-section"><h3>Acompanhamento</h3><ol className="worker-timeline">{detail.timeline.map((item, index) => <li key={index} className={item.kind === 'response' ? 'worker-timeline-response' : ''}><strong>{item.kind === 'response' ? 'Resposta da empresa' : eventLabels[item.status ?? 'received']}</strong><span>{dateLabel(item.createdAt)}</span><p>{item.content}</p></li>)}</ol></section>
+   <section className="worker-detail-section"><h3>Acompanhamento</h3><ol className="worker-timeline">{detail.timeline.map((item, index) => <li key={index} className={item.kind === 'response' ? 'worker-timeline-response' : ''}><strong>{item.kind === 'response' ? 'Resposta da empresa' : statusLabel(eventLabels, item.status ?? 'received')}</strong><span>{dateLabel(item.createdAt)}</span><p>{item.content}</p></li>)}</ol></section>
    {open && <section className="worker-detail-section worker-actions"><h3>{preRelease ? 'Retirar manifestação' : 'Encerrar acompanhamento'}</h3>{!preRelease && <label>A resposta ajudou?<select value={feedback} onChange={event => setFeedback(event.target.value as ComplaintFeedback | '')}><option value="">Prefiro não avaliar</option>{Object.entries(feedbackLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>}<button className="btn" disabled={busy} onClick={close}>{preRelease ? 'Retirar manifestação' : 'Encerrar acompanhamento'}</button></section>}
    {complaint.feedback && <section className="worker-detail-section"><h3>Sua avaliação</h3><p>{feedbackLabels[complaint.feedback]}</p></section>}
   </aside></div>}</>;
