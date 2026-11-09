@@ -1,6 +1,7 @@
 # TASK-0011 — Verificar contatos empresariais antes de enviar relatos
 
 - Status: proposta
+- Proposta de modelo: [ADR-0012](../adr/ADR-0012-representante-verificado-e-convite-a-empresa.md) (aguardando aprovação)
 - ClickUp: [TASK-0011](https://app.clickup.com/t/86aktn72m)
 - Área: Produto/Integrações/Segurança
 - Prioridade: P0 para o piloto fechado de novembro
