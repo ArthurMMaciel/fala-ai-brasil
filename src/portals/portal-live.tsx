@@ -209,12 +209,14 @@ function PartnerContents({ partnerId, planId }: { partnerId: string; planId: str
  useEffect(() => { let active = true; listMyContents(partnerId).then(rows => { if (active) setContents(rows); }); return () => { active = false; }; }, [partnerId, version]);
  async function publish(event: React.FormEvent<HTMLFormElement>) {
   event.preventDefault();
+  // currentTarget vira null depois do await (React); guarde o elemento antes.
+  const formElement = event.currentTarget;
   const error = validateContent({ ...form, hasFile: Boolean(file) });
   if (error) return showToast('error', error);
   setBusy(true); const result = await createPartnerContent(partnerId, form, file); setBusy(false);
   if (!result.ok) return showToast('error', result.message);
   showToast('success', 'Conteúdo publicado no seu perfil.');
-  setForm({ kind: form.kind, title: '', caption: '', videoUrl: '' }); setFile(undefined); event.currentTarget.reset(); setVersion(value => value + 1);
+  setForm({ kind: form.kind, title: '', caption: '', videoUrl: '' }); setFile(undefined); formElement.reset(); setVersion(value => value + 1);
  }
  async function remove(content: PartnerContent) {
   if (!window.confirm(`Remover "${content.title}" do seu perfil?`)) return;
