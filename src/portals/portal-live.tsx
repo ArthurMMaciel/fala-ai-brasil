@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { listPartnerDirectory, loadCompanyContext, loadPartnerPhoto, uploadPartnerPhoto, type CompanyContext, type DirectoryPartner } from '../services/account';
-import { listCompanyComplaints, listPartnerCompanies, loadCompanyRanking, loadCompanyTimeline, loadPartnerProfile, requestPartner, respondCompanyComplaint, setPartnerConnection, updatePartnerProfile, updateCompanyContact, loadPartnerPlan, listMyContents, listPartnerContents, createPartnerContent, deletePartnerContent, type PartnerContent, type CompanyComplaint, type ComplaintStatusDb, type PartnerCompany, type PartnerProfileData, type RankingRow, type TimelineItem } from '../services/data';
+import { listCompanyComplaints, listPartnerCompanies, listCompanyResponsiveness, loadMyCompanyResponsiveness, loadCompanyTimeline, loadPartnerProfile, requestPartner, respondCompanyComplaint, setPartnerConnection, updatePartnerProfile, updateCompanyContact, loadPartnerPlan, listMyContents, listPartnerContents, createPartnerContent, deletePartnerContent, type PartnerContent, type CompanyComplaint, type ComplaintStatusDb, type PartnerCompany, type PartnerProfileData, type MyResponsiveness, type ResponsivenessRow, type TimelineItem } from '../services/data';
 import { showToast } from '../app/toast';
 import { Icon, QuickActions, initials, type IconName } from './ui';
 import { formatPhone, maskPhone, planIncludesContent, validateCompanyContact, validateContent, whatsappLink } from '../domain/account-rules';
 import { safeHttpUrl } from '../domain/html-safety';
 import { CompanyProfile } from './profile-live';
+import { MyResponsivenessPanel, ResponsivenessTable, responsivenessMethod } from './responsiveness';
 import { statusLabel } from '../domain/complaint-status';
 
 // Portais de empresa e parceiro com dados reais (modelo v3). A empresa lê apenas versões compartilhadas, sem identidade.
@@ -30,16 +31,16 @@ export function Sidebar<T extends string>({ eyebrow, name, items, view, onView }
   <nav className="sys-nav" aria-label={eyebrow}>{items.map(([key, label]) => <button key={key} className={view === key ? 'active' : ''} aria-current={view === key ? 'page' : undefined} onClick={() => onView(key)}><Icon name={sidebarIcons[key] ?? 'list'} />{label}</button>)}</nav></aside>;
 }
 
-function CompanyDashboard({ company, complaints, mine, onOpen, onView }: { company: CompanyContext; complaints: CompanyComplaint[]; mine?: RankingRow; onOpen: (id: string) => void; onView: (view: CompanyView) => void }) {
+function CompanyDashboard({ company, complaints, mine, onOpen, onView }: { company: CompanyContext; complaints: CompanyComplaint[]; mine?: MyResponsiveness; onOpen: (id: string) => void; onView: (view: CompanyView) => void }) {
  const waiting = complaints.filter(item => item.status === 'shared');
- const answered = complaints.filter(item => item.responses > 0).length;
+
  return <><div className="commercial-page-head"><div><span className="editorial-eyebrow">Visão da organização</span><h1>Dashboard</h1><p>Acompanhe o que precisa de resposta e os sinais de responsividade da {company.name}.</p></div><button className="btn primary" onClick={() => onView('complaints')}>Ver manifestações</button></div>
   <QuickActions label="Atalhos da empresa" items={[
    { icon: 'inbox', label: 'Responder manifestações', badge: waiting.length, onClick: () => onView('complaints') },
-   { icon: 'chart', label: 'Ranking de respostas', onClick: () => onView('ranking') },
+   { icon: 'chart', label: 'Responsividade das empresas', onClick: () => onView('ranking') },
    { icon: 'users', label: 'Parceiros', onClick: () => onView('partners') },
   ]} />
-  <div className="commercial-metrics"><Metric label="Manifestações recebidas" value={complaints.length} note="versões compartilhadas" /><Metric label="Aguardando resposta" value={waiting.length} note={waiting.length ? 'prioridade da equipe' : 'sem pendências'} /><Metric label="Taxa de resposta" value={complaints.length ? `${Math.round(100 * answered / complaints.length)}%` : '—'} note="com ao menos uma resposta" /><Metric label="Tempo médio" value={hours(mine?.avgFirstResponseHours)} note="até a primeira resposta" /></div>
+  <div className="commercial-metrics"><Metric label="Manifestações recebidas" value={complaints.length} note="versões compartilhadas" /><Metric label="Aguardando resposta" value={waiting.length} note={waiting.length ? 'prioridade da equipe' : 'sem pendências'} /><Metric label="Taxa de resposta" value={mine?.responseRate === null || mine?.responseRate === undefined ? '—' : `${mine.responseRate}%`} note="liberadas com ao menos uma resposta" /><Metric label="Tempo médio" value={hours(mine?.avgFirstResponseHours)} note="até a primeira resposta" /></div>
   <div className="commercial-grid-two"><section className="commercial-panel"><h2>Fila de atenção</h2>{waiting.length ? waiting.slice(0, 4).map(item => <button className="commercial-list-row" key={item.id} onClick={() => onOpen(item.id)}><span><strong>{item.protocol} · {item.title}</strong><small>{item.category} · {dateLabel(item.createdAt)}</small></span><em>Responder ›</em></button>) : <p>Nenhuma manifestação aguardando resposta.</p>}</section>
    <section className="commercial-panel"><h2>Dados da empresa</h2><dl className="company-facts"><div><dt>Razão social</dt><dd>{company.legalName}</dd></div><div><dt>CNPJ</dt><dd>{formatCnpj(company.cnpj)}</dd></div><div><dt>Cidade</dt><dd>{company.city}/{company.state}</dd></div></dl><div className="commercial-callout">A empresa acessa somente a versão compartilhável revisada por quem relatou, sem identidade.</div><CompanyContactForm company={company} /></section></div></>;
 }
@@ -111,14 +112,11 @@ function CompanyComplaintDetail({ item, onBack, onChanged }: { item: CompanyComp
   {['shared', 'answered'].includes(item.status) && <section className="commercial-panel"><h2>{item.status === 'shared' ? 'Responder' : 'Enviar nova atualização'}</h2><p className="muted small">Responda de forma institucional. Não tente identificar quem relatou.</p><textarea className="company-response-text" rows={5} maxLength={5000} value={text} onChange={event => setText(event.target.value)} aria-label="Resposta da empresa" /><div className="nav-actions"><button className="btn primary" disabled={busy || text.trim().length < 10} onClick={send}>Enviar resposta</button></div></section>}</>;
 }
 
-function CompanyRanking({ rows, company, complaints }: { rows: RankingRow[] | null; company: CompanyContext; complaints: CompanyComplaint[] }) {
- const mine = rows?.find(row => row.isMine);
- const answered = complaints.filter(item => item.responses > 0).length;
- const own = !mine && <tr className="ranking-mine"><td>—</td><td>{company.name}<strong> · sua empresa</strong></td><td>{company.city}/{company.state}</td><td>{complaints.length}</td><td>{complaints.length ? Math.round(100 * answered / complaints.length) : 0}%</td><td>fora da classificação</td></tr>;
- return <><div className="commercial-page-head"><div><span className="editorial-eyebrow">Referência pública</span><h1>Ranking</h1><p>Responsividade entre empresas com pelo menos 3 manifestações compartilhadas.</p></div></div>
-  <div className="commercial-callout">{mine ? 'Sua empresa está destacada na tabela.' : 'Sua empresa entra no ranking a partir de 3 manifestações compartilhadas, para uma comparação justa.'} O cálculo considera volume, taxa de resposta e tempo até a primeira resposta.</div>
-  {rows === null ? <p className="muted">Carregando…</p> :
-  <div className="commercial-panel commercial-table-wrap"><table className="commercial-table"><thead><tr><th>Posição</th><th>Empresa</th><th>Cidade</th><th>Manifestações</th><th>Taxa de resposta</th><th>Tempo médio</th></tr></thead><tbody>{rows.map((row, index) => <tr key={row.companyId} className={row.isMine ? 'ranking-mine' : ''}><td>{index + 1}º</td><td>{row.name}{row.isMine && <strong> · sua empresa</strong>}</td><td>{row.city}/{row.state}</td><td>{row.received}</td><td>{row.responseRate}%</td><td>{hours(row.avgFirstResponseHours)}</td></tr>)}{own}</tbody></table></div>}</>;
+function CompanyResponsiveness({ rows, mine }: { rows: ResponsivenessRow[] | null; mine?: MyResponsiveness }) {
+ return <><div className="commercial-page-head"><div><span className="editorial-eyebrow">Referência pública</span><h1>Responsividade das empresas</h1><p>Como as empresas respondem às manifestações liberadas, em faixas e sem posição.</p></div></div>
+  <div className="commercial-callout">{responsivenessMethod}</div>
+  <MyResponsivenessPanel mine={mine} />
+  {rows === null ? <p className="muted">Carregando…</p> : rows.length === 0 ? <section className="commercial-panel"><p>Ainda não há empresas com manifestações liberadas suficientes.</p></section> : <ResponsivenessTable rows={rows} highlightMine />}</>;
 }
 
 function PartnerDirectoryLive() {
@@ -149,20 +147,21 @@ export function CompanyPortalLive({ companyId }: { companyId: string }) {
  const [view, setView] = useState<CompanyView>('dashboard');
  const [company, setCompany] = useState<CompanyContext | null | undefined>(undefined);
  const [complaints, setComplaints] = useState<CompanyComplaint[] | null>(null);
- const [ranking, setRanking] = useState<RankingRow[] | null>(null);
+ const [ranking, setRanking] = useState<ResponsivenessRow[] | null>(null);
+ const [myStats, setMyStats] = useState<MyResponsiveness[] | null>(null);
  const [openId, setOpenId] = useState<string | null>(null);
  const [version, setVersion] = useState(0);
  const [contextVersion, setContextVersion] = useState(0);
  useEffect(() => { let active = true; loadCompanyContext(companyId).then(value => { if (active) setCompany(value); }).catch(() => active && setCompany(null)); return () => { active = false; }; }, [companyId, contextVersion]);
- useEffect(() => { let active = true; Promise.all([listCompanyComplaints(), loadCompanyRanking()]).then(([rows, rank]) => { if (active) { setComplaints(rows); setRanking(rank); } }); return () => { active = false; }; }, [companyId, version]);
- const mine = useMemo(() => ranking?.find(row => row.isMine), [ranking]);
+ useEffect(() => { let active = true; Promise.all([listCompanyComplaints(), listCompanyResponsiveness(), loadMyCompanyResponsiveness()]).then(([rows, rank, own]) => { if (active) { setComplaints(rows); setRanking(rank); setMyStats(own); } }); return () => { active = false; }; }, [companyId, version]);
+ const mine = useMemo(() => myStats?.find(row => row.companyId === companyId), [myStats, companyId]);
  const open = (id: string | null) => { setOpenId(id); setView('complaints'); };
- const items: [CompanyView, string][] = [['dashboard', 'Dashboard'], ['complaints', 'Manifestações'], ['ranking', 'Ranking'], ['partners', 'Parceiros'], ['profile', 'Meu perfil']];
+ const items: [CompanyView, string][] = [['dashboard', 'Dashboard'], ['complaints', 'Manifestações'], ['ranking', 'Responsividade'], ['partners', 'Parceiros'], ['profile', 'Meu perfil']];
  return <main className="commercial-portal-content"><Sidebar eyebrow="Área da empresa" name={company?.name ?? 'Carregando…'} items={items} view={view} onView={next => { setView(next); setOpenId(null); }} /><section className="commercial-portal-main">
   {company === undefined || complaints === null ? <p className="muted">Carregando dados da empresa…</p> : company === null ? <section className="commercial-panel"><h2>Não foi possível carregar sua empresa</h2><p>Saia e entre novamente. Se continuar, fale com o suporte.</p></section> :
    view === 'dashboard' ? <CompanyDashboard company={company} complaints={complaints} mine={mine} onOpen={open} onView={setView} /> :
    view === 'complaints' ? <CompanyComplaints complaints={complaints} openId={openId} onOpen={setOpenId} onChanged={() => setVersion(value => value + 1)} /> :
-   view === 'ranking' ? <CompanyRanking rows={ranking} company={company} complaints={complaints} /> :
+   view === 'ranking' ? <CompanyResponsiveness rows={ranking} mine={mine} /> :
    view === 'profile' ? <CompanyProfile companyId={companyId} onSaved={() => setContextVersion(value => value + 1)} /> : <PartnerDirectoryLive />}
  </section></main>;
 }

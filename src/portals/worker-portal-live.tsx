@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { closeWorkerComplaint, listCompanyDirectory, listWorkerComplaints, loadCompanyRanking, loadWorkerComplaintDetail, shareWorkerComplaint, type ComplaintFeedback, type ComplaintStatusDb, type DirectoryCompany, type RankingRow, type WorkerComplaint, type WorkerComplaintDetail } from '../services/data';
+import { closeWorkerComplaint, listCompanyDirectory, listWorkerComplaints, listCompanyResponsiveness, loadWorkerComplaintDetail, shareWorkerComplaint, type ComplaintFeedback, type ComplaintStatusDb, type DirectoryCompany, type ResponsivenessRow, type WorkerComplaint, type WorkerComplaintDetail } from '../services/data';
 import { showToast } from '../app/toast';
 import { ComplaintWizard } from './complaint-wizard';
 import { QuickActions } from './ui';
 import { WorkerProfile } from './profile-live';
+import { ResponsivenessTable, responsivenessMethod } from './responsiveness';
 import { statusLabel } from '../domain/complaint-status';
 
 // Portal do trabalhador com dados reais (modelo v3). O relato original nunca sai daqui; a empresa recebe só a versão revisada.
@@ -19,22 +20,20 @@ const feedbackLabels: Record<ComplaintFeedback, string> = { yes: 'Sim, ajudou', 
 function dateLabel(value: string) { return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value)); }
 function Status({ status }: { status: ComplaintStatusDb }) { return <span className={`worker-status ${statusLabel(statusClass, status, 'em-aberto')}`}>{statusLabel(statusLabels, status)}</span>; }
 
-function hours(value: number | null) { return value === null ? '—' : value < 48 ? `${value} h` : `${(value / 24).toFixed(1).replace('.', ',')} dias`; }
 
-// Ranking público de responsividade: só empresas com 3+ manifestações compartilhadas, sem nenhum dado de quem relatou.
+// Responsividade pública (TASK-0036): faixas em ordem de nome, sem posição nem contagem, sem dado de quem relatou.
 function Companies({ companies, onNew }: { companies: DirectoryCompany[]; onNew: (companyId: string) => void }) {
- const [rows, setRows] = useState<RankingRow[] | null>(null);
+ const [rows, setRows] = useState<ResponsivenessRow[] | null>(null);
  const [search, setSearch] = useState('');
- useEffect(() => { let active = true; loadCompanyRanking().then(data => { if (active) setRows(data); }); return () => { active = false; }; }, []);
+ useEffect(() => { let active = true; listCompanyResponsiveness().then(data => { if (active) setRows(data); }); return () => { active = false; }; }, []);
  const listed = companies.filter(company => `${company.name} ${company.city} ${company.state}`.toLowerCase().includes(search.toLowerCase()));
  return <section className="worker-companies">
   <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Área do trabalhador</span><h2>Empresas</h2><p className="muted">Escolha a empresa para iniciar uma manifestação. Você também pode consultar como as empresas respondem.</p></div></div>
   <label className="field worker-company-search">Buscar empresa<input value={search} onChange={event => setSearch(event.target.value)} placeholder="Nome ou cidade" /></label>
   {!listed.length ? <p className="muted">Nenhuma empresa encontrada.</p> : <div className="worker-company-list">{listed.map(company => <article key={company.id} className="worker-company-row"><div><strong>{company.name}</strong><small>{company.city}/{company.state}</small></div><button className="btn" onClick={() => onNew(company.id)}>Fazer manifestação</button></article>)}</div>}
   <h3>Como as empresas respondem</h3>
-  <p className="muted small">Entram no ranking empresas com pelo menos 3 manifestações compartilhadas, para uma comparação justa. Nenhum relato ou identidade aparece aqui.</p>
-  {rows === null ? <p className="muted">Carregando…</p> : rows.length === 0 ? <p>Ainda não há empresas com volume suficiente.</p> :
-  <div className="commercial-table-wrap"><table className="commercial-table"><thead><tr><th>Posição</th><th>Empresa</th><th>Cidade</th><th>Manifestações</th><th>Taxa de resposta</th><th>Tempo médio até responder</th></tr></thead><tbody>{rows.map((row, index) => <tr key={row.companyId}><td>{index + 1}º</td><td>{row.name}</td><td>{row.city}/{row.state}</td><td>{row.received}</td><td>{row.responseRate}%</td><td>{hours(row.avgFirstResponseHours)}</td></tr>)}</tbody></table></div>}
+  <p className="muted small">{responsivenessMethod} Nenhum relato ou identidade aparece aqui.</p>
+  {rows === null ? <p className="muted">Carregando…</p> : rows.length === 0 ? <p>Ainda não há empresas com manifestações liberadas suficientes.</p> : <ResponsivenessTable rows={rows} />}
  </section>;
 }
 
