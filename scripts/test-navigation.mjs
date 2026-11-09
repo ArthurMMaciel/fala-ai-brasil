@@ -263,7 +263,7 @@ test('perfis, campanhas e foto do parceiro do banco não executam HTML nem URL j
 
 // TASK-0002 (revisão DevOps): mídia do parceiro no portal React só aceita http(s) em src/href.
 const portalUi = compile('src/portals/ui.tsx');
-const portalLive = compile('src/portals/portal-live.tsx', '', name => ({ '../services/account': {}, '../services/data': {}, '../app/toast': {}, './ui': portalUi, '../domain/account-rules': accountRules, '../domain/html-safety': htmlSafety, './profile-live': {} }[name] ?? require(name)));
+const portalLive = compile('src/portals/portal-live.tsx', '', name => ({ '../services/account': {}, '../services/data': {}, '../app/toast': {}, './ui': portalUi, '../domain/account-rules': accountRules, '../domain/html-safety': htmlSafety, './profile-live': {}, '../domain/complaint-status': compile('src/domain/complaint-status.ts') }[name] ?? require(name)));
 const badUrls = ['javascript:alert(1)', 'JaVaScRiPt:alert(1)', 'data:text/html,<script>alert(1)</script>', 'data:image/svg+xml,<svg onload=alert(1)>', ' javascript:alert(1)'];
 const render = (component, props) => renderToStaticMarkup(React.createElement(component, props));
 
@@ -283,4 +283,30 @@ test('conteúdo, avatar e foto do parceiro bloqueiam javascript: e data: em src/
   assert.match(render(portalLive.ContentMedia, { content: { kind: 'image', url: 'https://cdn.example.com/a.png', title: 'Foto' } }), /<img src="https:\/\/cdn\.example\.com\/a\.png"/);
   assert.match(render(portalLive.ContentMedia, { content: { kind: 'video', url: 'https://www.youtube.com/watch?v=abc', title: 'Vídeo' } }), /<a class="content-video" href="https:\/\/www\.youtube\.com\/watch\?v=abc"/);
   assert.match(render(portalLive.PartnerPhoto, { url: 'https://x.supabase.co/storage/v1/object/public/partner-media/a.jpg', name: 'Marina', large: true }), /<img class="partner-avatar partner-photo large" src="https:/);
+});
+
+// Login da equipe (bug achado pelo DevOps): m() checava o.user antes de gravar o usuário recém-autenticado em a.user.
+test('conta platform_admin entra direto na Operação e em Solicitações de contato', () => {
+  const admin = { name: 'Equipe', role: 'platform_admin', profile: { type: 'system', id: 's-1' } };
+  for (const route of ['ops', 'admin-contacts']) {
+    const screen = app();
+    assert.equal(screen.api.state.user ?? null, null, 'começa sem sessão');
+    screen.api.route(route, { user: admin });
+    assert.equal(screen.api.state.route, route, `${route} abre no mesmo passo do login`);
+    assert.equal(screen.api.state.user?.role, 'platform_admin');
+    assert.match(screen.html, route === 'ops' ? /id="ops-root"/ : /id="contact-admin-root"/);
+  }
+});
+
+test('Operação continua fechada para quem não é da equipe, mesmo vindo no login', () => {
+  for (const user of [{ name: 'Pessoa', role: 'worker' }, { name: 'Empresa', role: 'admin' }, null]) {
+    const screen = app();
+    screen.api.route('ops', { user });
+    assert.notEqual(screen.api.state.route, 'ops');
+    assert.doesNotMatch(screen.html, /id="ops-root"/);
+  }
+  const screen = app();
+  screen.api.route('ops', { user: { name: 'Equipe', role: 'platform_admin' } });
+  screen.api.route('ops', { user: null });
+  assert.equal(screen.api.state.route, 'ops', 'saída com user:null não reabre a rota (permanece onde estava, sem gravar)');
 });

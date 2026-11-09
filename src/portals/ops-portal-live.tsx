@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { decideOpsComplaint, listOpsComplaints, listOpsCompanies, loadOpsMetrics, loadOpsTimeline, readOpsOriginal, type OpsComplaint, type OpsCompany, type OpsMetrics, type OpsTimelineItem, type ReviewDecision } from '../services/ops';
 import type { ComplaintStatusDb } from '../services/data';
+import { statusLabel } from '../domain/complaint-status';
 import { showToast } from '../app/toast';
 import { Metric, Sidebar } from './portal-live';
 import { QuickActions } from './ui';
@@ -11,12 +12,12 @@ type OpsView = 'overview' | 'queue' | 'all' | 'companies' | 'contacts';
 
 const statusLabels: Record<ComplaintStatusDb, string> = { received: 'Guardada pelo trabalhador', in_review: 'Em revisão', adjustment_requested: 'Ajuste solicitado', held: 'Retida', shared: 'Liberada · aguardando empresa', answered: 'Respondida', closed: 'Finalizada', canceled: 'Retirada' };
 const statusTone: Record<ComplaintStatusDb, string> = { received: 'em-aberto', in_review: 'em-revisão', adjustment_requested: 'em-revisão', held: 'retida', shared: 'encaminhada-para-empresa', answered: 'respondida', closed: 'finalizada', canceled: 'finalizada' };
-const eventLabels: Record<ComplaintStatusDb, string> = { received: 'Registrada', in_review: 'Revisão solicitada', adjustment_requested: 'Ajuste solicitado', held: 'Retida', shared: 'Liberada para a empresa', answered: 'Resposta da empresa', closed: 'Finalizada', canceled: 'Retirada pelo trabalhador' };
+const eventLabels: Record<ComplaintStatusDb, string> = { received: 'Registrada', in_review: 'Revisão solicitada', adjustment_requested: 'Ajuste solicitado', held: 'Retida', shared: 'Liberada para a empresa', answered: 'Respondida', closed: 'Finalizada', canceled: 'Retirada pelo trabalhador' };
 const decisionLabels: Record<ReviewDecision, string> = { released: 'Liberar para a empresa', adjustment_requested: 'Pedir ajuste ao trabalhador', held: 'Reter para análise' };
 
 function when(value: string) { return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(value)); }
 function hours(value: number | null) { return value === null ? '—' : value < 48 ? `${String(value).replace('.', ',')} h` : `${(value / 24).toFixed(1).replace('.', ',')} dias`; }
-function Status({ status }: { status: ComplaintStatusDb }) { return <span className={`worker-status ${statusTone[status]}`}>{statusLabels[status]}</span>; }
+function Status({ status }: { status: ComplaintStatusDb }) { return <span className={`worker-status ${statusLabel(statusTone, status, 'em-aberto')}`}>{statusLabel(statusLabels, status)}</span>; }
 const head = (eyebrow: string, title: string, text: string) => <div className="commercial-page-head"><div><span className="editorial-eyebrow">{eyebrow}</span><h1>{title}</h1><p>{text}</p></div></div>;
 
 function Overview({ metrics, onView }: { metrics: OpsMetrics | null; onView: (view: OpsView) => void }) {
@@ -95,7 +96,7 @@ function ComplaintDetail({ complaint, onBack, onChanged }: { complaint: OpsCompl
      <><p className="muted small">Fica fechado por padrão. Abrir exige justificativa e fica registrado na trilha de auditoria.</p><button className="btn" onClick={() => setOriginalOpen(true)}>Ver relato original</button></>}
    </section>
   </div><aside className="worker-detail-aside"><section className="worker-detail-section"><h3>Trilha</h3>
-   {timeline === null ? <p className="muted">Carregando…</p> : <ol className="worker-timeline">{timeline.map((item, index) => <li key={index}><strong>{item.kind === 'response' ? 'Resposta da empresa' : item.kind === 'review' ? 'Decisão da equipe' : item.kind === 'access' ? 'Acesso ao original' : eventLabels[item.status ?? 'received']}</strong><span>{when(item.createdAt)}</span><p>{item.content}</p></li>)}</ol>}
+   {timeline === null ? <p className="muted">Carregando…</p> : <ol className="worker-timeline">{timeline.map((item, index) => <li key={index}><strong>{item.kind === 'response' ? 'Resposta da empresa' : item.kind === 'review' ? 'Decisão da equipe' : item.kind === 'access' ? 'Acesso ao original' : statusLabel(eventLabels, item.status ?? 'received')}</strong><span>{when(item.createdAt)}</span><p>{item.content}</p></li>)}</ol>}
   </section></aside></div></>;
 }
 

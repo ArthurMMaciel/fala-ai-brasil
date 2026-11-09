@@ -1,6 +1,7 @@
 import { isAccountServiceConfigured, supabase, type AuthResult } from "./account";
 import { onlyDigits, type CampaignKind, type ContentInput } from "../domain/account-rules";
 import { partnerMediaBucket } from "./account";
+import { compareTimeline } from "../domain/complaint-status";
 
 // Acesso aos dados do modelo v3 (manifestações, Hub, landing). Regras e privacidade ficam no banco (RLS e funções).
 // "shared" = liberada para a empresa após revisão da equipe (ADR-0010).
@@ -31,7 +32,7 @@ export async function listWorkerComplaints(): Promise<WorkerComplaint[]> {
   return (data ?? []).map(row => ({ id: row.id, protocol: row.protocol, companyId: row.company_id, category: row.category, title: row.title, status: row.status, feedback: row.worker_feedback, createdAt: row.created_at, incidentPeriod: row.incident_period, recurrence: row.recurrence, expectedOutcomes: row.expected_outcomes ?? [] }));
 }
 
-export interface TimelineItem { kind: "event" | "response"; status: ComplaintStatusDb | null; actor: "worker" | "company" | "platform"; content: string; createdAt: string }
+export interface TimelineItem { id?: string; kind: "event" | "response"; status: ComplaintStatusDb | null; actor: "worker" | "company" | "platform"; content: string; createdAt: string }
 export interface WorkerComplaintDetail { original: string; shared: string | null; timeline: TimelineItem[] }
 
 export async function loadWorkerComplaintDetail(id: string): Promise<WorkerComplaintDetail> {
@@ -39,13 +40,13 @@ export async function loadWorkerComplaintDetail(id: string): Promise<WorkerCompl
   const [original, shared, events, responses] = await Promise.all([
     db.from("complaint_originals").select("original_content").eq("complaint_id", id).maybeSingle(),
     db.from("complaint_shared_versions").select("shared_content").eq("complaint_id", id).maybeSingle(),
-    db.from("complaint_events").select("status, actor, note, created_at").eq("complaint_id", id),
-    db.from("company_responses").select("content, created_at").eq("complaint_id", id),
+    db.from("complaint_events").select("id, status, actor, note, created_at").eq("complaint_id", id),
+    db.from("company_responses").select("id, content, created_at").eq("complaint_id", id),
   ]);
   const timeline: TimelineItem[] = [
-    ...(events.data ?? []).map(row => ({ kind: "event" as const, status: row.status, actor: row.actor, content: row.note, createdAt: row.created_at })),
-    ...(responses.data ?? []).map(row => ({ kind: "response" as const, status: null, actor: "company" as const, content: row.content, createdAt: row.created_at })),
-  ].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    ...(events.data ?? []).map(row => ({ id: row.id, kind: "event" as const, status: row.status, actor: row.actor, content: row.note, createdAt: row.created_at })),
+    ...(responses.data ?? []).map(row => ({ id: row.id, kind: "response" as const, status: null, actor: "company" as const, content: row.content, createdAt: row.created_at })),
+  ].sort(compareTimeline);
   return { original: original.data?.original_content ?? "", shared: shared.data?.shared_content ?? null, timeline };
 }
 
