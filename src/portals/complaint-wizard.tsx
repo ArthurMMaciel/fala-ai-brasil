@@ -15,7 +15,7 @@ const contextSteps: { title: string; intro: string; fields: [string, string[]][]
   ['Há quanto tempo você tem ou teve vínculo?', ['Menos de 3 meses', '3 a 12 meses', '1 a 3 anos', 'Mais de 3 anos', 'Prefiro não informar']],
   ['Em qual formato você trabalha ou trabalhava?', ['Presencial', 'Híbrido', 'Remoto', 'Externo / campo', 'Outro']],
   ['Você lidera ou liderava outras pessoas?', ['Sim', 'Não', 'Prefiro não informar']]] },
- { title: 'Como está sua experiência', intro: 'Essas respostas ajudam a organizar sua experiência sem revelar quem você é.', fields: [
+ { title: 'Como está sua experiência', intro: 'Essas respostas ajudam a organizar sua experiência e não fazem parte da versão enviada à empresa.', fields: [
   ['Nas últimas semanas, com que frequência o trabalho tem causado tensão, medo, exaustão ou sobrecarga?', ['Nunca', 'Raramente', 'Às vezes', 'Frequentemente', 'Quase todos os dias']],
   ['Você sente que pode falar sobre problemas sem medo de consequências?', ['1', '2', '3', '4', '5']],
   ['Quando um problema é reportado, a empresa costuma ouvir e agir?', ['Sim', 'Às vezes', 'Raramente', 'Não', 'Nunca reportei']],
@@ -25,7 +25,7 @@ const contextSteps: { title: string; intro: string; fields: [string, string[]][]
   ['Isso ainda está acontecendo?', ['Sim', 'Não', 'Não sei']],
   ['Você sente que há risco imediato para você ou outra pessoa?', ['Sim', 'Não', 'Não tenho certeza']]] },
  { title: 'Confiança e expectativa', intro: 'Queremos entender o que você espera desse acompanhamento.', fields: [
-  ['Se a empresa pudesse receber seu relato sem saber quem você é, isso ajudaria?', ['1', '2', '3', '4', '5']],
+  ['Se a empresa recebesse uma versão revisada do seu relato, sem seu nome e seus contatos, isso ajudaria?', ['1', '2', '3', '4', '5']],
   ['O que você espera que aconteça depois de enviar um relato?', ['Quero apenas ser ouvido(a)', 'Quero que a empresa dê um retorno', 'Quero que a empresa investigue internamente', 'Quero que o problema não aconteça com outras pessoas', 'Quero acompanhar providências']]] },
 ];
 const stepTitles = [...contextSteps.map(step => step.title), 'Tema', 'Relato', 'Formas de comunicação', 'O que você espera', 'Revisão protegida'];
@@ -108,7 +108,7 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
   const current = contextSteps[step];
   body = <><span className="eyebrow">Contexto desta manifestação</span><h2>{current.title}</h2><p className="muted">{current.intro} Responda pensando especificamente na empresa selecionada e na situação que você vai relatar.</p>
    {current.fields.map(([label, options], index) => <div className="field" key={label}><label>{label}{multiple(step, index) && <span className="muted small"> (selecione uma ou mais)</span>}</label><OptionGrid label={label} options={options} value={answers[`${step}-${index}`]} onSelect={option => select(index, option)} />
-    {step === 2 && index === 2 && <div className="notice warn small">Situações de risco imediato recebem atenção humana. Não faremos contato externo automático em casos de alto risco.</div>}</div>)}
+    {step === 2 && index === 2 && <div className="notice warn small">Se houver risco imediato para você ou outra pessoa, procure agora ajuda: CVV 188 (apoio emocional, 24 horas), SAMU 192 ou Polícia Militar 190. A Escuta Aí Brasil não é canal de emergência e não acompanha casos em tempo real. Nenhum contato com a empresa é feito de forma automática.</div>}</div>)}
    {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Continuar</button></div></>;
  } else if (step === 4) {
   body = <><h2>O que melhor descreve o que aconteceu?</h2><OptionGrid label="Tema" options={themes} value={draft.category} onSelect={option => { set('category', option); setError(''); }} />
@@ -141,6 +141,6 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
    {errorLine}<div className="nav-actions"><button className="btn" type="button" onClick={() => go(5)}>Quero ajustar meu relato</button><button className="btn" type="button" disabled={busy} onClick={() => submit(false)}>Guardar sem compartilhar</button><button className="btn primary" type="button" disabled={busy} onClick={() => submit(true)}>{busy ? 'Enviando…' : 'Solicitar revisão'}</button></div></>;
  }
  return <><button className="text-action worker-back" onClick={onCancel}>← Voltar</button>
-  <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Nova manifestação</span><h2>Nova manifestação</h2><p className="muted">Empresa selecionada: <strong>{company.name}</strong>. Etapa {step + 1} de 9 · {stepTitles[step]}</p></div></div>
+  <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Nova manifestação</span><h2>Nova manifestação</h2><p className="muted">Empresa selecionada: <strong>{company.name}</strong>. Etapa {step + 1} de 9 · {stepTitles[step]}</p><p className="muted small">Em caso de risco imediato, procure ajuda: CVV 188, SAMU 192 ou Polícia Militar 190. A Escuta Aí Brasil não é um canal de emergência.</p></div></div>
   <section className="wizard-box"><div className="progress"><span style={{ width: `${(step + 1) / 9 * 100}%` }} /></div>{body}</section></>;
 }
