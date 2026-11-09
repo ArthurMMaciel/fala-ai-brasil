@@ -22,6 +22,10 @@ function normalizeSidebar() {
  if (!companies) { companies = document.createElement('button'); companies.className = 'side-link'; companies.type = 'button'; companies.dataset.workerView = 'companies'; companies.textContent = 'Empresas'; sidebar.append(companies); }
  companies.classList.toggle('active', activeView === 'companies');
  if (activeView === 'companies') companies.setAttribute('aria-current', 'page'); else companies.removeAttribute('aria-current');
+ let profile = sidebar.querySelector<HTMLButtonElement>('[data-worker-view="profile"]');
+ if (!profile) { profile = document.createElement('button'); profile.className = 'side-link'; profile.type = 'button'; profile.dataset.workerView = 'profile'; profile.textContent = 'Meu perfil'; sidebar.append(profile); }
+ profile.classList.toggle('active', activeView === 'profile');
+ if (activeView === 'profile') profile.setAttribute('aria-current', 'page'); else profile.removeAttribute('aria-current');
  const dashboard = sidebar.querySelector<HTMLElement>('[data-route="worker"]');
  dashboard?.classList.toggle('active', activeView === 'dashboard');
  if (activeView === 'dashboard') dashboard?.setAttribute('aria-current', 'page'); else dashboard?.removeAttribute('aria-current');
@@ -72,6 +76,8 @@ if (app) {
   if (manifestations) { event.preventDefault(); event.stopImmediatePropagation(); mount('list'); }
   const companies = target.closest<HTMLElement>('[data-worker-view="companies"]');
   if (companies) { event.preventDefault(); event.stopImmediatePropagation(); mount('companies'); }
+  const profile = target.closest<HTMLElement>('[data-worker-view="profile"]');
+  if (profile) { event.preventDefault(); event.stopImmediatePropagation(); mount('profile'); }
  }, true);
  const observer = new MutationObserver(() => {
   normalizeSidebar();
