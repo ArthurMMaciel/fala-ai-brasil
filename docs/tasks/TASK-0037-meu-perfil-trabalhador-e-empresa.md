@@ -1,6 +1,6 @@
 # TASK-0037 — "Meu perfil" do trabalhador e da empresa
 
-- Status: em-andamento (modelo aceito em 2026-11-08; banco pronto na branch `feat/meu-perfil`, aguardando o front para PR conjunto)
+- Status: em-andamento (em produção desde 2026-11-09; pendentes a concessão de `document_officers`, a migration 20261109130000 e a decisão sobre CPF único)
 - ClickUp: [TASK-0037](https://app.clickup.com/t/17tu7rpc384)
 - Área: Backend/Frontend/Privacidade
 - Prioridade: P2
@@ -41,6 +41,12 @@ Compatibilidade do `revoke` com o front em produção e troca de e-mail sem dupl
 - Cadastro com CPF/CNPJ inválido: no banco local o Auth devolve 500 "Database error saving new user", sem a mensagem do gatilho; o front mantém a mensagem genérica (a validação do navegador já barra dígito inválido).
 - Testes: `scripts/test-profile.mjs` (7) e suíte 57/57; conferido no banco local com contas fictícias (trabalhador, dona e membro), desktop e 375 px.
 - Pendente: consulta de CEP (ViaCEP) no formulário do perfil, tela de troca de documento na Operação e navegação pelo menu lateral real do trabalhador logado (conferida só na prévia).
+
+## Produção e pendências (2026-11-09)
+
+- Em 2026-11-09, com liberação escrita do responsável: `db push` de `20261108120000` e `20261109120000` no remoto. Conferido: 6 funções e 2 tabelas novas, `UPDATE` direto de `authenticated` em `workers`, `companies` e `addresses` revogado. O PR #23 foi mergeado em seguida (1b98184). `private.document_officers` segue vazio: a concessão é do responsável.
+- **CPF de outro trabalhador na troca pela equipe** (corrigido na migration `20261109130000_troca_cpf_duplicado.sql`, ainda não aplicada no remoto): o ramo `worker_cpf` de `ops_change_document` aceitava o CPF de outro trabalhador. `public.workers.cpf` **não tem restrição de unicidade**, só `companies.cnpj` tem, então tratar `unique_violation` não bastava. A função passa a conferir a duplicidade antes do update, com "Já existe um trabalhador com este CPF." (P0001). Teste: `profile_smoke.sql`. Em 2026-11-09, o remoto tinha 8 trabalhadores e nenhum CPF repetido (contagem só de leitura).
+- **Decisão pendente: CPF único no banco.** Um índice único em `workers.cpf` também barraria o CPF repetido no cadastro, mas criaria um risco de privacidade: o cadastro passaria a revelar se um CPF já tem conta numa plataforma de escuta psicossocial (enumeração). Exige proposta de modelo e decisão do responsável, com o tratamento do erro no cadastro.
 
 ## Rollback
 Reconceder os `update` por coluna e recriar as políticas antigas.

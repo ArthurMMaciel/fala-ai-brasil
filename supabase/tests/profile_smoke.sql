@@ -1,4 +1,4 @@
--- Teste de fumaça do "Meu perfil" (ADR-0014, migration 20261108120000). Executa tudo e desfaz.
+-- Teste de fumaça do "Meu perfil" (ADR-0014, migrations 20261108120000 e 20261109130000). Executa tudo e desfaz.
 -- Rodar no banco local: npx supabase db query --local < supabase/tests/profile_smoke.sql
 do $$
 declare
@@ -147,7 +147,14 @@ begin
   exception when others then res := res || jsonb_build_object('troca valida dígitos', true); end;
   perform public.ops_change_document('company_cnpj', v_company, '45.723.174/0001-10', 'Correção pedida pela empresa por ofício.', 'Ofício 12/2026');
   perform public.ops_change_document('company_legal_name', v_company, 'Empresa Perfil Serviços Ltda', 'Alteração contratual registrada na Junta.', 'Contrato social, 3ª alteração');
-  perform public.ops_change_document('worker_cpf', v_worker, '111.444.777-35', 'Erro de digitação confirmado com a trabalhadora.', 'Documento de identidade conferido');
+  -- 20261109130000: CPF de outro trabalhador (w2 = 111.444.777-35) é recusado com mensagem própria, sem alterar nada.
+  begin
+    perform public.ops_change_document('worker_cpf', v_worker, '111.444.777-35', 'Erro de digitação confirmado com a trabalhadora.', 'Documento de identidade conferido');
+    res := res || jsonb_build_object('troca para CPF de outro trabalhador recusada', false);
+  exception when others then
+    res := res || jsonb_build_object('troca para CPF de outro trabalhador recusada', sqlstate = 'P0001' and sqlerrm = 'Já existe um trabalhador com este CPF.');
+  end;
+  perform public.ops_change_document('worker_cpf', v_worker, '390.533.447-05', 'Erro de digitação confirmado com a trabalhadora.', 'Documento de identidade conferido');
   perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
 
   select count(*) into n from public.ops_profile_changes(v_worker);
@@ -163,6 +170,7 @@ begin
   -- Conferência como dono do banco (a equipe não lê companies/workers pela RLS).
   res := res || jsonb_build_object('admin com privilégio de documentos troca CPF, CNPJ e razão social',
     coalesce((select cnpj = '45723174000110' and legal_name = 'Empresa Perfil Serviços Ltda' from public.companies where id = v_company)
-    and (select cpf = '11144477735' from public.workers where id = v_worker), false));
+    and (select cpf = '39053344705' from public.workers where id = v_worker), false));
+  res := res || jsonb_build_object('CPF do outro trabalhador intacto', coalesce((select cpf = '11144477735' from public.workers where user_id = w2), false));
   raise exception 'RESULTADOS %', res;
 end $$;
