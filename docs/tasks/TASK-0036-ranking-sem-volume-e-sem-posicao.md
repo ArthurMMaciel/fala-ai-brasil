@@ -1,6 +1,6 @@
 # TASK-0036 — Ranking sem número de manifestações e sem posição
 
-- Status: proposta (modelo aguardando aprovação do responsável; sem migration)
+- Status: em-andamento (funções novas na migration 20261110120000, testada no local; aguarda o front e o db push com liberação do responsável)
 - ClickUp: [TASK-0036](https://app.clickup.com/t/17tu7rpc383)
 - Área: Backend/Produto/Privacidade
 - Prioridade: P1
@@ -71,6 +71,16 @@ Enquanto o passo 3 não acontece, o volume continua legível pela função antig
 - **Produto:** faixas reduzem a precisão e podem parecer menos úteis às empresas que querem medir melhora. Mitigação: a própria empresa pode ver os números exatos dela numa função separada (`my_company_responsiveness()`, que só devolve os dados da empresa do usuário verificado). Decisão do responsável.
 - **Compatibilidade:** o front antigo chama `company_ranking()`. O `revoke` antes do deploy quebra a tela de ranking (a lista fica vazia; o resto do portal não é afetado).
 - **Inferência residual:** com poucas empresas no piloto, até faixas podem identificar casos. O corte de 3 continua necessário.
+
+## Implementação (backend)
+
+- Migration `20261110120000_responsividade_sem_volume.sql`:
+  - `public.company_responsiveness()`: faixas, corte de 3, ordem por nome e `satisfaction_band` nula até a ADR-0013;
+  - `public.my_company_responsiveness()`: números exatos só das empresas do próprio usuário, com `listed`;
+  - `private.company_response_stats()` concentra o cálculo, para a ADR-0013 mudar só ali.
+- Teste: `supabase/tests/responsiveness_smoke.sql` (15 verificações). Cobre os limites das faixas, a contagem a partir da liberação, o corte de 3, a ordem por nome, `is_mine`, os números só da própria empresa, o bloqueio de `anon` e a estatística interna fechada.
+- Decisões aplicadas: faixas (1) e números próprios (4), pedidas pelo Gestor. Para ordem (2), cortes (3) e lista do trabalhador (5), valem as opções recomendadas acima até o responsável decidir outra coisa.
+- Pendente: o front novo nos dois portais, o db push e, depois do front em produção, o `revoke` e o `drop` de `company_ranking()`.
 
 ## Rollback
 
