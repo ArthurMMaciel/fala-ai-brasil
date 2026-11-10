@@ -329,3 +329,9 @@
 @media (max-width: 640px) {
   .editorial-personas { padding-right: 36px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
 }
+
+/* Cadastro e login no celular (TASK-0044, item 4): a arte decorativa sai (o logo já está no topo) e o formulário aparece na primeira tela. */
+@media (max-width: 640px) {
+  .auth-art { display: none; }
+  .legacy-editorial .auth-split .auth-box { padding-top: 16px; }
+}
