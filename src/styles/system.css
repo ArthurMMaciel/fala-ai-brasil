@@ -313,3 +313,8 @@
   .profile-grid { grid-template-columns: minmax(0, 1fr); }
   .profile-locked .company-facts div, .profile-side .company-facts div, .profile-layout .company-facts div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 }
+
+/* Landing (TASK-0044, item 7): no celular o seletor de personas rola na horizontal; o esmaecimento à direita indica que há mais opções. */
+@media (max-width: 640px) {
+  .editorial-personas { padding-right: 36px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
+}
