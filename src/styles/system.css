@@ -335,3 +335,18 @@
   .auth-art { display: none; }
   .legacy-editorial .auth-split .auth-box { padding-top: 16px; }
 }
+
+/* Início do trabalhador (TASK-0044, item 3): próximo passo no topo e funil sem cartão órfão. */
+.worker-next-step { margin: 0 0 22px; }
+.worker-next-step .btn { margin-top: 14px; }
+.worker-next-row { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-top: 12px; }
+.worker-next-row > div { display: grid; gap: 2px; min-width: 0; }
+.worker-next-row strong { color: var(--deep); overflow-wrap: anywhere; }
+.worker-next-row small { color: var(--muted); }
+.worker-funnel { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.worker-chart-empty { margin: 18px 0 0; }
+@media (max-width: 900px) {
+  .worker-funnel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .worker-funnel article:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) { .worker-next-row { flex-direction: column; align-items: flex-start; } }
