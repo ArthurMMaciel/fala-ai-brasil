@@ -38,7 +38,28 @@ function Companies({ companies, onNew }: { companies: DirectoryCompany[]; onNew:
  </section>;
 }
 
-function Dashboard({ complaints, onList, onNew, onCompanies }: { complaints: WorkerComplaint[]; onList: () => void; onNew: () => void; onCompanies: () => void }) {
+// Próximo passo da manifestação mais recente (TASK-0044, item 3).
+const nextStepText: Partial<Record<ComplaintStatusDb, string>> = {
+ received: 'Você guardou esta manifestação. Revise a versão para a empresa e envie quando quiser.',
+ in_review: 'A equipe está revisando a versão antes de liberar à empresa.',
+ adjustment_requested: 'A equipe pediu um ajuste na versão para a empresa.',
+ held: 'A equipe está analisando esta manifestação antes de liberar.',
+ shared: 'A versão foi liberada. Agora é aguardar a resposta da empresa.',
+ answered: 'A empresa respondeu. Leia o retorno e diga se ajudou.',
+ closed: 'Acompanhamento encerrado.',
+ canceled: 'Manifestação retirada. Ela não chegou à empresa.',
+};
+
+function NextStep({ latest, company, onOpen, onNew }: { latest?: WorkerComplaint; company?: DirectoryCompany; onOpen: (item: WorkerComplaint) => void; onNew: () => void }) {
+ if (!latest) return <section className="worker-dashboard-note worker-next-step"><h3>Comece por aqui</h3><p>Conte o que aconteceu no trabalho. Você revisa a versão que a empresa vai ler antes de enviar.</p><button className="btn primary" onClick={onNew}>Relatar uma situação</button></section>;
+ return <section className="worker-dashboard-note worker-next-step" aria-labelledby="worker-next-title"><h3 id="worker-next-title">Sua manifestação mais recente</h3>
+  <div className="worker-next-row"><div><strong>{latest.title}</strong><small>{company?.name ?? '—'} · {latest.protocol}</small></div><Status status={latest.status} /></div>
+  <p>{nextStepText[latest.status] ?? 'Acompanhe o andamento pelo detalhe da manifestação.'}</p>
+  <button className="btn primary" onClick={() => onOpen(latest)}>Abrir manifestação</button></section>;
+}
+
+function Dashboard({ complaints, companies, onList, onNew, onCompanies, onOpen }: { complaints: WorkerComplaint[]; companies: Map<string, DirectoryCompany>; onList: () => void; onNew: () => void; onCompanies: () => void; onOpen: (item: WorkerComplaint) => void }) {
+ const latest = useMemo(() => [...complaints].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0], [complaints]);
  const [period, setPeriod] = useState<Period>('monthly');
  const now = new Date();
  const { labels, values } = useMemo(() => {
@@ -56,6 +77,7 @@ function Dashboard({ complaints, onList, onNew, onCompanies }: { complaints: Wor
  const count = (statuses: ComplaintStatusDb[]) => complaints.filter(item => statuses.includes(item.status)).length;
  return <>
   <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Área do trabalhador</span><h2>Início</h2><p className="muted">Acompanhe o volume e o andamento das suas manifestações.</p></div></div>
+  <NextStep latest={latest} company={latest ? companies.get(latest.companyId) : undefined} onOpen={onOpen} onNew={onNew} />
   <QuickActions label="Atalhos" items={[
    { icon: 'plus', label: 'Nova manifestação', onClick: onNew },
    { icon: 'list', label: 'Minhas manifestações', badge: count(['answered']), onClick: onList },
@@ -63,7 +85,7 @@ function Dashboard({ complaints, onList, onNew, onCompanies }: { complaints: Wor
   ]} />
   <div className="worker-funnel">{[['Em acompanhamento', count(['received', 'in_review', 'adjustment_requested', 'held', 'shared', 'answered'])], ['Em revisão', count(['in_review', 'adjustment_requested', 'held'])], ['Aguardando empresa', count(['shared'])], ['Respondidas', count(['answered'])], ['Finalizadas', count(['closed'])]].map(([label, value]) => <article key={String(label)}><span>{label}</span><strong>{value}</strong></article>)}</div>
   <section className="worker-dashboard-section"><div className="worker-section-heading"><div><h3>Manifestações criadas</h3><p className="muted">Quantos relatos você registrou no período.</p></div><div className="worker-chart-controls"><label>Período<select value={period} onChange={event => setPeriod(event.target.value as Period)}><option value="weekly">Últimos 7 dias</option><option value="monthly">Este mês</option><option value="yearly">Este ano</option></select></label></div></div>
-   <div className={`worker-columns-chart worker-columns-${period}`} aria-label="Manifestações criadas no período">{values.map((value, index) => <div className="worker-column" key={`${labels[index]}-${index}`}><strong>{value}</strong><i style={{ height: `${Math.max(value / max * 100, value ? 16 : 4)}%` }} /><span>{labels[index]}</span></div>)}</div></section>
+   {values.some(Boolean) ? <div className={`worker-columns-chart worker-columns-${period}`} aria-label="Manifestações criadas no período">{values.map((value, index) => <div className="worker-column" key={`${labels[index]}-${index}`}><strong>{value}</strong><i style={{ height: `${Math.max(value / max * 100, value ? 16 : 4)}%` }} /><span>{labels[index]}</span></div>)}</div> : <p className="muted worker-chart-empty">Nenhuma manifestação criada neste período.</p>}</section>
   <section className="worker-dashboard-note"><h3>O que acontece depois que eu envio?</h3><p>Você revisa a versão que a empresa vai ler e decide se envia agora. A empresa nunca vê seu relato original nem sua identidade, e você acompanha cada resposta por aqui.</p></section>
  </>;
 }
@@ -137,6 +159,6 @@ export function WorkerPortalLive({ initialView = 'dashboard', onViewChange }: { 
    view === 'detail' && selected ? <Detail complaint={selected} company={byId.get(selected.companyId)} onBack={() => setView('list')} onChanged={reload} /> :
    view === 'companies' ? <Companies companies={companies} onNew={startNew} /> :
    view === 'list' ? <List complaints={complaints} companies={byId} onSelect={item => { setSelectedId(item.id); setView('detail'); }} onNew={() => setView('companies')} /> :
-   <Dashboard complaints={complaints} onList={() => setView('list')} onNew={() => setView('companies')} onCompanies={() => setView('companies')} />}
+   <Dashboard complaints={complaints} companies={byId} onList={() => setView('list')} onNew={() => setView('companies')} onCompanies={() => setView('companies')} onOpen={item => { setSelectedId(item.id); setView('detail'); }} />}
  </main>;
 }
