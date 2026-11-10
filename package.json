@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test scripts/test-account-rules.mjs scripts/test-html-safety.mjs scripts/test-async-handlers.mjs scripts/test-complaint-status.mjs scripts/test-profile.mjs scripts/test-textos-sem-promessa.mjs scripts/test-ops-queue.mjs scripts/test-commercial-address.mjs scripts/test-text-encoding.mjs scripts/test-navigation.mjs scripts/test-editorial.mjs",
+    "test": "node --test scripts/test-account-rules.mjs scripts/test-html-safety.mjs scripts/test-async-handlers.mjs scripts/test-complaint-status.mjs scripts/test-profile.mjs scripts/test-textos-sem-promessa.mjs scripts/test-ops-queue.mjs scripts/test-print-document.mjs scripts/test-commercial-address.mjs scripts/test-text-encoding.mjs scripts/test-navigation.mjs scripts/test-editorial.mjs",
     "test:editorial:browser": "node scripts/test-editorial-browser.mjs",
     "dev": "vite --host 127.0.0.1",
     "build": "tsc && vite build",

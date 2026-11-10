@@ -263,7 +263,7 @@ test('perfis, campanhas e foto do parceiro do banco não executam HTML nem URL j
 
 // TASK-0002 (revisão DevOps): mídia do parceiro no portal React só aceita http(s) em src/href.
 const portalUi = compile('src/portals/ui.tsx');
-const portalLive = compile('src/portals/portal-live.tsx', '', name => ({ '../services/account': {}, '../services/data': {}, '../app/toast': {}, './ui': portalUi, '../domain/account-rules': accountRules, '../domain/html-safety': htmlSafety, './profile-live': {}, '../domain/complaint-status': compile('src/domain/complaint-status.ts') }[name] ?? require(name)));
+const portalLive = compile('src/portals/portal-live.tsx', '', name => ({ '../services/account': {}, '../services/data': {}, '../app/toast': {}, './ui': portalUi, '../domain/account-rules': accountRules, '../domain/html-safety': htmlSafety, './profile-live': {}, './print-document': { usePrintDocument: () => ({ print() {}, host: null }) }, '../domain/print-document': {}, '../domain/complaint-status': compile('src/domain/complaint-status.ts') }[name] ?? require(name)));
 const badUrls = ['javascript:alert(1)', 'JaVaScRiPt:alert(1)', 'data:text/html,<script>alert(1)</script>', 'data:image/svg+xml,<svg onload=alert(1)>', ' javascript:alert(1)'];
 const render = (component, props) => renderToStaticMarkup(React.createElement(component, props));
 

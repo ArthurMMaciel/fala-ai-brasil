@@ -5,6 +5,8 @@ import { showToast } from '../app/toast';
 import { Icon, QuickActions, initials, type IconName } from './ui';
 import { formatPhone, planIncludesContent, validateContent, whatsappLink } from '../domain/account-rules';
 import { safeHttpUrl } from '../domain/html-safety';
+import { buildCompanyPrint, printDateTime } from '../domain/print-document';
+import { usePrintDocument } from './print-document';
 import { CompanyProfile } from './profile-live';
 import { statusLabel } from '../domain/complaint-status';
 
@@ -66,11 +68,11 @@ function ContentGallery({ contents, onDelete }: { contents: PartnerContent[]; on
  </article>)}</div>;
 }
 
-function CompanyComplaints({ complaints, openId, onOpen, onChanged }: { complaints: CompanyComplaint[]; openId: string | null; onOpen: (id: string | null) => void; onChanged: () => void }) {
+function CompanyComplaints({ complaints, openId, onOpen, onChanged, companyName }: { complaints: CompanyComplaint[]; openId: string | null; onOpen: (id: string | null) => void; onChanged: () => void; companyName: string }) {
  const [search, setSearch] = useState('');
  const [status, setStatus] = useState('');
  const selected = complaints.find(item => item.id === openId);
- if (selected) return <CompanyComplaintDetail item={selected} onBack={() => onOpen(null)} onChanged={onChanged} />;
+ if (selected) return <CompanyComplaintDetail item={selected} companyName={companyName} onBack={() => onOpen(null)} onChanged={onChanged} />;
  const rows = complaints.filter(item => `${item.protocol} ${item.title} ${item.category}`.toLowerCase().includes(search.toLowerCase()) && (!status || item.status === status));
  return <><div className="commercial-page-head"><div><span className="editorial-eyebrow">Operação da empresa</span><h1>Manifestações</h1><p>Leia a versão compartilhável, responda e acompanhe o retorno.</p></div><label className="commercial-search">Pesquisar<input value={search} onChange={event => setSearch(event.target.value)} placeholder="Protocolo ou assunto" /></label></div>
   <div className="commercial-filter-row"><select value={status} onChange={event => setStatus(event.target.value)} aria-label="Situação"><option value="">Todas as situações</option><option value="shared">Aguardando resposta</option><option value="answered">Respondida</option><option value="closed">Finalizada</option></select></div>
@@ -78,7 +80,8 @@ function CompanyComplaints({ complaints, openId, onOpen, onChanged }: { complain
   <section className="commercial-panel">{rows.map(item => <button className="commercial-list-row" key={item.id} onClick={() => onOpen(item.id)}><span><strong>{item.protocol} · {item.title}</strong><small>{item.category} · {dateLabel(item.createdAt)}{item.responses ? ` · ${item.responses} resposta${item.responses > 1 ? 's' : ''}` : ''}</small></span><em>{statusLabel(companyStatus, item.status)} ›</em></button>)}</section>}</>;
 }
 
-function CompanyComplaintDetail({ item, onBack, onChanged }: { item: CompanyComplaint; onBack: () => void; onChanged: () => void }) {
+function CompanyComplaintDetail({ item, companyName, onBack, onChanged }: { item: CompanyComplaint; companyName: string; onBack: () => void; onChanged: () => void }) {
+ const { print, host } = usePrintDocument();
  const [timeline, setTimeline] = useState<TimelineItem[] | null>(null);
  const [text, setText] = useState('');
  const [busy, setBusy] = useState(false);
@@ -90,7 +93,9 @@ function CompanyComplaintDetail({ item, onBack, onChanged }: { item: CompanyComp
   showToast('success', 'Resposta enviada. A pessoa que relatou será informada.'); setText(''); setVersion(value => value + 1); onChanged();
  }
  return <><button className="text-action" onClick={onBack}>← Voltar para manifestações</button>
-  <div className="commercial-page-head"><div><span className="editorial-eyebrow">Manifestação {item.protocol}</span><h1>{item.title}</h1><p>{item.category} · recebida em {dateLabel(item.createdAt)} · {statusLabel(companyStatus, item.status)}</p></div></div>
+  <div className="commercial-page-head"><div><span className="editorial-eyebrow">Manifestação {item.protocol}</span><h1>{item.title}</h1><p>{item.category} · recebida em {dateLabel(item.createdAt)} · {statusLabel(companyStatus, item.status)}</p></div>
+   <button className="btn" type="button" disabled={timeline === null} onClick={() => print(buildCompanyPrint({ protocol: item.protocol, title: item.title, statusText: statusLabel(companyStatus, item.status), receivedAt: dateLabel(item.createdAt), generatedAt: printDateTime(), companyName, category: item.category, shared: item.shared, timeline: (timeline ?? []).map(entry => ({ title: entry.kind === 'response' ? 'Resposta enviada' : statusLabel(companyStatus, entry.status ?? 'shared'), date: dateLabel(entry.createdAt), text: entry.content })), feedbackText: item.feedback ? feedbackLabels[item.feedback] : null }))}>Baixar PDF</button></div>
+  {host}
   <div className="commercial-grid-two"><section className="commercial-panel"><h2>Versão compartilhada</h2><p>{item.shared}</p><div className="commercial-callout">Texto revisado e autorizado por quem relatou. A identidade e o relato original não são compartilhados.</div>{item.feedback && <p><strong>Avaliação do retorno:</strong> {feedbackLabels[item.feedback]}</p>}</section>
    <section className="commercial-panel"><h2>Histórico</h2>{timeline === null ? <p className="muted">Carregando…</p> : <ol className="worker-timeline">{timeline.map((entry, index) => <li key={index} className={entry.kind === 'response' ? 'worker-timeline-response' : ''}><strong>{entry.kind === 'response' ? 'Resposta enviada' : statusLabel(companyStatus, entry.status ?? 'shared')}</strong><span>{dateLabel(entry.createdAt)}</span><p>{entry.content}</p></li>)}</ol>}</section></div>
   {['shared', 'answered'].includes(item.status) && <section className="commercial-panel"><h2>{item.status === 'shared' ? 'Responder' : 'Enviar nova atualização'}</h2><p className="muted small">Responda de forma institucional. Não tente identificar quem relatou.</p><textarea className="company-response-text" rows={5} maxLength={5000} value={text} onChange={event => setText(event.target.value)} aria-label="Resposta da empresa" /><div className="nav-actions"><button className="btn primary" disabled={busy || text.trim().length < 10} onClick={send}>Enviar resposta</button></div></section>}</>;
@@ -146,7 +151,7 @@ export function CompanyPortalLive({ companyId }: { companyId: string }) {
  return <main className="commercial-portal-content"><Sidebar eyebrow="Área da empresa" name={company?.name ?? 'Carregando…'} items={items} view={view} onView={next => { setView(next); setOpenId(null); }} /><section className="commercial-portal-main">
   {company === undefined || complaints === null ? <p className="muted">Carregando dados da empresa…</p> : company === null ? <section className="commercial-panel"><h2>Não foi possível carregar sua empresa</h2><p>Saia e entre novamente. Se continuar, fale com o suporte.</p></section> :
    view === 'dashboard' ? <CompanyDashboard company={company} complaints={complaints} mine={mine} onOpen={open} onView={setView} /> :
-   view === 'complaints' ? <CompanyComplaints complaints={complaints} openId={openId} onOpen={setOpenId} onChanged={() => setVersion(value => value + 1)} /> :
+   view === 'complaints' ? <CompanyComplaints complaints={complaints} openId={openId} onOpen={setOpenId} onChanged={() => setVersion(value => value + 1)} companyName={company.name} /> :
    view === 'ranking' ? <CompanyRanking rows={ranking} company={company} complaints={complaints} /> :
    view === 'profile' ? <CompanyProfile companyId={companyId} onSaved={() => setContextVersion(value => value + 1)} /> : <PartnerDirectoryLive />}
  </section></main>;

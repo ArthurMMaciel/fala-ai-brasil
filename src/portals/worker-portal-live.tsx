@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { closeWorkerComplaint, listCompanyDirectory, listWorkerComplaints, loadCompanyRanking, loadWorkerComplaintDetail, shareWorkerComplaint, type ComplaintFeedback, type ComplaintStatusDb, type DirectoryCompany, type RankingRow, type WorkerComplaint, type WorkerComplaintDetail } from '../services/data';
 import { showToast } from '../app/toast';
 import { ComplaintWizard } from './complaint-wizard';
 import { QuickActions } from './ui';
 import { WorkerProfile } from './profile-live';
 import { statusLabel } from '../domain/complaint-status';
+import { buildWorkerPrint, printDateTime } from '../domain/print-document';
+import { usePrintDocument } from './print-document';
 
 // Portal do trabalhador com dados reais (modelo v3). O relato original nunca sai daqui; a empresa recebe só a versão revisada.
 type View = 'dashboard' | 'list' | 'detail' | 'new' | 'companies' | 'profile';
@@ -107,6 +109,21 @@ function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerCo
  const [feedback, setFeedback] = useState<ComplaintFeedback | ''>('');
  useEffect(() => { let active = true; loadWorkerComplaintDetail(complaint.id).then(value => { if (active) { setDetail(value); setShareText(complaint.status === 'adjustment_requested' ? value.shared ?? '' : ''); } }); return () => { active = false; }; }, [complaint.id, complaint.status]);
  const preRelease = ['received', 'in_review', 'adjustment_requested', 'held'].includes(complaint.status);
+ // PDF (TASK-0043): o relato original só entra se a pessoa marcar; o padrão é sem.
+ const { print, host } = usePrintDocument();
+ const pdfDialog = useRef<HTMLDialogElement>(null);
+ const [withOriginal, setWithOriginal] = useState(false);
+ function generatePdf() {
+  if (!detail) return;
+  pdfDialog.current?.close();
+  print(buildWorkerPrint({
+   protocol: complaint.protocol, title: complaint.title, statusText: statusLabel(statusLabels, complaint.status), createdAt: dateLabel(complaint.createdAt), generatedAt: printDateTime(),
+   companyName: company?.name ?? '—', category: complaint.category, incidentPeriod: complaint.incidentPeriod, recurrence: complaint.recurrence, expectedOutcomes: complaint.expectedOutcomes,
+   shared: detail.shared, sharedReleased: !preRelease,
+   timeline: detail.timeline.map(item => ({ title: item.kind === 'response' ? 'Resposta da empresa' : statusLabel(eventLabels, item.status ?? 'received'), date: dateLabel(item.createdAt), text: item.content })),
+   feedbackText: complaint.feedback ? feedbackLabels[complaint.feedback] : null, original: detail.original, includeOriginal: withOriginal,
+  }));
+ }
  const adjustmentNote = detail?.timeline.filter(item => item.status === 'adjustment_requested').slice(-1)[0]?.content;
  async function share() {
   if (shareText.trim().length < 10) return showToast('error', 'Revise a versão para a empresa (mínimo de 10 caracteres).');
@@ -121,7 +138,18 @@ function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerCo
  }
  const open = !['closed', 'canceled'].includes(complaint.status);
  return <><button className="text-action worker-back" onClick={onBack}>← Voltar para manifestações</button>
-  <div className="worker-detail-heading"><div><span className="editorial-eyebrow">Manifestação {complaint.protocol}</span><h2>{complaint.title}</h2><p className="muted">{company?.name ?? '—'} · criada em {dateLabel(complaint.createdAt)}</p></div><Status status={complaint.status} /></div>
+  <div className="worker-detail-heading"><div><span className="editorial-eyebrow">Manifestação {complaint.protocol}</span><h2>{complaint.title}</h2><p className="muted">{company?.name ?? '—'} · criada em {dateLabel(complaint.createdAt)}</p></div><div className="worker-detail-heading-actions"><Status status={complaint.status} /><button className="btn" type="button" disabled={!detail} onClick={() => { setWithOriginal(false); pdfDialog.current?.showModal(); }}>Baixar PDF</button></div></div>
+  <dialog ref={pdfDialog} className="pdf-dialog" aria-labelledby="pdf-dialog-title"><form method="dialog" onSubmit={event => { event.preventDefault(); generatePdf(); }}>
+   <h3 id="pdf-dialog-title">Baixar PDF</h3>
+   <p className="muted small">O PDF não traz seu nome nem seus dados de contato. Na janela de impressão, escolha "Salvar como PDF".</p>
+   <fieldset><legend className="sr-only">O que incluir</legend>
+    <label><input type="radio" name="pdf-content" checked={!withOriginal} onChange={() => setWithOriginal(false)} /> Só a versão compartilhável e o acompanhamento</label>
+    <label><input type="radio" name="pdf-content" checked={withOriginal} onChange={() => setWithOriginal(true)} /> Incluir meu relato original</label>
+   </fieldset>
+   {withOriginal && <p className="commercial-callout">O relato original é só seu. Guarde o arquivo com cuidado e evite encaminhá-lo.</p>}
+   <div className="nav-actions"><button className="btn" type="button" onClick={() => pdfDialog.current?.close()}>Cancelar</button><button className="btn primary" type="submit">Gerar PDF</button></div>
+  </form></dialog>
+  {host}
   {!detail ? <p className="muted">Carregando detalhes…</p> : <div className="worker-detail-grid"><div>
    <section className="worker-detail-section"><h3>Resumo</h3><dl><div><dt>Empresa</dt><dd>{company?.name ?? '—'}</dd></div><div><dt>Assunto</dt><dd>{complaint.category}</dd></div><div><dt>Quando aconteceu</dt><dd>{complaint.incidentPeriod ?? '—'}</dd></div><div><dt>Recorrência</dt><dd>{complaint.recurrence ?? '—'}</dd></div></dl></section>
    <section className="worker-detail-section"><h3>Seu relato original</h3><p className="muted small">Só você vê este texto.</p><p className="worker-original">{detail.original}</p></section>
