@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { listPartnerDirectory, loadCompanyContext, loadPartnerPhoto, uploadPartnerPhoto, type CompanyContext, type DirectoryPartner } from '../services/account';
-import { listCompanyComplaints, listPartnerCompanies, listCompanyResponsiveness, loadMyCompanyResponsiveness, loadCompanyTimeline, loadPartnerProfile, requestPartner, respondCompanyComplaint, setPartnerConnection, updatePartnerProfile, updateCompanyContact, loadPartnerPlan, listMyContents, listPartnerContents, createPartnerContent, deletePartnerContent, type PartnerContent, type CompanyComplaint, type ComplaintStatusDb, type PartnerCompany, type PartnerProfileData, type MyResponsiveness, type ResponsivenessRow, type TimelineItem } from '../services/data';
+import { listCompanyComplaints, listPartnerCompanies, listCompanyResponsiveness, loadMyCompanyResponsiveness, loadCompanyTimeline, loadPartnerProfile, requestPartner, respondCompanyComplaint, setPartnerConnection, updatePartnerProfile, loadPartnerPlan, listMyContents, listPartnerContents, createPartnerContent, deletePartnerContent, type PartnerContent, type CompanyComplaint, type ComplaintStatusDb, type PartnerCompany, type PartnerProfileData, type MyResponsiveness, type ResponsivenessRow, type TimelineItem } from '../services/data';
 import { showToast } from '../app/toast';
 import { Icon, QuickActions, initials, type IconName } from './ui';
-import { formatPhone, maskPhone, planIncludesContent, validateCompanyContact, validateContent, whatsappLink } from '../domain/account-rules';
+import { formatPhone, planIncludesContent, validateContent, whatsappLink } from '../domain/account-rules';
 import { safeHttpUrl } from '../domain/html-safety';
 import { CompanyProfile } from './profile-live';
 import { MyResponsivenessPanel, ResponsivenessTable, responsivenessMethod } from './responsiveness';
@@ -42,25 +42,10 @@ function CompanyDashboard({ company, complaints, mine, onOpen, onView }: { compa
   ]} />
   <div className="commercial-metrics"><Metric label="Manifestações recebidas" value={complaints.length} note="versões compartilhadas" /><Metric label="Aguardando resposta" value={waiting.length} note={waiting.length ? 'prioridade da equipe' : 'sem pendências'} /><Metric label="Taxa de resposta" value={mine?.responseRate === null || mine?.responseRate === undefined ? '—' : `${mine.responseRate}%`} note="liberadas com ao menos uma resposta" /><Metric label="Tempo médio" value={hours(mine?.avgFirstResponseHours)} note="até a primeira resposta" /></div>
   <div className="commercial-grid-two"><section className="commercial-panel"><h2>Fila de atenção</h2>{waiting.length ? waiting.slice(0, 4).map(item => <button className="commercial-list-row" key={item.id} onClick={() => onOpen(item.id)}><span><strong>{item.protocol} · {item.title}</strong><small>{item.category} · {dateLabel(item.createdAt)}</small></span><em>Responder ›</em></button>) : <p>Nenhuma manifestação aguardando resposta.</p>}</section>
-   <section className="commercial-panel"><h2>Dados da empresa</h2><dl className="company-facts"><div><dt>Razão social</dt><dd>{company.legalName}</dd></div><div><dt>CNPJ</dt><dd>{formatCnpj(company.cnpj)}</dd></div><div><dt>Cidade</dt><dd>{company.city}/{company.state}</dd></div></dl><div className="commercial-callout">A empresa acessa somente a versão compartilhável revisada por quem relatou, sem identidade.</div><CompanyContactForm company={company} /></section></div></>;
-}
-
-function CompanyContactForm({ company }: { company: CompanyContext }) {
- const [email, setEmail] = useState(company.contactEmail ?? '');
- const [phone, setPhone] = useState(company.contactPhone ? formatPhone(company.contactPhone) : '');
- const [busy, setBusy] = useState(false);
- async function save(event: React.FormEvent) {
-  event.preventDefault();
-  const error = validateCompanyContact(email, phone);
-  if (error) return showToast('error', error);
-  setBusy(true); const result = await updateCompanyContact(company.id, email, phone); setBusy(false);
-  result.ok ? showToast('success', 'Contato salvo. Parceiros com quem você demonstrou interesse ou que atendem sua empresa podem usá-lo.') : showToast('error', result.message);
- }
- if (!company.isOwner) return <div className="company-contact-form"><h3>Contato para parceiros</h3><dl className="company-facts"><div><dt>E-mail de contato</dt><dd>{company.contactEmail || '—'}</dd></div><div><dt>Telefone de contato</dt><dd>{company.contactPhone ? formatPhone(company.contactPhone) : '—'}</dd></div></dl><p className="muted small">Só o responsável pela conta da empresa altera o contato.</p></div>;
- return <form className="company-contact-form" onSubmit={save}><h3>Contato para parceiros</h3><p className="muted small">Opcional. Só parceiros com quem sua empresa demonstrou interesse ou que atendem vocês veem estes dados.</p>
-  <label className="field">E-mail de contato<input type="email" value={email} maxLength={160} onChange={event => setEmail(event.target.value)} placeholder="contato@empresa.com.br" /></label>
-  <label className="field">Telefone ou WhatsApp<input type="tel" inputMode="tel" autoComplete="tel-national" value={phone} maxLength={15} onChange={event => setPhone(maskPhone(event.target.value))} placeholder="(00) 00000-0000" /></label>
-  <button className="btn" type="submit" disabled={busy}>{busy ? 'Salvando…' : 'Salvar contato'}</button></form>;
+   <section className="commercial-panel company-summary"><h2>Dados da empresa</h2><dl className="company-facts"><div><dt>Razão social</dt><dd>{company.legalName}</dd></div><div><dt>CNPJ</dt><dd className="nowrap">{formatCnpj(company.cnpj)}</dd></div><div><dt>Cidade</dt><dd>{company.city}/{company.state}</dd></div>
+    <div><dt>Contato para parceiros</dt><dd>{company.contactEmail || company.contactPhone ? [company.contactEmail, company.contactPhone ? formatPhone(company.contactPhone) : ''].filter(Boolean).join(' · ') : 'Não informado'}</dd></div></dl>
+    <div className="commercial-callout">A empresa acessa somente a versão compartilhável revisada por quem relatou, sem identidade.</div>
+    <button className="btn" onClick={() => onView('profile')}>{company.isOwner ? 'Editar no Meu perfil' : 'Ver no Meu perfil'}</button></section></div></>;
 }
 
 // Mídia vinda do banco (TASK-0002): só URL http(s) vira src/href. Exportados para teste de renderização.
