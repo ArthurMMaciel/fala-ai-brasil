@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { decideOpsComplaint, listOpsComplaints, listOpsCompanies, loadOpsMetrics, loadOpsTimeline, readOpsOriginal, type OpsComplaint, type OpsCompany, type OpsMetrics, type OpsTimelineItem, type ReviewDecision } from '../services/ops';
 import type { ComplaintStatusDb } from '../services/data';
 import { statusLabel } from '../domain/complaint-status';
+import { oldestFirst, waitingLabel } from '../domain/ops-queue';
 import { showToast } from '../app/toast';
 import { Metric, Sidebar } from './portal-live';
 import { QuickActions } from './ui';
@@ -51,10 +52,10 @@ function Overview({ metrics, onView }: { metrics: OpsMetrics | null; onView: (vi
   </div></>;
 }
 
-function ComplaintList({ rows, onOpen, empty }: { rows: OpsComplaint[]; onOpen: (row: OpsComplaint) => void; empty: string }) {
+function ComplaintList({ rows, onOpen, empty, waiting = false }: { rows: OpsComplaint[]; onOpen: (row: OpsComplaint) => void; empty: string; waiting?: boolean }) {
  if (!rows.length) return <section className="commercial-panel"><p className="muted">{empty}</p></section>;
- return <div className="commercial-table-wrap"><table className="commercial-table"><thead><tr><th>Protocolo</th><th>Empresa</th><th>Assunto</th><th>Situação</th><th>Atualizada</th></tr></thead>
-  <tbody>{rows.map(row => <tr key={row.id} tabIndex={0} onClick={() => onOpen(row)} onKeyDown={event => event.key === 'Enter' && onOpen(row)}><td>{row.protocol}</td><td>{row.companyName}</td><td>{row.title}<small>{row.category}</small></td><td><Status status={row.status} /></td><td>{when(row.updatedAt)}</td></tr>)}</tbody></table></div>;
+ return <div className="commercial-table-wrap"><table className="commercial-table"><thead><tr><th>Protocolo</th><th>Empresa</th><th>Assunto</th><th>Situação</th><th>{waiting ? 'Aguardando' : 'Atualizada'}</th></tr></thead>
+  <tbody>{rows.map(row => <tr key={row.id} tabIndex={0} onClick={() => onOpen(row)} onKeyDown={event => event.key === 'Enter' && onOpen(row)}><td>{row.protocol}</td><td>{row.companyName}</td><td>{row.title}<small>{row.category}</small></td><td><Status status={row.status} /></td><td>{waiting ? <span title={when(row.updatedAt)}>{waitingLabel(row.updatedAt)}</span> : when(row.updatedAt)}</td></tr>)}</tbody></table></div>;
 }
 
 function ComplaintDetail({ complaint, onBack, onChanged }: { complaint: OpsComplaint; onBack: () => void; onChanged: () => void }) {
@@ -123,7 +124,7 @@ export function OpsPortalLive() {
    .catch(error => { if (active) setFailure(error instanceof Error ? error.message : 'Não foi possível carregar a área da equipe.'); });
   return () => { active = false; };
  }, [version]);
- const queue = useMemo(() => (complaints ?? []).filter(item => item.status === 'in_review' || item.status === 'held'), [complaints]);
+ const queue = useMemo(() => oldestFirst((complaints ?? []).filter(item => item.status === 'in_review' || item.status === 'held')), [complaints]);
  const filtered = useMemo(() => (complaints ?? []).filter(item => (!filter || item.status === filter) && `${item.protocol} ${item.companyName} ${item.title} ${item.category}`.toLowerCase().includes(search.toLowerCase())), [complaints, filter, search]);
  const opened = complaints?.find(item => item.id === openId) ?? null;
  const go = (next: OpsView) => { setView(next); setOpenId(null); };
@@ -133,7 +134,7 @@ export function OpsPortalLive() {
    opened ? <ComplaintDetail key={opened.id + opened.status} complaint={opened} onBack={() => setOpenId(null)} onChanged={() => setVersion(value => value + 1)} /> :
    view === 'overview' ? <Overview metrics={metrics} onView={go} /> :
    view === 'queue' ? <>{head('Operação', 'Fila de revisão', 'Confira a versão compartilhável e decida: liberar para a empresa, pedir ajuste ao trabalhador ou reter para análise.')}
-    {complaints === null ? <p className="muted">Carregando…</p> : <ComplaintList rows={queue} onOpen={row => setOpenId(row.id)} empty="Nenhuma manifestação aguardando revisão." />}</> :
+    {complaints === null ? <p className="muted">Carregando…</p> : <ComplaintList rows={queue} waiting onOpen={row => setOpenId(row.id)} empty="Nenhuma manifestação aguardando revisão." />}</> :
    view === 'all' ? <>{head('Operação', 'Manifestações', 'Todas as manifestações, sem identidade de quem relatou.')}
     <div className="worker-filters"><label>Buscar<input value={search} onChange={event => setSearch(event.target.value)} placeholder="Protocolo, empresa ou assunto" /></label><label>Situação<select value={filter} onChange={event => setFilter(event.target.value as ComplaintStatusDb | '')}><option value="">Todas</option>{(Object.keys(statusLabels) as ComplaintStatusDb[]).map(key => <option key={key} value={key}>{statusLabels[key]}</option>)}</select></label></div>
     {complaints === null ? <p className="muted">Carregando…</p> : <ComplaintList rows={filtered} onOpen={row => setOpenId(row.id)} empty="Nenhuma manifestação com esse filtro." />}</> :
