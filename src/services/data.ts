@@ -153,11 +153,6 @@ export async function listPublicSponsors(): Promise<PublicSponsor[]> {
   return (data ?? []).map((row: { id: string; name: string; campaign_title: string; campaign_kind: CampaignKind }) => ({ id: row.id, name: row.name, campaignTitle: row.campaign_title, campaignKind: row.campaign_kind }));
 }
 
-// Contato da empresa: só o dono altera, pela RPC update_company_profile (ADR-0014; o update direto foi revogado).
-export async function updateCompanyContact(companyId: string, email: string, phone: string): Promise<AuthResult<null>> {
-  const { error } = await supabase().rpc("update_company_profile", { p_company: companyId, p: { contact_email: email.trim().toLowerCase(), contact_phone: onlyDigits(phone) } });
-  return error ? { ok: false, message: rpcError(error, "Não foi possível salvar o contato. Só o responsável pela conta da empresa pode alterá-lo.") } : { ok: true, value: null };
-}
 
 // Conteúdos do parceiro: linhas de media com título. Fotos no bucket público, vídeos por link.
 export interface PartnerContent { id: string; kind: "image" | "video"; url: string; title: string; caption: string | null; publishedAt: string | null; storagePath: string | null }
