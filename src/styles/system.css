@@ -324,3 +324,8 @@
   .responsiveness-table td::before { content: attr(data-label); color: var(--muted); font-size: 13px; text-align: left; }
   .responsiveness-table td:first-child { font-weight: 600; }
 }
+
+/* Landing (TASK-0044, item 7): no celular o seletor de personas rola na horizontal; o esmaecimento à direita indica que há mais opções. */
+@media (max-width: 640px) {
+  .editorial-personas { padding-right: 36px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
+}
