@@ -42,7 +42,13 @@ begin
     res := res || jsonb_build_object('empresa não responde não compartilhada', false);
   exception when others then res := res || jsonb_build_object('empresa não responde não compartilhada', true); end;
   perform public.respond_complaint(shared_id, 'Recebemos e vamos revisar os combinados de horário com a equipe.');
-  res := res || jsonb_build_object('resposta muda status', (select status = 'answered' from public.list_company_complaints() where id = shared_id));
+  -- 20261109180000: a resposta fica em revisão pela equipe até ser liberada (ADR-0013).
+  res := res || jsonb_build_object('resposta fica em revisão pela equipe', (select status = 'answer_in_review' from public.list_company_complaints() where id = shared_id));
+  perform set_config('request.jwt.claims', json_build_object('sub', adm, 'role', 'authenticated')::text, true);
+  perform public.ops_decide_response(r.response_id, 'released', 'A empresa informa que vai revisar os combinados de horário com a equipe.', null)
+  from public.ops_list_responses('in_review') r where r.complaint_id = shared_id;
+  perform set_config('request.jwt.claims', json_build_object('sub', c, 'role', 'authenticated')::text, true);
+  res := res || jsonb_build_object('resposta liberada muda status', (select status = 'answered' from public.list_company_complaints() where id = shared_id));
   perform public.company_request_partner(v_partner);
 
   perform set_config('request.jwt.claims', json_build_object('sub', c2, 'role', 'authenticated')::text, true);

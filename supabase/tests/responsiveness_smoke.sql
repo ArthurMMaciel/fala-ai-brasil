@@ -33,8 +33,8 @@ begin
       returning id into v_id;
       insert into public.complaint_events (complaint_id, status, actor, note, created_at) values (v_id, 'shared', 'platform', 'Liberada.', now() - interval '5 days');
       if i <= spec.answered then
-        insert into public.company_responses (complaint_id, company_id, content, created_at)
-        values (v_id, spec.company, 'Resposta institucional de teste.', now() - interval '5 days' + make_interval(hours => spec.hours));
+        insert into public.company_responses (complaint_id, company_id, content, created_at, review_status, released_at)
+        values (v_id, spec.company, 'Resposta institucional de teste.', now() - interval '5 days' + make_interval(hours => spec.hours), 'released', now());
       end if;
     end loop;
   end loop;

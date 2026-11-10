@@ -56,7 +56,7 @@ begin
   update public.complaint_reviews set created_at = created_at - interval '1 minute' where complaint_id = v_id;
   update public.original_access_log set created_at = created_at - interval '1 minute' where complaint_id = v_id;
 
-  -- Passo 5 (empresa): resposta e evento answered na mesma transação.
+  -- Passo 5 (empresa): resposta e evento answer_in_review na mesma transação (20261109180000).
   execute 'set local role authenticated';
   perform set_config('request.jwt.claims', json_build_object('sub', c, 'role', 'authenticated')::text, true);
   perform public.respond_complaint(v_id, 'Resposta institucional fictícia.');
@@ -65,6 +65,19 @@ begin
   update public.complaint_reviews set created_at = created_at - interval '1 minute' where complaint_id = v_id;
   update public.original_access_log set created_at = created_at - interval '1 minute' where complaint_id = v_id;
   update public.company_responses set created_at = created_at - interval '1 minute' where complaint_id = v_id;
+
+  -- Passo 5b (equipe): liberação da resposta; decisão e evento answered na mesma transação.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
+  perform public.ops_decide_response(r.response_id, 'released', 'Descrição fictícia da equipe para o trabalhador.', null)
+  from public.ops_list_responses('in_review') r where r.complaint_id = v_id;
+  execute 'reset role';
+  update public.complaint_events set created_at = created_at - interval '1 minute' where complaint_id = v_id;
+  update public.complaint_reviews set created_at = created_at - interval '1 minute' where complaint_id = v_id;
+  update public.original_access_log set created_at = created_at - interval '1 minute' where complaint_id = v_id;
+  update public.company_responses set created_at = created_at - interval '1 minute' where complaint_id = v_id;
+  update public.company_response_reviews set created_at = created_at - interval '1 minute'
+    where response_id in (select id from public.company_responses where complaint_id = v_id);
 
   -- Passo 6 (trabalhador): encerramento.
   execute 'set local role authenticated';
@@ -76,8 +89,8 @@ begin
   select string_agg(t.kind || coalesce(':' || t.status::text, ''), ',' order by t.ord) into v_seq
   from public.ops_complaint_timeline(v_id) with ordinality as t(kind, status, actor, content, created_at, ord);
   res := res || jsonb_build_object('equipe: ordem completa',
-    v_seq = 'event:received,event:in_review,review,event:adjustment_requested,event:in_review,access,review,event:shared,response,event:answered,event:closed');
-  if v_seq is distinct from 'event:received,event:in_review,review,event:adjustment_requested,event:in_review,access,review,event:shared,response,event:answered,event:closed' then
+    v_seq = 'event:received,event:in_review,review,event:adjustment_requested,event:in_review,access,review,event:shared,response,event:answer_in_review,response_review,event:answered,event:closed');
+  if v_seq is distinct from 'event:received,event:in_review,review,event:adjustment_requested,event:in_review,access,review,event:shared,response,event:answer_in_review,response_review,event:answered,event:closed' then
     res := res || jsonb_build_object('equipe: sequência obtida', v_seq);
   end if;
 
@@ -85,8 +98,8 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', c, 'role', 'authenticated')::text, true);
   select string_agg(t.kind || coalesce(':' || t.status::text, ''), ',' order by t.ord) into v_seq
   from public.get_company_complaint_timeline(v_id) with ordinality as t(kind, status, actor, content, created_at, ord);
-  res := res || jsonb_build_object('empresa: ordem e recorte', v_seq = 'event:shared,response,event:answered,event:closed');
-  if v_seq is distinct from 'event:shared,response,event:answered,event:closed' then
+  res := res || jsonb_build_object('empresa: ordem e recorte', v_seq = 'event:shared,response,response_review,event:answered,event:closed');
+  if v_seq is distinct from 'event:shared,response,response_review,event:answered,event:closed' then
     res := res || jsonb_build_object('empresa: sequência obtida', v_seq);
   end if;
 
@@ -96,12 +109,14 @@ begin
   update public.complaint_reviews set created_at = now() where complaint_id = v_id;
   update public.original_access_log set created_at = now() where complaint_id = v_id;
   update public.company_responses set created_at = now() where complaint_id = v_id;
+  update public.company_response_reviews set created_at = now() where response_id in (select id from public.company_responses where complaint_id = v_id);
   execute 'set local role authenticated';
   perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
   select string_agg(t.kind || coalesce(':' || t.status::text, ''), ',' order by t.ord) into v_seq
-  from public.ops_complaint_timeline(v_id) with ordinality as t(kind, status, actor, content, created_at, ord);
+  from public.ops_complaint_timeline(v_id) with ordinality as t(kind, status, actor, content, created_at, ord)
+  where t.kind <> 'response_review';  -- review e response_review têm o mesmo peso (1); no empate total, a ordem entre eles é só pelo id
   res := res || jsonb_build_object('empate total: tipo e depois enum',
-    v_seq = 'review,review,response,access,event:received,event:in_review,event:in_review,event:adjustment_requested,event:shared,event:answered,event:closed');
+    v_seq = 'review,review,response,access,event:received,event:in_review,event:in_review,event:adjustment_requested,event:shared,event:answer_in_review,event:answered,event:closed');
 
   -- Outra conta não lê a linha do tempo da equipe.
   perform set_config('request.jwt.claims', json_build_object('sub', c, 'role', 'authenticated')::text, true);

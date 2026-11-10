@@ -78,6 +78,10 @@ begin
   perform public.respond_complaint(v_id, 'Resposta institucional fictícia ao caso um.');
   perform public.respond_complaint(v_id2, 'Resposta institucional fictícia ao caso dois.');
   perform public.respond_complaint(v_id3, 'Resposta institucional fictícia ao caso três.');
+  -- 20261109180000: respostas passam pela equipe; o prazo conta até o envio da resposta liberada.
+  perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
+  perform public.ops_decide_response(r.response_id, 'released', 'Descrição fictícia da equipe para o trabalhador ler.', null)
+  from public.ops_list_responses('in_review') r where r.complaint_id in (v_id, v_id2, v_id3);
   execute 'reset role';
   -- Criadas há 48 h, liberadas há 2 h, respondidas agora: o ranking deve mostrar 2 h, não 48 h.
   update public.complaints set created_at = now() - interval '48 hours' where id in (v_id, v_id2, v_id3);
