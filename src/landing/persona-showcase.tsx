@@ -22,7 +22,7 @@ const content: Record<Audience, ShowcaseContent> = {
     processTitle: 'Do relato ao retorno',
     steps: [['Conte', 'Descreva o que aconteceu com suas palavras.'], ['Revise', 'Escolha o que pode ser compartilhado.'], ['Acompanhe', 'Volte para ver registros e respostas.']],
     closing: 'Você decide quando começar.',
-    note: 'Esta é uma demonstração: use somente dados fictícios. A plataforma não substitui serviços de saúde, orientação jurídica ou atendimento de urgência.',
+    note: 'A plataforma não substitui serviços de saúde, orientação jurídica ou atendimento de urgência.',
   },
   company: {
     label: 'Para empresas',
@@ -52,7 +52,7 @@ const content: Record<Audience, ShowcaseContent> = {
     processTitle: 'Da pergunta à leitura',
     steps: [['Defina', 'Formule a pergunta de estudo.'], ['Avalie', 'Verifique método e elegibilidade.'], ['Interprete', 'Leia resultados e limitações.']],
     closing: 'Vamos conversar sobre a pergunta certa.',
-    note: 'Serviço planejado; nenhuma análise de relatos reais está disponível nesta demonstração.',
+    note: 'Serviço planejado; ainda não há análise de relatos disponível.',
   },
   sponsor: {
     label: 'Para patrocinadores',
