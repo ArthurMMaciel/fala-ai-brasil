@@ -1,6 +1,6 @@
 # TASK-0035 — Resposta da empresa revisada pela equipe
 
-- Status: em-andamento (decisões de 2026-11-08 passadas à ADR-0013; migrations (a), (b) e (d) escritas e testadas no local; db push por passo, com liberação do responsável)
+- Status: em-andamento (passos a e b em produção em 2026-11-10: migrations 20261109160000 e 20261109170000; passo c do Front na main em 1428b95; falta o commit e o db push da 20261109180000, que liga a revisão)
 - ClickUp: [TASK-0035](https://app.clickup.com/t/17tu7rpc382)
 - Área: Backend/Produto/Privacidade
 - Prioridade: P1
