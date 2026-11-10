@@ -23,3 +23,20 @@ Thumbs.db
 
 # Arquivos locais temporários (PDFs, exportações).
 /tmp/
+
+# Repositório público: pareceres internos e materiais recebidos ficam só na máquina (TASK-0041).
+/docs/devops/PARECER-*.md
+/*.pdf
+# Áudio e vídeo soltos na raiz. A mídia do produto fica em public/ e continua versionada.
+/*.ogg
+/*.opus
+/*.mp3
+/*.m4a
+/*.wav
+/*.mp4
+/*.webm
+/*.mov
+# Backups e dumps do banco: nunca no Git, nem cifrados.
+*.gpg
+*.dump
+/backups/
