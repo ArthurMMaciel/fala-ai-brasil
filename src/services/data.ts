@@ -5,7 +5,7 @@ import { compareTimeline } from "../domain/complaint-status";
 
 // Acesso aos dados do modelo v3 (manifestações, Hub, landing). Regras e privacidade ficam no banco (RLS e funções).
 // "shared" = liberada para a empresa após revisão da equipe (ADR-0010).
-export type ComplaintStatusDb = "received" | "in_review" | "adjustment_requested" | "held" | "shared" | "answered" | "closed" | "canceled";
+export type ComplaintStatusDb = "received" | "in_review" | "adjustment_requested" | "held" | "shared" | "answer_in_review" | "answered" | "closed" | "canceled";
 export type ComplaintFeedback = "yes" | "partial" | "no";
 
 export function rpcError(error: { code?: string; message: string }, fallback: string): string {

@@ -12,7 +12,7 @@ import { statusLabel } from '../domain/complaint-status';
 type CompanyView = 'dashboard' | 'complaints' | 'ranking' | 'partners' | 'profile';
 type PartnerView = 'dashboard' | 'profile' | 'content' | 'companies' | 'leads' | 'clients';
 
-const companyStatus: Record<ComplaintStatusDb, string> = { received: 'Recebida', in_review: 'Em revisão', adjustment_requested: 'Em revisão', held: 'Em revisão', shared: 'Aguardando resposta', answered: 'Respondida', closed: 'Finalizada', canceled: 'Cancelada' };
+const companyStatus: Record<ComplaintStatusDb, string> = { received: 'Recebida', in_review: 'Em revisão', adjustment_requested: 'Em revisão', held: 'Em revisão', shared: 'Aguardando resposta', answer_in_review: 'Resposta em revisão pela equipe', answered: 'Respondida', closed: 'Finalizada', canceled: 'Cancelada' };
 const feedbackLabels = { yes: 'A resposta ajudou', partial: 'Ajudou em parte', no: 'Não ajudou' } as const;
 
 function dateLabel(value: string) { return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value)); }
@@ -88,7 +88,7 @@ function CompanyComplaints({ complaints, openId, onOpen, onChanged }: { complain
  if (selected) return <CompanyComplaintDetail item={selected} onBack={() => onOpen(null)} onChanged={onChanged} />;
  const rows = complaints.filter(item => `${item.protocol} ${item.title} ${item.category}`.toLowerCase().includes(search.toLowerCase()) && (!status || item.status === status));
  return <><div className="commercial-page-head"><div><span className="editorial-eyebrow">Operação da empresa</span><h1>Manifestações</h1><p>Leia a versão compartilhável, responda e acompanhe o retorno.</p></div><label className="commercial-search">Pesquisar<input value={search} onChange={event => setSearch(event.target.value)} placeholder="Protocolo ou assunto" /></label></div>
-  <div className="commercial-filter-row"><select value={status} onChange={event => setStatus(event.target.value)} aria-label="Situação"><option value="">Todas as situações</option><option value="shared">Aguardando resposta</option><option value="answered">Respondida</option><option value="closed">Finalizada</option></select></div>
+  <div className="commercial-filter-row"><select value={status} onChange={event => setStatus(event.target.value)} aria-label="Situação"><option value="">Todas as situações</option><option value="shared">Aguardando resposta</option><option value="answer_in_review">Resposta em revisão pela equipe</option><option value="answered">Respondida</option><option value="closed">Finalizada</option></select></div>
   {rows.length === 0 ? <section className="commercial-panel"><h2>{complaints.length ? 'Nenhuma manifestação encontrada' : 'Nenhuma manifestação por enquanto'}</h2><p>{complaints.length ? 'Revise a busca ou a situação.' : 'Quando uma manifestação for compartilhada com sua empresa, ela aparece aqui.'}</p></section> :
   <section className="commercial-panel">{rows.map(item => <button className="commercial-list-row" key={item.id} onClick={() => onOpen(item.id)}><span><strong>{item.protocol} · {item.title}</strong><small>{item.category} · {dateLabel(item.createdAt)}{item.responses ? ` · ${item.responses} resposta${item.responses > 1 ? 's' : ''}` : ''}</small></span><em>{statusLabel(companyStatus, item.status)} ›</em></button>)}</section>}</>;
 }

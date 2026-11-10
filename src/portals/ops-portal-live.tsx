@@ -10,9 +10,9 @@ import { ContactSolicitationsAdmin } from './contact-solicitations-admin';
 // Área da equipe (ADR-0010): revisão antes da liberação, acesso ao original só com justificativa, números agregados.
 type OpsView = 'overview' | 'queue' | 'all' | 'companies' | 'contacts';
 
-const statusLabels: Record<ComplaintStatusDb, string> = { received: 'Guardada pelo trabalhador', in_review: 'Em revisão', adjustment_requested: 'Ajuste solicitado', held: 'Retida', shared: 'Liberada · aguardando empresa', answered: 'Respondida', closed: 'Finalizada', canceled: 'Retirada' };
-const statusTone: Record<ComplaintStatusDb, string> = { received: 'em-aberto', in_review: 'em-revisão', adjustment_requested: 'em-revisão', held: 'retida', shared: 'encaminhada-para-empresa', answered: 'respondida', closed: 'finalizada', canceled: 'finalizada' };
-const eventLabels: Record<ComplaintStatusDb, string> = { received: 'Registrada', in_review: 'Revisão solicitada', adjustment_requested: 'Ajuste solicitado', held: 'Retida', shared: 'Liberada para a empresa', answered: 'Respondida', closed: 'Finalizada', canceled: 'Retirada pelo trabalhador' };
+const statusLabels: Record<ComplaintStatusDb, string> = { received: 'Guardada pelo trabalhador', in_review: 'Em revisão', adjustment_requested: 'Ajuste solicitado', held: 'Retida', shared: 'Liberada · aguardando empresa', answer_in_review: 'Resposta em revisão', answered: 'Respondida', closed: 'Finalizada', canceled: 'Retirada' };
+const statusTone: Record<ComplaintStatusDb, string> = { received: 'em-aberto', in_review: 'em-revisão', adjustment_requested: 'em-revisão', held: 'retida', shared: 'encaminhada-para-empresa', answer_in_review: 'em-revisão', answered: 'respondida', closed: 'finalizada', canceled: 'finalizada' };
+const eventLabels: Record<ComplaintStatusDb, string> = { received: 'Registrada', in_review: 'Revisão solicitada', adjustment_requested: 'Ajuste solicitado', held: 'Retida', shared: 'Liberada para a empresa', answer_in_review: 'Resposta enviada · em revisão', answered: 'Respondida', closed: 'Finalizada', canceled: 'Retirada pelo trabalhador' };
 const decisionLabels: Record<ReviewDecision, string> = { released: 'Liberar para a empresa', adjustment_requested: 'Pedir ajuste ao trabalhador', held: 'Reter para análise' };
 
 function when(value: string) { return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(value)); }
