@@ -393,3 +393,23 @@
   .worker-detail-heading-actions { width: 100%; justify-content: flex-start; }
   .worker-detail-heading-actions .btn, .commercial-page-head > .btn { width: 100%; }
 }
+/* Resposta da empresa revisada pela equipe (TASK-0035) */
+.worker-response { display: grid; gap: 12px; padding: 16px 0; border-top: 1px solid var(--sys-field-line); }
+.worker-response:first-of-type { border-top: 0; padding-top: 0; }
+.worker-response p { margin: 0; }
+.worker-response-summary { display: grid; gap: 6px; }
+.worker-response-summary small { color: var(--muted); }
+.worker-response-original { display: grid; gap: 6px; }
+.response-rating { display: grid; gap: 12px; padding: 16px; border-radius: var(--sys-radius-sm); background: var(--sys-field); }
+.response-rating fieldset { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 0; padding: 0; border: 0; }
+.response-rating legend { margin-bottom: 8px; font-weight: 700; color: var(--deep); }
+.response-rating fieldset label { display: inline-flex; gap: 6px; align-items: center; min-height: 44px; }
+.response-rating .field { display: grid; gap: 6px; font-weight: 600; }
+.response-rating textarea { width: 100%; }
+.response-rating .btn { justify-self: start; }
+.worker-timeline-review strong { color: var(--deep); }
+.ops-response-tabs { margin: 0 0 16px; }
+.ops-response-tabs .account-tab[aria-selected="true"] { color: var(--deep); border-bottom-color: var(--deep); }
+.ops-overdue { font-weight: 700; color: var(--red); }
+.commercial-table tbody tr[tabindex] { cursor: pointer; }
+.ops-decision textarea { width: 100%; }

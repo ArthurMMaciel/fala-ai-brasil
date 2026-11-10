@@ -9,11 +9,12 @@ export interface OpsComplaint {
   shared: string | null; incidentPeriod: string | null; recurrence: string | null; expectedOutcomes: string[];
   createdAt: string; updatedAt: string; responses: number; lastDecision: ReviewDecision | null; lastDecisionAt: string | null;
 }
-export interface OpsTimelineItem { kind: "event" | "response" | "review" | "access"; status: ComplaintStatusDb | null; actor: "worker" | "company" | "platform"; content: string; createdAt: string }
+export interface OpsTimelineItem { kind: "event" | "response" | "review" | "access" | "response_review"; status: ComplaintStatusDb | null; actor: "worker" | "company" | "platform"; content: string; createdAt: string }
 export interface OpsCompany { id: string; name: string; legalName: string; city: string; state: string; createdAt: string; users: number; complaints: number; released: number; answered: number; hasContact: boolean }
 export interface OpsMetrics {
   byStatus: Partial<Record<ComplaintStatusDb, number>>; workers: number; companies: number; partners: number; sponsors: number;
   complaints30d: number; contactsWaiting: number; avgHoursToReview: number | null; avgHoursToCompanyResponse: number | null;
+  responsesInReview: number; avgHoursResponseReview: number | null;
   weekly: { week: string; total: number }[];
 }
 
@@ -67,6 +68,36 @@ export async function loadOpsMetrics(): Promise<OpsMetrics> {
     byStatus: (row.by_status ?? {}) as OpsMetrics["byStatus"], workers: Number(row.workers ?? 0), companies: Number(row.companies ?? 0),
     partners: Number(row.partners ?? 0), sponsors: Number(row.sponsors ?? 0), complaints30d: Number(row.complaints_30d ?? 0),
     contactsWaiting: Number(row.contacts_waiting ?? 0), avgHoursToReview: num(row.avg_hours_to_review), avgHoursToCompanyResponse: num(row.avg_hours_to_company_response),
+    responsesInReview: Number(row.responses_in_review ?? 0), avgHoursResponseReview: num(row.avg_hours_response_review),
     weekly: (row.weekly ?? []) as OpsMetrics["weekly"],
   };
+}
+
+// Resposta da empresa revisada pela equipe (ADR-0013, TASK-0035): a equipe libera com descrição ao trabalhador
+// ou devolve com motivo à empresa. Nunca edita o texto da empresa.
+export type ResponseReviewStatus = "in_review" | "released" | "returned";
+export interface OpsResponse {
+  id: string; complaintId: string; protocol: string; companyId: string; companyName: string; category: string; title: string;
+  shared: string | null; content: string; reviewStatus: ResponseReviewStatus; workerSummary: string | null; createdAt: string; releasedAt: string | null; waitingHours: number | null;
+}
+
+export async function listOpsResponses(status: ResponseReviewStatus | null = "in_review"): Promise<OpsResponse[]> {
+  const { data, error } = await supabase().rpc("ops_list_responses", { p_status: status });
+  if (error) throw new Error(failure(error, "Não foi possível carregar as respostas."));
+  return (data ?? []).map((row: Record<string, unknown>) => ({
+    id: String(row.response_id), complaintId: String(row.complaint_id), protocol: String(row.protocol), companyId: String(row.company_id), companyName: String(row.company_name),
+    category: String(row.category), title: String(row.title), shared: (row.shared_content as string | null) ?? null, content: String(row.content ?? ""),
+    reviewStatus: row.review_status as ResponseReviewStatus, workerSummary: (row.worker_summary as string | null) ?? null, createdAt: String(row.created_at),
+    releasedAt: (row.released_at as string | null) ?? null, waitingHours: row.waiting_hours === null || row.waiting_hours === undefined ? null : Number(row.waiting_hours),
+  }));
+}
+
+export async function decideOpsResponse(id: string, decision: "released" | "returned", summary: string, reason: string): Promise<AuthResult<null>> {
+  const { error } = await supabase().rpc("ops_decide_response", { p_response: id, p_decision: decision, p_summary: decision === "released" ? summary.trim() : null, p_reason: decision === "returned" ? reason.trim() : null });
+  return error ? { ok: false, message: failure(error, "Não foi possível registrar a decisão sobre a resposta.") } : { ok: true, value: null };
+}
+
+export async function correctOpsResponseSummary(id: string, summary: string, reason: string): Promise<AuthResult<null>> {
+  const { error } = await supabase().rpc("ops_correct_response_summary", { p_response: id, p_summary: summary.trim(), p_reason: reason.trim() });
+  return error ? { ok: false, message: failure(error, "Não foi possível corrigir a descrição.") } : { ok: true, value: null };
 }

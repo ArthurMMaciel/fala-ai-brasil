@@ -12,7 +12,7 @@ export function statusLabel(map: Readonly<Record<string, string>>, status: strin
 
 // Desempate das linhas do tempo, igual ao do banco (migration 20261109120000): created_at; tipo do item
 // (a causa antes do evento que ela gera: review 1, response 2, access 3, event 4); ordem do enum; id.
-const kindRank: Record<string, number> = { review: 1, response: 2, access: 3, event: 4 };
+const kindRank: Record<string, number> = { review: 1, response_review: 1, response: 2, access: 3, event: 4 };
 export interface TimelineSortable { kind: string; status: string | null; createdAt: string; id?: string }
 
 export function compareTimeline(a: TimelineSortable, b: TimelineSortable): number {

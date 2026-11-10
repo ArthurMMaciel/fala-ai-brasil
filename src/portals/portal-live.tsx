@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { listPartnerDirectory, loadCompanyContext, loadPartnerPhoto, uploadPartnerPhoto, type CompanyContext, type DirectoryPartner } from '../services/account';
-import { listCompanyComplaints, listPartnerCompanies, listCompanyResponsiveness, loadMyCompanyResponsiveness, loadCompanyTimeline, loadPartnerProfile, requestPartner, respondCompanyComplaint, setPartnerConnection, updatePartnerProfile, loadPartnerPlan, listMyContents, listPartnerContents, createPartnerContent, deletePartnerContent, type PartnerContent, type CompanyComplaint, type ComplaintStatusDb, type PartnerCompany, type PartnerProfileData, type MyResponsiveness, type ResponsivenessRow, type TimelineItem } from '../services/data';
+import { listCompanyComplaints, listPartnerCompanies, listCompanyResponsiveness, loadMyCompanyResponsiveness, loadMyCompanySatisfaction, loadCompanyTimeline, loadPartnerProfile, requestPartner, respondCompanyComplaint, setPartnerConnection, updatePartnerProfile, loadPartnerPlan, listMyContents, listPartnerContents, createPartnerContent, deletePartnerContent, type PartnerContent, type CompanySatisfaction, type CompanyComplaint, type ComplaintStatusDb, type PartnerCompany, type PartnerProfileData, type MyResponsiveness, type ResponsivenessRow, type TimelineItem } from '../services/data';
 import { showToast } from '../app/toast';
 import { Icon, QuickActions, initials, type IconName } from './ui';
 import { formatPhone, planIncludesContent, validateContent, whatsappLink } from '../domain/account-rules';
@@ -95,17 +95,18 @@ function CompanyComplaintDetail({ item, companyName, onBack, onChanged }: { item
  }
  return <><button className="text-action" onClick={onBack}>← Voltar para manifestações</button>
   <div className="commercial-page-head"><div><span className="editorial-eyebrow">Manifestação {item.protocol}</span><h1>{item.title}</h1><p>{item.category} · recebida em {dateLabel(item.createdAt)} · {statusLabel(companyStatus, item.status)}</p></div>
-   <button className="btn" type="button" disabled={timeline === null} onClick={() => print(buildCompanyPrint({ protocol: item.protocol, title: item.title, statusText: statusLabel(companyStatus, item.status), receivedAt: dateLabel(item.createdAt), generatedAt: printDateTime(), companyName, category: item.category, shared: item.shared, timeline: (timeline ?? []).map(entry => ({ title: entry.kind === 'response' ? 'Resposta enviada' : statusLabel(companyStatus, entry.status ?? 'shared'), date: dateLabel(entry.createdAt), text: entry.content })), feedbackText: item.feedback ? feedbackLabels[item.feedback] : null }))}>Baixar PDF</button></div>
+   <button className="btn" type="button" disabled={timeline === null} onClick={() => print(buildCompanyPrint({ protocol: item.protocol, title: item.title, statusText: statusLabel(companyStatus, item.status), receivedAt: dateLabel(item.createdAt), generatedAt: printDateTime(), companyName, category: item.category, shared: item.shared, timeline: (timeline ?? []).map(entry => ({ title: entry.kind === 'response' ? 'Resposta enviada' : entry.kind === 'response_review' ? 'Revisão da equipe' : statusLabel(companyStatus, entry.status ?? 'shared'), date: dateLabel(entry.createdAt), text: entry.content })), feedbackText: item.feedback ? feedbackLabels[item.feedback] : null }))}>Baixar PDF</button></div>
   {host}
   <div className="commercial-grid-two"><section className="commercial-panel"><h2>Versão compartilhada</h2><p>{item.shared}</p><div className="commercial-callout">Texto revisado e autorizado por quem relatou. A identidade e o relato original não são compartilhados.</div>{item.feedback && <p><strong>Avaliação do retorno:</strong> {feedbackLabels[item.feedback]}</p>}</section>
-   <section className="commercial-panel"><h2>Histórico</h2>{timeline === null ? <p className="muted">Carregando…</p> : <ol className="worker-timeline">{timeline.map((entry, index) => <li key={index} className={entry.kind === 'response' ? 'worker-timeline-response' : ''}><strong>{entry.kind === 'response' ? 'Resposta enviada' : statusLabel(companyStatus, entry.status ?? 'shared')}</strong><span>{dateLabel(entry.createdAt)}</span><p>{entry.content}</p></li>)}</ol>}</section></div>
+   <section className="commercial-panel"><h2>Histórico</h2>{timeline === null ? <p className="muted">Carregando…</p> : <ol className="worker-timeline">{timeline.map((entry, index) => <li key={index} className={entry.kind === 'response' ? 'worker-timeline-response' : entry.kind === 'response_review' ? 'worker-timeline-review' : ''}><strong>{entry.kind === 'response' ? 'Resposta enviada' : entry.kind === 'response_review' ? 'Revisão da equipe' : statusLabel(companyStatus, entry.status ?? 'shared')}</strong><span>{dateLabel(entry.createdAt)}</span><p>{entry.content}</p></li>)}</ol>}</section></div>
+  {item.status === 'answer_in_review' && <section className="commercial-panel"><h2>Resposta com a equipe</h2><p className="muted small">A equipe Escuta Aí Brasil revisa a resposta antes de entregá-la a quem relatou. Se precisar de ajuste, o motivo aparece no histórico e você poderá responder de novo.</p></section>}
   {['shared', 'answered'].includes(item.status) && <section className="commercial-panel"><h2>{item.status === 'shared' ? 'Responder' : 'Enviar nova atualização'}</h2><p className="muted small">Responda de forma institucional. Não tente identificar quem relatou.</p><textarea className="company-response-text" rows={5} maxLength={5000} value={text} onChange={event => setText(event.target.value)} aria-label="Resposta da empresa" /><div className="nav-actions"><button className="btn primary" disabled={busy || text.trim().length < 10} onClick={send}>Enviar resposta</button></div></section>}</>;
 }
 
-function CompanyResponsiveness({ rows, mine }: { rows: ResponsivenessRow[] | null; mine?: MyResponsiveness }) {
+function CompanyResponsiveness({ rows, mine, satisfaction }: { rows: ResponsivenessRow[] | null; mine?: MyResponsiveness; satisfaction?: CompanySatisfaction }) {
  return <><div className="commercial-page-head"><div><span className="editorial-eyebrow">Referência pública</span><h1>Responsividade das empresas</h1><p>Como as empresas respondem às manifestações liberadas, em faixas e sem posição.</p></div></div>
   <div className="commercial-callout">{responsivenessMethod}</div>
-  <MyResponsivenessPanel mine={mine} />
+  <MyResponsivenessPanel mine={mine} satisfaction={satisfaction} />
   {rows === null ? <p className="muted">Carregando…</p> : rows.length === 0 ? <section className="commercial-panel"><p>Ainda não há empresas com manifestações liberadas suficientes.</p></section> : <ResponsivenessTable rows={rows} highlightMine />}</>;
 }
 
@@ -139,11 +140,12 @@ export function CompanyPortalLive({ companyId }: { companyId: string }) {
  const [complaints, setComplaints] = useState<CompanyComplaint[] | null>(null);
  const [ranking, setRanking] = useState<ResponsivenessRow[] | null>(null);
  const [myStats, setMyStats] = useState<MyResponsiveness[] | null>(null);
+ const [satisfaction, setSatisfaction] = useState<CompanySatisfaction[]>([]);
  const [openId, setOpenId] = useState<string | null>(null);
  const [version, setVersion] = useState(0);
  const [contextVersion, setContextVersion] = useState(0);
  useEffect(() => { let active = true; loadCompanyContext(companyId).then(value => { if (active) setCompany(value); }).catch(() => active && setCompany(null)); return () => { active = false; }; }, [companyId, contextVersion]);
- useEffect(() => { let active = true; Promise.all([listCompanyComplaints(), listCompanyResponsiveness(), loadMyCompanyResponsiveness()]).then(([rows, rank, own]) => { if (active) { setComplaints(rows); setRanking(rank); setMyStats(own); } }); return () => { active = false; }; }, [companyId, version]);
+ useEffect(() => { let active = true; Promise.all([listCompanyComplaints(), listCompanyResponsiveness(), loadMyCompanyResponsiveness()]).then(([rows, rank, own]) => { if (active) { setComplaints(rows); setRanking(rank); setMyStats(own); } }); loadMyCompanySatisfaction().then(rows => { if (active) setSatisfaction(rows); }).catch(() => undefined); return () => { active = false; }; }, [companyId, version]);
  const mine = useMemo(() => myStats?.find(row => row.companyId === companyId), [myStats, companyId]);
  const open = (id: string | null) => { setOpenId(id); setView('complaints'); };
  const items: [CompanyView, string][] = [['dashboard', 'Dashboard'], ['complaints', 'Manifestações'], ['ranking', 'Responsividade'], ['partners', 'Parceiros'], ['profile', 'Meu perfil']];
@@ -151,7 +153,7 @@ export function CompanyPortalLive({ companyId }: { companyId: string }) {
   {company === undefined || complaints === null ? <p className="muted">Carregando dados da empresa…</p> : company === null ? <section className="commercial-panel"><h2>Não foi possível carregar sua empresa</h2><p>Saia e entre novamente. Se continuar, fale com o suporte.</p></section> :
    view === 'dashboard' ? <CompanyDashboard company={company} complaints={complaints} mine={mine} onOpen={open} onView={setView} /> :
    view === 'complaints' ? <CompanyComplaints complaints={complaints} openId={openId} onOpen={setOpenId} onChanged={() => setVersion(value => value + 1)} companyName={company.name} /> :
-   view === 'ranking' ? <CompanyResponsiveness rows={ranking} mine={mine} /> :
+   view === 'ranking' ? <CompanyResponsiveness rows={ranking} mine={mine} satisfaction={satisfaction.find(row => row.companyId === companyId)} /> :
    view === 'profile' ? <CompanyProfile companyId={companyId} onSaved={() => setContextVersion(value => value + 1)} /> : <PartnerDirectoryLive />}
  </section></main>;
 }

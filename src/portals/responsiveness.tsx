@@ -1,5 +1,5 @@
 import { bandLabel, bandTone, formatHours, responseBandLabels, responseTimeBandLabels, satisfactionBandLabels } from '../domain/responsiveness';
-import type { MyResponsiveness, ResponsivenessRow } from '../services/data';
+import type { CompanySatisfaction, MyResponsiveness, ResponsivenessRow } from '../services/data';
 
 // Responsividade das empresas (TASK-0036): ordem por nome, faixas em selos, sem posição, contagem ou percentual.
 
@@ -22,7 +22,7 @@ export function ResponsivenessTable({ rows, highlightMine = false }: { rows: Res
 }
 
 /** Números exatos só da própria empresa; o resto da lista vê apenas as faixas. */
-export function MyResponsivenessPanel({ mine }: { mine: MyResponsiveness | undefined }) {
+export function MyResponsivenessPanel({ mine, satisfaction }: { mine: MyResponsiveness | undefined; satisfaction?: CompanySatisfaction }) {
  if (!mine) return null;
  return <section className="commercial-panel"><h2>Sua empresa</h2>
   <dl className="company-facts">
@@ -30,6 +30,7 @@ export function MyResponsivenessPanel({ mine }: { mine: MyResponsiveness | undef
    <div><dt>Com resposta</dt><dd>{mine.answered}</dd></div>
    <div><dt>Taxa de resposta</dt><dd>{mine.responseRate === null ? '—' : `${mine.responseRate}%`} {mine.responseBand && <Band labels={responseBandLabels} band={mine.responseBand} />}</dd></div>
    <div><dt>Tempo médio até a 1ª resposta</dt><dd>{formatHours(mine.avgFirstResponseHours)} {mine.responseTimeBand && <Band labels={responseTimeBandLabels} band={mine.responseTimeBand} />}</dd></div>
+   {satisfaction && <div><dt>Satisfação com as respostas</dt><dd>{satisfaction.band ? <>{satisfaction.ratings} avaliações <Band labels={satisfactionBandLabels} band={satisfaction.band} /></> : 'Sem dado (menos de 3 avaliações)'}</dd></div>}
   </dl>
   <p className="commercial-callout">{mine.listed ? 'Sua empresa aparece na lista pública com as faixas acima. Os números exatos ficam só aqui, para a sua empresa.' : 'Sua empresa aparece na lista a partir de 3 manifestações liberadas.'}</p>
  </section>;

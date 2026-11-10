@@ -32,7 +32,7 @@ export async function listWorkerComplaints(): Promise<WorkerComplaint[]> {
   return (data ?? []).map(row => ({ id: row.id, protocol: row.protocol, companyId: row.company_id, category: row.category, title: row.title, status: row.status, feedback: row.worker_feedback, createdAt: row.created_at, incidentPeriod: row.incident_period, recurrence: row.recurrence, expectedOutcomes: row.expected_outcomes ?? [] }));
 }
 
-export interface TimelineItem { id?: string; kind: "event" | "response"; status: ComplaintStatusDb | null; actor: "worker" | "company" | "platform"; content: string; createdAt: string }
+export interface TimelineItem { workerSummary?: string | null; releasedAt?: string | null; summaryCorrectedAt?: string | null; id?: string; kind: "event" | "response" | "response_review"; status: ComplaintStatusDb | null; actor: "worker" | "company" | "platform"; content: string; createdAt: string }
 export interface WorkerComplaintDetail { original: string; shared: string | null; timeline: TimelineItem[] }
 
 export async function loadWorkerComplaintDetail(id: string): Promise<WorkerComplaintDetail> {
@@ -41,11 +41,13 @@ export async function loadWorkerComplaintDetail(id: string): Promise<WorkerCompl
     db.from("complaint_originals").select("original_content").eq("complaint_id", id).maybeSingle(),
     db.from("complaint_shared_versions").select("shared_content").eq("complaint_id", id).maybeSingle(),
     db.from("complaint_events").select("id, status, actor, note, created_at").eq("complaint_id", id),
-    db.from("company_responses").select("id, content, created_at").eq("complaint_id", id),
+    db.from("company_responses").select("id, content, created_at, review_status, worker_summary, released_at, summary_corrected_at").eq("complaint_id", id),
   ]);
   const timeline: TimelineItem[] = [
     ...(events.data ?? []).map(row => ({ id: row.id, kind: "event" as const, status: row.status, actor: row.actor, content: row.note, createdAt: row.created_at })),
-    ...(responses.data ?? []).map(row => ({ id: row.id, kind: "response" as const, status: null, actor: "company" as const, content: row.content, createdAt: row.created_at })),
+    // Só respostas liberadas ao trabalhador (ADR-0013); antes da 20261109180000 todas chegam como released.
+    // Para o trabalhador, a resposta entra na linha do tempo quando a equipe libera.
+    ...(responses.data ?? []).filter(row => !row.review_status || row.review_status === "released").map(row => ({ id: row.id, kind: "response" as const, status: null, actor: "company" as const, content: row.content, createdAt: row.released_at ?? row.created_at, workerSummary: row.worker_summary ?? null, releasedAt: row.released_at ?? null, summaryCorrectedAt: row.summary_corrected_at ?? null })),
   ].sort(compareTimeline);
   return { original: original.data?.original_content ?? "", shared: shared.data?.shared_content ?? null, timeline };
 }
@@ -85,7 +87,7 @@ export async function listCompanyComplaints(): Promise<CompanyComplaint[]> {
 
 export async function loadCompanyTimeline(id: string): Promise<TimelineItem[]> {
   const { data } = await supabase().rpc("get_company_complaint_timeline", { p_id: id });
-  return (data ?? []).map((row: { kind: "event" | "response"; status: ComplaintStatusDb | null; actor: TimelineItem["actor"]; content: string; created_at: string }) => ({ kind: row.kind, status: row.status, actor: row.actor, content: row.content, createdAt: row.created_at }));
+  return (data ?? []).map((row: { kind: TimelineItem["kind"]; status: ComplaintStatusDb | null; actor: TimelineItem["actor"]; content: string; created_at: string }) => ({ kind: row.kind, status: row.status, actor: row.actor, content: row.content, createdAt: row.created_at }));
 }
 
 export async function respondCompanyComplaint(id: string, content: string): Promise<AuthResult<null>> {
@@ -202,4 +204,25 @@ export async function deletePartnerContent(content: PartnerContent): Promise<Aut
   if (error) return { ok: false, message: "Não foi possível remover o conteúdo." };
   if (content.storagePath) await db.storage.from(partnerMediaBucket).remove([content.storagePath]);
   return { ok: true, value: null };
+}
+
+// Avaliação de cada resposta liberada (ADR-0013): o comentário opcional só a equipe lê.
+export interface ResponseRating { responseId: string; rating: ComplaintFeedback; createdAt: string }
+
+export async function loadMyResponseRatings(complaintId: string): Promise<ResponseRating[]> {
+  const { data } = await supabase().rpc("my_response_ratings", { p_complaint: complaintId });
+  return (data ?? []).map((row: { response_id: string; rating: ComplaintFeedback; created_at: string }) => ({ responseId: row.response_id, rating: row.rating, createdAt: row.created_at }));
+}
+
+export async function rateResponse(responseId: string, rating: ComplaintFeedback, comment: string): Promise<AuthResult<null>> {
+  const { error } = await supabase().rpc("rate_response", { p_response: responseId, p_rating: rating, p_comment: comment.trim() || null });
+  return error ? { ok: false, message: rpcError(error, "Não foi possível registrar a avaliação.") } : { ok: true, value: null };
+}
+
+// Satisfação só da própria empresa; contagem e faixa nulas abaixo de 3 avaliações (fora do ranking no piloto).
+export interface CompanySatisfaction { companyId: string; ratings: number | null; band: string | null }
+
+export async function loadMyCompanySatisfaction(): Promise<CompanySatisfaction[]> {
+  const { data } = await supabase().rpc("my_company_satisfaction");
+  return (data ?? []).map((row: { company_id: string; ratings: number | null; satisfaction_band: string | null }) => ({ companyId: row.company_id, ratings: row.ratings, band: row.satisfaction_band }));
 }

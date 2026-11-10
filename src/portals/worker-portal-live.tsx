@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { closeWorkerComplaint, listCompanyDirectory, listWorkerComplaints, listCompanyResponsiveness, loadWorkerComplaintDetail, shareWorkerComplaint, type ComplaintFeedback, type ComplaintStatusDb, type DirectoryCompany, type ResponsivenessRow, type WorkerComplaint, type WorkerComplaintDetail } from '../services/data';
+import { closeWorkerComplaint, listCompanyDirectory, listWorkerComplaints, listCompanyResponsiveness, loadMyResponseRatings, loadWorkerComplaintDetail, shareWorkerComplaint, type ComplaintFeedback, type ComplaintStatusDb, type DirectoryCompany, type ResponseRating, type ResponsivenessRow, type WorkerComplaint, type WorkerComplaintDetail } from '../services/data';
 import { showToast } from '../app/toast';
 import { ComplaintWizard } from './complaint-wizard';
 import { QuickActions } from './ui';
@@ -8,6 +8,7 @@ import { ResponsivenessTable, responsivenessMethod } from './responsiveness';
 import { statusLabel } from '../domain/complaint-status';
 import { buildWorkerPrint, printDateTime } from '../domain/print-document';
 import { usePrintDocument } from './print-document';
+import { WorkerResponses } from './response-review';
 
 // Portal do trabalhador com dados reais (modelo v3). O relato original nunca sai daqui; a empresa recebe só a versão revisada.
 type View = 'dashboard' | 'list' | 'detail' | 'new' | 'companies' | 'profile';
@@ -106,7 +107,12 @@ function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerCo
  const [shareText, setShareText] = useState('');
  const [busy, setBusy] = useState(false);
  const [feedback, setFeedback] = useState<ComplaintFeedback | ''>('');
+ const [ratings, setRatings] = useState<ResponseRating[]>([]);
+ const [ratingsVersion, setRatingsVersion] = useState(0);
  useEffect(() => { let active = true; loadWorkerComplaintDetail(complaint.id).then(value => { if (active) { setDetail(value); setShareText(complaint.status === 'adjustment_requested' ? value.shared ?? '' : ''); } }); return () => { active = false; }; }, [complaint.id, complaint.status]);
+ // Avaliações por resposta (ADR-0013); sem a migration a RPC falha e a lista fica vazia.
+ useEffect(() => { let active = true; loadMyResponseRatings(complaint.id).then(value => { if (active) setRatings(value); }).catch(() => undefined); return () => { active = false; }; }, [complaint.id, ratingsVersion]);
+ const responses = detail?.timeline.filter(item => item.kind === 'response') ?? [];
  const preRelease = ['received', 'in_review', 'adjustment_requested', 'held'].includes(complaint.status);
  // PDF (TASK-0043): o relato original só entra se a pessoa marcar; o padrão é sem.
  const { print, host } = usePrintDocument();
@@ -119,7 +125,7 @@ function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerCo
    protocol: complaint.protocol, title: complaint.title, statusText: statusLabel(statusLabels, complaint.status), createdAt: dateLabel(complaint.createdAt), generatedAt: printDateTime(),
    companyName: company?.name ?? '—', category: complaint.category, incidentPeriod: complaint.incidentPeriod, recurrence: complaint.recurrence, expectedOutcomes: complaint.expectedOutcomes,
    shared: detail.shared, sharedReleased: !preRelease,
-   timeline: detail.timeline.map(item => ({ title: item.kind === 'response' ? 'Resposta da empresa' : statusLabel(eventLabels, item.status ?? 'received'), date: dateLabel(item.createdAt), text: item.content })),
+   timeline: detail.timeline.map(item => ({ title: item.kind === 'response' ? 'Resposta da empresa' : statusLabel(eventLabels, item.status ?? 'received'), date: dateLabel(item.releasedAt ?? item.createdAt), text: item.kind === 'response' && item.workerSummary ? `Descrição da equipe: ${item.workerSummary}\n\nResposta original da empresa: ${item.content}` : item.content })),
    feedbackText: complaint.feedback ? feedbackLabels[complaint.feedback] : null, original: detail.original, includeOriginal: withOriginal,
   }));
  }
@@ -156,9 +162,10 @@ function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerCo
      {complaint.status === 'adjustment_requested' && adjustmentNote && <div className="commercial-callout">{adjustmentNote}</div>}
      <p className="muted small">Escreva uma versão separada. Inclua o necessário para a empresa entender e responder, sem nomes, locais, datas ou detalhes que possam identificar pessoas. A equipe revisa antes de liberar.</p><textarea className="worker-share-text" rows={6} value={shareText} onChange={event => setShareText(event.target.value)} aria-label="Versão para a empresa" placeholder="Escreva a versão que poderá ser mostrada à empresa." /><button className="btn primary" disabled={busy} onClick={share}>{complaint.status === 'adjustment_requested' ? 'Enviar ajuste para revisão' : 'Solicitar revisão'}</button></section>
     : detail.shared && <section className="worker-detail-section"><h3>{preRelease ? 'Versão em revisão' : 'Versão que a empresa recebeu'}</h3>{preRelease && <p className="muted small">A equipe confere esta versão antes de liberar à empresa. Até lá, a empresa não vê nada.</p>}<p className="worker-original">{detail.shared}</p></section>}
+   <WorkerResponses responses={responses} ratings={ratings} onRated={() => setRatingsVersion(value => value + 1)} />
    {complaint.expectedOutcomes.length > 0 && <section className="worker-detail-section"><h3>O que você espera</h3><ul>{complaint.expectedOutcomes.map(item => <li key={item}>{item}</li>)}</ul></section>}
   </div><aside className="worker-detail-aside">
-   <section className="worker-detail-section"><h3>Acompanhamento</h3><ol className="worker-timeline">{detail.timeline.map((item, index) => <li key={index} className={item.kind === 'response' ? 'worker-timeline-response' : ''}><strong>{item.kind === 'response' ? 'Resposta da empresa' : statusLabel(eventLabels, item.status ?? 'received')}</strong><span>{dateLabel(item.createdAt)}</span><p>{item.content}</p></li>)}</ol></section>
+   <section className="worker-detail-section"><h3>Acompanhamento</h3><ol className="worker-timeline">{detail.timeline.map((item, index) => <li key={index} className={item.kind === 'response' ? 'worker-timeline-response' : ''}><strong>{item.kind === 'response' ? 'Resposta da empresa' : statusLabel(eventLabels, item.status ?? 'received')}</strong><span>{dateLabel(item.kind === 'response' ? item.releasedAt ?? item.createdAt : item.createdAt)}</span><p>{item.kind === 'response' ? item.workerSummary ?? item.content : item.content}</p></li>)}</ol></section>
    {open && <section className="worker-detail-section worker-actions"><h3>{preRelease ? 'Retirar manifestação' : 'Encerrar acompanhamento'}</h3>{!preRelease && <label>A resposta ajudou?<select value={feedback} onChange={event => setFeedback(event.target.value as ComplaintFeedback | '')}><option value="">Prefiro não avaliar</option>{Object.entries(feedbackLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>}<button className="btn" disabled={busy} onClick={close}>{preRelease ? 'Retirar manifestação' : 'Encerrar acompanhamento'}</button></section>}
    {complaint.feedback && <section className="worker-detail-section"><h3>Sua avaliação</h3><p>{feedbackLabels[complaint.feedback]}</p></section>}
   </aside></div>}</>;
