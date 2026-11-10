@@ -1,6 +1,6 @@
 # TASK-0044 — Ajustes de layout das telas principais
 
-- Status: em-andamento (itens 1, 2, 3, 4, 5, 7, 8 e 9 prontos e testados; item 6 pendente; aguarda push na main)
+- Status: em-andamento (itens 1, 2, 3, 4, 5, 7, 8 e 9 na main desde 2026-11-10; item 6 pendente)
 - ClickUp: [TASK-0044](https://app.clickup.com/t/17tu7rpcpdf)
 - Área: Frontend/Acessibilidade
 - Prioridade: P1 (item 1 é bug em produção); demais P2
@@ -71,7 +71,7 @@ Cada item está num commit próprio; reverter o commit do item.
 Commits na main, testes e build verdes e as telas conferidas no navegador.
 
 ## Progresso em 2026-11-10
-- Commits sobre a main 7ba76b9: `b0b9e38` (item 1), `f778c60` (itens 2 e 9), `60c018b` (item 7), `15cfd2e` (item 4), `8f79a71` (item 3), `18133e9` (item 5), `3ebadb6` (item 8) e `4d855d6` (remoção do `updateCompanyContact`).
+- Commits na main (push de 2026-11-10, `1fbf35d..e774376`, sem force): `6b18abe` (item 1), `bb2dd8e` (itens 2 e 9), `770b66d` (item 7), `bfb637c` (item 4), `a5f3d9c` (item 3), `bfbc8a3` (item 5), `2debc75` (item 8), `ab2926f` (remoção do `updateCompanyContact`) e `e774376` (documentos).
 - Conferido no navegador:
   - item 1: contraste medido de cerca de 10:1;
   - landing e rodapé sem texto de demonstração;
@@ -81,4 +81,4 @@ Commits na main, testes e build verdes e as telas conferidas no navegador.
   - fila com "há 28 h".
 - Prints de antes e depois guardados fora do Git.
 - Pendente: item 6 (logo), à espera da escolha do responsável.
-- Pendente: push na main, que depende da liberação escrita do responsável.
+- Push na main liberado por escrito pelo responsável na sessão do Front em 2026-11-10; pre-push com 82 testes e build verdes.

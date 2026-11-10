@@ -1,6 +1,6 @@
 # TASK-0043 — PDF da manifestação (fase 1: impressão do navegador)
 
-- Status: em-andamento (código pronto e testado; aguarda push na main e conferência humana do PDF)
+- Status: em-andamento (código na main em `7860eef` desde 2026-11-10; aguarda conferência humana do PDF)
 - ClickUp: [TASK-0043](https://app.clickup.com/t/17tu7rpcpde)
 - Área: Frontend/Privacidade
 - Prioridade: P2
@@ -64,4 +64,4 @@ Commit na main, testes e build verdes e a conferência humana abaixo feita.
 - Implementado em `src/domain/print-document.ts`, `src/portals/print-document.tsx`, nos detalhes de `worker-portal-live.tsx` e `portal-live.tsx` e em `src/styles/system.css`. `npm test` 78/78, `tsc` e build OK.
 - `window.print()` é chamado por `setTimeout` depois da renderização: com `requestAnimationFrame` o diálogo não abria com a aba em segundo plano.
 - Pendente: conferência humana do diálogo de impressão e do arquivo final em Chrome (desktop), Safari (macOS ou iOS) e no celular (Chrome no Android). A verificação automática substituiu `window.print()` por um registro e não abriu o diálogo nativo.
-- Pendente: push na main, que depende da liberação escrita do responsável.
+- Na main em `7860eef` (push de 2026-11-10, liberado por escrito pelo responsável).
