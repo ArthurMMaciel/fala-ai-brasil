@@ -91,6 +91,9 @@
 .legacy-editorial:has(.portal-layout) .topbar .brand-logo { filter: brightness(0) invert(1); }
 .legacy-editorial:has(.portal-layout) .topbar .btn { background: rgba(255, 255, 255, .1); border-color: rgba(255, 255, 255, .22); color: #fff; }
 .legacy-editorial:has(.portal-layout) .topbar .btn:hover { background: rgba(255, 255, 255, .18); }
+/* Portal da empresa/parceiro (conta "admin"): editorial.css pinta os botões do topo de verde-escuro, invisíveis sobre o fundo verde (TASK-0044, item 1). */
+.legacy-editorial.admin:has(.portal-layout) .topbar .nav-actions .btn { color: #fff; border-color: rgba(255, 255, 255, .22); background: rgba(255, 255, 255, .1); }
+.legacy-editorial.admin:has(.portal-layout) .topbar .nav-actions .btn:hover, .legacy-editorial.admin:has(.portal-layout) .topbar .nav-actions .btn:focus-visible { color: #fff; background: rgba(255, 255, 255, .18); }
 
 .legacy-editorial .portal-layout { grid-template-columns: 248px minmax(0, 1fr); gap: 0; min-height: calc(100vh - 80px); padding: 0 12px 12px 0; }
 .legacy-editorial .portal-layout > .sidebar { position: sticky; top: 12px; min-height: 0; padding: 12px 16px; border: 0; background: transparent; color: #fff; display: flex; flex-direction: column; gap: 4px; }
