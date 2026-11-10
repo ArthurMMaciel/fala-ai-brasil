@@ -339,3 +339,7 @@
   .worker-funnel article:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
 @media (max-width: 640px) { .worker-next-row { flex-direction: column; align-items: flex-start; } }
+
+/* Dashboard da empresa (TASK-0044, item 5): resumo dos dados com link para o Meu perfil; CNPJ sem quebra. */
+.company-summary .nowrap { white-space: nowrap; }
+.company-summary .btn { margin-top: 14px; }
