@@ -232,6 +232,52 @@ RLS ligada em todas as tabelas novas. Nenhum `grant` direto a `anon` ou `authent
 
 Empresa pré-cadastrada fora do diretório e do ranking; MEI recusado; QSA ignorado; reivindicação cria vínculo `pending`; marcos criados uma única vez, cancelados com resposta e sem lembrete automático em risco alto; tema não altera prazo. Dois tenants; vínculo `pending` não vê caso liberado; `verified` vê; `revoked` deixa de ver; contato de outra manifestação não é visível; convite com token reutilizado, expirado ou revogado é recusado com a mesma mensagem; aceite cria só vínculo `pending`; risco alto bloqueia convite e exige segunda pessoa da equipe; opt-out bloqueia novo convite; empresa nunca lê `complaint_contacts`.
 
+## Revisão de 2026-11-17: recorte para o piloto fechado de 30/11 (go/no-go em 25/11)
+
+O modelo completo acima não cabe com segurança em 13 dias. Esta revisão separa o mínimo que fecha o risco aberto (texto liberado a quem cadastrou o CNPJ primeiro) do que pode esperar. Nada aqui foi implementado. Cada eixo tem opções para o responsável escolher.
+
+### Eixo 1: como a equipe confirma que quem entra representa a empresa
+
+| Opção | Como funciona | Prós | Contras |
+|---|---|---|---|
+| **V1. Verificação manual de todo vínculo** (D1, D2 e D3 só com `document_review` e `callback`) | Toda conta de empresa nasce `pending`. A equipe liga para o telefone público da empresa ou confere um documento de representação fora da plataforma e marca `verified`. Só o vínculo `verified` vê manifestações | Fecha o risco com o menor código: uma coluna, uma tabela de histórico, duas funções `ops_*` e a troca do gate. O teste de isolamento (TASK-0006) cobre a troca | Fila manual para 4 pessoas. A empresa fica sem ver casos até ser verificada |
+| V2. V1 + domínio corporativo (D3 completo) | Um e-mail confirmado num domínio já verificado vale como prova | Escala sem ligação | Tabela de domínios, lista de domínios gratuitos e mais testes. Não é necessário num piloto com poucas empresas |
+| V3. Piloto só com empresas convidadas | A equipe escolhe as empresas do piloto, verifica o representante antes e só essas aparecem na manifestação | Menor superfície. Combina com "piloto fechado" | Trabalhador não manifesta contra empresa fora da lista. Exige filtro em `create_complaint` e no diretório |
+
+**Recomendação técnica:** V1, com V3 como regra de operação (a equipe só libera casos de empresas com representante verificado) se o responsável quiser restringir mais. V2 fica para depois do piloto.
+
+### Eixo 2: como o convite é enviado pela equipe, sem envio automático
+
+| Opção | Como funciona | Prós | Contras |
+|---|---|---|---|
+| **C1. Sem token: convite é só um contato da equipe** | A equipe contata a empresa pelo canal público (telefone ou e-mail do site da empresa), com o texto mínimo aprovado, e indica a página de Empresa. A empresa se cadastra normalmente e cai em `pending`; a verificação de V1 decide o acesso. A equipe registra o contato numa tarefa manual (quem, quando, canal, resultado), sem o conteúdo do caso | Nada novo de segurança para testar (sem token, sem enumeração). Reaproveita o cadastro e a verificação | Registro do convite depende de uma tabela simples de tarefas ou de `complaint_reminders`. Não liga o cadastro ao convite automaticamente |
+| C2. Token de uso único (D5 e D6) | A equipe gera o link na Operação e envia por fora. O aceite cria o vínculo `pending` | Liga a conta à empresa certa sem a pessoa digitar CNPJ. Rastreável | Mais código e testes (hash, expiração, mesma mensagem de erro, opt-out). Não dispensa a verificação |
+| C3. Convite automático por e-mail | — | — | Fora do piloto: contraria a regra de não haver contato externo automático sem revisão, e o envio depende da ADR-0020 |
+
+**Recomendação técnica:** C1 no piloto. C2 quando o volume justificar.
+
+### Eixo 3: o que acontece com caso de alto risco
+
+| Opção | Como funciona | Prós | Contras |
+|---|---|---|---|
+| **R1. D7 como está** | `risk_level` em toda decisão. Com `high`, não há convite nem lembrete automático e a liberação exige uma segunda pessoa da equipe | Controle forte, conferido no banco | Mais uma coluna, check de segunda pessoa e testes. Depende de 2 pessoas disponíveis no SLA |
+| R2. Alto risco não é liberado no piloto | A equipe usa a decisão `held` com motivo "risco alto". O caso não vai à empresa e é tratado fora da plataforma pela equipe, sem contato externo automático | Zero código novo: `held` já existe | O caso fica sem resposta da empresa. O motivo de risco é texto livre, sem campo próprio para métrica |
+| R3. R2 agora e R1 depois | R2 até a primeira revisão do piloto; R1 entra se houver casos de alto risco que precisem chegar à empresa | Não bloqueia o go/no-go | Exige registrar a decisão de revisitar |
+
+**Recomendação técnica:** R3. Em qualquer opção, a regra não muda: alto risco nunca gera contato externo automático, e quem decide é uma pessoa da equipe.
+
+### Mínimo para o go/no-go de 25/11 (se o responsável escolher V1 + C1 + R3)
+
+1. Migration: `company_users.verification_status` (`pending|verified|rejected|revoked`, vínculos existentes migrados para `pending`), `representative_verifications` (só inserção) e `ops_verify_representative`, `ops_list_representatives`.
+2. Migration separada: `is_verified_company_user` e troca do gate em `list_company_complaints`, `get_company_complaint_timeline`, `respond_complaint` e `company_responsiveness.is_mine`.
+3. Testes: o `isolation_smoke.sql` da TASK-0006 com vínculo `pending`, `verified` e `revoked`; smoke próprio da verificação.
+4. Front: aviso "aguardando verificação" no portal da empresa; fila de verificação na Operação.
+5. Operação: roteiro da ligação e do texto mínimo do contato (C1), sem promessa de anonimato.
+
+Fora do recorte: D4 (contatos indicados gravados), D5/D6 (token), D8 (opt-out), D9 a D12 (empresa pré-cadastrada e lembretes). A ADR continua valendo para eles, sem prazo no piloto.
+
+Risco do recorte: manifestação contra empresa sem representante verificado fica parada depois da liberação. O trabalhador precisa ver esse estado com clareza, e a equipe precisa de uma fila para isso.
+
 ## Rollback
 
 - Antes da troca do gate: remover as tabelas e colunas novas; não há dado dependente.
