@@ -4,13 +4,9 @@ Vale para o piloto fechado a partir de 30/11. Usa só o que existe em 2026-11-17
 
 ## Parâmetros do piloto (definidos pelo responsável, comunicados pelo Gestor em 2026-11-17)
 
-- 3 empresas.
-- Até 5 casos novos por dia. O limite é operacional, sem código: o que passar de 5 no dia fica na fila para o dia seguinte.
-- Operador único: o próprio responsável.
-- Quando a fila passar do prazo, o recurso é a pausa do piloto ([ADR-0021](../adr/ADR-0021-pausa-do-piloto.md)). O Gestor informa que ela foi aprovada. No repositório, em 2026-11-17, a ADR ainda consta como "Proposta" e não está implementada. Até a migration da pausa chegar à produção, vale o que está em "Pausar novas entradas" abaixo.
-- **Lacunas, levadas ao responsável pelo Gestor:**
-  - substituto do operador;
-  - critério objetivo de pausa, por exemplo número de casos na fila acima do prazo ou caso de alto risco sem tratamento.
+- Referência: 3 empresas e até 5 casos novos por dia. São números de referência, não limites. O piloto se ajusta com a experiência, e não há gatilho automático nem critério operacional de pausa.
+- Operador único: o próprio responsável. **Lacuna aceita:** não há substituto do operador.
+- A pausa do piloto ([ADR-0021](../adr/ADR-0021-pausa-do-piloto.md)) fica reservada a incidente de segurança ou privacidade (SEV-1 abaixo). Em 2026-11-17, a ADR consta como "Proposta" no repositório e não está implementada. Até a migration chegar à produção, vale o que está em "Pausar novas entradas" abaixo.
 
 ## Quem faz o quê
 
