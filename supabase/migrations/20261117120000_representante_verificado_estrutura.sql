@@ -11,6 +11,9 @@
 --   alter table public.company_users drop column verified_at, drop column verification_status;
 --   Antes do drop da tabela, exportar a trilha.
 
+-- Se company_users estiver ocupada, falha em 5 s em vez de travar o portal da empresa na fila de locks.
+set local lock_timeout = '5s';
+
 -- 1) Estado do vínculo.
 alter table public.company_users
   add column verification_status text not null default 'pending'

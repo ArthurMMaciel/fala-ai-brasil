@@ -9,8 +9,11 @@ declare
   u_w uuid := 'e8888888-8888-8888-8888-888888888888'; u_c uuid := 'e9999999-9999-9999-9999-999999999999'; u_op uuid := 'eaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; v_co uuid; v_cp uuid; n int;
 begin
   begin  -- trava: nada pode commitar daqui para dentro
+    -- Sem lock em 3 s, falha limpa em vez de enfileirar o site atrás do DDL; teto de 60 s para a execução.
+    execute 'set local lock_timeout = ''3s''';
+    execute 'set local statement_timeout = ''60s''';
 
-    -- 20261117120000_representante_verificado_estrutura.sql (16 instruções)
+    -- 20261117120000_representante_verificado_estrutura.sql (17 instruções)
     if exists (select 1 from supabase_migrations.schema_migrations where version = '20261117120000') then
       res := res || jsonb_build_object('20261117120000', 'já aplicada em produção; pulada');
     else
@@ -27,7 +30,9 @@ begin
 --   alter table public.company_users drop column verified_at, drop column verification_status;
 --   Antes do drop da tabela, exportar a trilha.
 
--- 1) Estado do vínculo.
+-- Se company_users estiver ocupada, falha em 5 s em vez de travar o portal da empresa na fila de locks.
+set local lock_timeout = '5s'$s0$;
+      execute $s0$-- 1) Estado do vínculo.
 alter table public.company_users
   add column verification_status text not null default 'pending'
     check (verification_status in ('pending', 'verified', 'rejected', 'revoked')),

@@ -101,6 +101,9 @@ declare
   ${extraDecl}
 begin
   begin  -- trava: nada pode commitar daqui para dentro
+    -- Sem lock em 3 s, falha limpa em vez de enfileirar o site atrás do DDL; teto de 60 s para a execução.
+    execute 'set local lock_timeout = ''3s''';
+    execute 'set local statement_timeout = ''60s''';
 ${body}
     -- Verificações (${basename(checksPath)})
 ${checks.split('\n').map((l) => `    ${l}`).join('\n')}

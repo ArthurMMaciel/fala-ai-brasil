@@ -9,6 +9,9 @@ declare
   u_w uuid := 'e1111111-1111-1111-1111-111111111111'; u_c uuid := 'e2222222-2222-2222-2222-222222222222'; u_c2 uuid := 'e3333333-3333-3333-3333-333333333333'; u_op uuid := 'e4444444-4444-4444-4444-444444444444'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; v_co uuid; v_cp uuid; n int; v_ok boolean;
 begin
   begin  -- trava: nada pode commitar daqui para dentro
+    -- Sem lock em 3 s, falha limpa em vez de enfileirar o site atrás do DDL; teto de 60 s para a execução.
+    execute 'set local lock_timeout = ''3s''';
+    execute 'set local statement_timeout = ''60s''';
 
     -- 20261109180000_resposta_revisada_ativa.sql (4 instruções)
     if exists (select 1 from supabase_migrations.schema_migrations where version = '20261109180000') then
@@ -49,7 +52,7 @@ drop policy responses_read_worker on public.company_responses$s0$;
       res := res || jsonb_build_object('20261109180000', 'aplicada na transação de teste');
     end if;
 
-    -- 20261117120000_representante_verificado_estrutura.sql (16 instruções)
+    -- 20261117120000_representante_verificado_estrutura.sql (17 instruções)
     if exists (select 1 from supabase_migrations.schema_migrations where version = '20261117120000') then
       res := res || jsonb_build_object('20261117120000', 'já aplicada em produção; pulada');
     else
@@ -66,7 +69,9 @@ drop policy responses_read_worker on public.company_responses$s0$;
 --   alter table public.company_users drop column verified_at, drop column verification_status;
 --   Antes do drop da tabela, exportar a trilha.
 
--- 1) Estado do vínculo.
+-- Se company_users estiver ocupada, falha em 5 s em vez de travar o portal da empresa na fila de locks.
+set local lock_timeout = '5s'$s0$;
+      execute $s0$-- 1) Estado do vínculo.
 alter table public.company_users
   add column verification_status text not null default 'pending'
     check (verification_status in ('pending', 'verified', 'rejected', 'revoked')),
