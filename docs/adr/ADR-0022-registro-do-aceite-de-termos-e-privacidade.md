@@ -1,6 +1,6 @@
 # ADR-0022 — Registro do aceite dos termos de uso e do aviso de privacidade
 
-- Estado: **Aceita**, pelo responsável em 2026-11-17 (aceite pós-login, versão e re-aceite). Com o advogado: retenção após a exclusão da conta e a lacuna dos dados gravados antes do aceite. Versão 1 = texto do advogado (24/11); até lá o gate fica desligado. Implementação: `20261117140000`, ainda não aplicada.
+- Estado: **Aceita**, pelo responsável em 2026-11-17 ("Aprovo todas", repassado pelo Gestor; aceite pós-login, versão e re-aceite). Com o advogado: retenção após a exclusão da conta e a lacuna dos dados gravados antes do aceite. Versão 1 = texto do advogado (24/11); até lá o gate fica desligado. Implementação: `20261117140000`, ainda não aplicada.
 - Origem: pedido do Front (o cadastro já exige as caixas "termos" e "privacidade" em `src/app/main.js`, mas nada é gravado) e do Gestor (sem aceite gravado o go/no-go de 25/11 não fecha).
 - Relacionadas: ADR-0009 (cadastro), TASK-0007 (base legal e retenção), TASK-0009 (auditoria)
 
