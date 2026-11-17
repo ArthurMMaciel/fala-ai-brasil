@@ -1,0 +1,121 @@
+-- Rollback da 20261117130000 (troca do gate). NÃO é migration: aplicar só com decisão registrada do responsável,
+-- porque reabre o acesso de vínculos não verificados às manifestações. Volta as 7 funções às definições anteriores.
+-- Depois, se for desfazer também a 20261117120000, ver o roteiro no cabeçalho dela (exportar a trilha antes).
+-- Aplicar como migration nova (para o histórico de produção ficar coerente), nunca por migration repair.
+
+create or replace function public.list_company_complaints()
+returns table (id uuid, protocol text, category text, title text, status public.complaint_status, shared_content text,
+               created_at timestamptz, updated_at timestamptz, responses integer, last_response_at timestamptz, worker_feedback public.complaint_feedback)
+language sql stable security definer set search_path = '' as $$
+  select c.id, c.protocol, c.category, c.title, c.status, s.shared_content, c.created_at, c.updated_at,
+         (select count(*)::int from public.company_responses r where r.complaint_id = c.id),
+         (select max(r.created_at) from public.company_responses r where r.complaint_id = c.id),
+         c.worker_feedback
+  from public.complaints c
+  join public.complaint_shared_versions s on s.complaint_id = c.id
+  where c.status in ('shared', 'answer_in_review', 'answered', 'closed') and public.is_company_user(c.company_id)
+  order by c.created_at desc;
+$$;
+
+create or replace function public.get_company_complaint_timeline(p_id uuid)
+returns table (kind text, status public.complaint_status, actor public.complaint_actor, content text, created_at timestamptz)
+language sql stable security definer set search_path = '' as $$
+  select t.kind, t.status, t.actor, t.content, t.created_at
+  from (
+    select 'event'::text as kind, e.status, e.actor, e.note as content, e.created_at, 4 as kind_rank, e.id
+    from public.complaint_events e
+    join public.complaints c on c.id = e.complaint_id
+    where e.complaint_id = p_id and c.status in ('shared', 'answer_in_review', 'answered', 'closed') and public.is_company_user(c.company_id)
+      and e.status in ('shared', 'answered', 'closed')
+    union all
+    select 'response'::text, null::public.complaint_status, 'company'::public.complaint_actor, r.content, r.created_at, 2, r.id
+    from public.company_responses r
+    join public.complaints c on c.id = r.complaint_id
+    where r.complaint_id = p_id and public.is_company_user(c.company_id)
+    union all
+    select 'response_review'::text, null::public.complaint_status, 'platform'::public.complaint_actor,
+           case rv.decision when 'released' then 'Resposta liberada ao trabalhador.' else 'Resposta devolvida para ajuste: ' || rv.reason end,
+           rv.created_at, 1, rv.id
+    from public.company_response_reviews rv
+    join public.company_responses r on r.id = rv.response_id
+    join public.complaints c on c.id = r.complaint_id
+    where r.complaint_id = p_id and rv.decision in ('released', 'returned') and public.is_company_user(c.company_id)
+  ) t
+  order by t.created_at, t.kind_rank, t.status nulls first, t.id;
+$$;
+
+create or replace function public.respond_complaint(p_id uuid, p_content text)
+returns void language plpgsql security definer set search_path = '' as $$
+declare v_company uuid; v_status public.complaint_status;
+begin
+  select company_id, status into v_company, v_status from public.complaints where id = p_id for update;
+  if v_company is null or not public.is_company_user(v_company) or v_status not in ('shared', 'answer_in_review', 'answered') then
+    raise exception 'Manifestação não disponível para resposta.' using errcode = 'P0001';
+  end if;
+  if v_status = 'answer_in_review' or exists (select 1 from public.company_responses where complaint_id = p_id and review_status = 'in_review') then
+    raise exception 'Já existe uma resposta em revisão pela equipe.' using errcode = 'P0001';
+  end if;
+  if char_length(btrim(coalesce(p_content, ''))) < 10 then raise exception 'Escreva uma resposta com pelo menos 10 caracteres.' using errcode = 'P0001'; end if;
+  insert into public.company_responses (complaint_id, company_id, author_user_id, content, review_status)
+  values (p_id, v_company, auth.uid(), btrim(p_content), 'in_review');
+  update public.complaints set status = 'answer_in_review' where id = p_id;
+  insert into public.complaint_events (complaint_id, status, actor, note)
+  values (p_id, 'answer_in_review', 'company', 'A empresa respondeu. A equipe revisa a resposta antes de você receber.');
+end;
+$$;
+
+create or replace function public.company_ranking()
+returns table (company_id uuid, name text, city text, state text, received integer, response_rate integer, avg_first_response_hours integer, is_mine boolean)
+language sql stable security definer set search_path = '' as $$
+  select co.id, coalesce(co.trade_name, co.legal_name), a.city, a.state, s.released, round(s.rate)::int, round(s.avg_hours)::int,
+         public.is_company_user(co.id)
+  from private.company_response_stats() s
+  join public.companies co on co.id = s.company_id
+  join public.addresses a on a.id = co.address_id
+  where auth.uid() is not null and s.released >= 3
+  order by 6 desc, 7 asc nulls last;
+$$;
+
+create or replace function public.company_responsiveness()
+returns table (company_id uuid, name text, city text, state text, response_band text, response_time_band text,
+               satisfaction_band text, is_mine boolean)
+language sql stable security definer set search_path = '' as $$
+  select co.id, coalesce(co.trade_name, co.legal_name), a.city, a.state,
+         private.response_band(s.rate), private.response_time_band(s.avg_hours),
+         null::text, public.is_company_user(co.id)
+  from private.company_response_stats() s
+  join public.companies co on co.id = s.company_id
+  join public.addresses a on a.id = co.address_id
+  where auth.uid() is not null and s.released >= 3
+  order by lower(coalesce(co.trade_name, co.legal_name)), co.id;
+$$;
+
+create or replace function public.my_company_responsiveness()
+returns table (company_id uuid, name text, released integer, answered integer, response_rate integer,
+               avg_first_response_hours integer, response_band text, response_time_band text, listed boolean)
+language sql stable security definer set search_path = '' as $$
+  select co.id, coalesce(co.trade_name, co.legal_name),
+         coalesce(s.released, 0), coalesce(s.answered, 0),
+         round(s.rate)::int, round(s.avg_hours)::int,
+         private.response_band(s.rate),
+         case when coalesce(s.released, 0) = 0 then null else private.response_time_band(s.avg_hours) end,
+         coalesce(s.released, 0) >= 3
+  from public.company_users cu
+  join public.companies co on co.id = cu.company_id
+  left join private.company_response_stats() s on s.company_id = co.id
+  where cu.user_id = auth.uid()
+  order by lower(coalesce(co.trade_name, co.legal_name)), co.id;
+$$;
+
+create or replace function public.my_company_satisfaction()
+returns table (company_id uuid, ratings integer, satisfaction_band text)
+language sql stable security definer set search_path = '' as $$
+  select cu.company_id, case when count(rr.response_id) < 3 then null else count(rr.response_id)::int end,
+         case when count(rr.response_id) < 3 then null
+              else private.response_band(100.0 * avg(case rr.rating when 'yes' then 1 when 'partial' then 0.5 else 0 end)) end
+  from public.company_users cu
+  left join public.company_responses r on r.company_id = cu.company_id
+  left join public.response_ratings rr on rr.response_id = r.id
+  where cu.user_id = auth.uid()
+  group by cu.company_id;
+$$;
