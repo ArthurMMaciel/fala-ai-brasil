@@ -52,8 +52,20 @@ Um teste local único, `supabase/tests/isolation_smoke.sql`, com duas empresas e
 - A equipe não é testada como ator, porque lê tudo por desenho. O acesso dela ao original é coberto pelo registro de `ops_read_original` (TASK-0009).
 
 ## Execução
-- Onde: só no banco local ou no projeto Supabase de desenvolvimento, nunca em produção. O teste insere em `auth.users`, embora desfaça tudo.
-- Estado em 17/11: o Docker local caiu. O responsável decidiu criar um projeto Supabase de desenvolvimento, e a execução fica para quando ele existir, com `--db-url` do dev e sem trocar o link da pasta (ver `docs/devops/ENVIRONMENTS.md`).
+- Decisão do responsável (17/11): plano Free com um único banco, o de produção, sem Docker e sem projeto de desenvolvimento. Os testes rodam em produção com estas regras:
+  - tudo em transação desfeita, sem COMMIT, com trava contra commit;
+  - liberação escrita a cada execução;
+  - o script é mostrado antes e o resultado depois.
+- Como o script cumpre a regra:
+  - é uma única instrução `DO`, que sempre termina em exceção, e o Postgres desfaz tudo, inclusive `auth.users`;
+  - o corpo inteiro roda dentro de um bloco com tratador de exceção (subtransação). Ali o próprio Postgres proíbe COMMIT e ROLLBACK explícitos, e funções chamadas não podem encerrar transação;
+  - erro inesperado sai como `ABORTADO (nada gravado)`.
+- O que o rollback não desfaz:
+  - a sequência `complaint_protocol_seq` avança, e os números de protocolo de teste ficam pulados;
+  - não há `pg_net`, `dblink` nem `pg_cron` nas migrations, então nenhum efeito externo escapa.
+- O que é impresso: só marcadores de teste, nomes de tabela e função e contagens. Nenhum dado real.
+- Primeira execução: as listas esperadas de RPC estão vazias, então a primeira rodada sai com `aprovado = false` por desenho e serve para preenchê-las e revisá-las. O script nunca rodou antes, porque o banco local caiu, e erros de script saem como `ABORTADO` sem gravar nada.
+- Recomendação: rodar antes de 30/11, enquanto não há relato real no banco.
 - Resultado: _pendente_.
 
 ## Critérios de aceite

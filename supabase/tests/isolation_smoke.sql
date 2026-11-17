@@ -1,5 +1,9 @@
 -- Teste de isolamento entre organizações e pessoas (TASK-0006). Executa tudo e desfaz.
--- Rodar só no banco local: npx supabase db query --local < supabase/tests/isolation_smoke.sql
+-- Execução: uma única instrução DO, que termina sempre em exceção; o Postgres desfaz tudo, inclusive auth.users.
+-- Trava: o corpo roda dentro de um bloco com tratador de exceção (subtransação). Ali, COMMIT ou ROLLBACK explícitos
+-- são proibidos pelo próprio Postgres ("cannot commit while a subtransaction is active"), e funções não podem commitar.
+-- Efeito que o rollback não desfaz: a sequência complaint_protocol_seq avança (números de protocolo pulados).
+-- Em produção, só com liberação escrita do responsável a cada execução: npx supabase db query --linked < supabase/tests/isolation_smoke.sql
 --
 -- Cenário: empresas A e B, trabalhadores A (manifesta contra A) e B (manifesta contra B), uma pessoa da equipe.
 -- O teste descobre tabelas e funções pelo catálogo, então uma tabela ou RPC nova entra na varredura sozinha;
@@ -30,6 +34,7 @@ declare
   proibidos text[]; ids_outro uuid[]; v_id uuid; txt text; achou text; n int; antes text; depois text;
   args text; arg_t oid; i int; sql_fp text; esperado_anon text[]; esperado_auth text[]; atual text[];
 begin
+  begin  -- trava: todo o teste dentro de subtransação; nada pode commitar daqui para dentro
   ---------------------------------------------------------------------------------------------------------------
   -- Montagem (como postgres)
   insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
@@ -208,7 +213,7 @@ begin
 
     -- 2/3/4c) Toda RPC aberta ao papel, chamada com cada id do outro lado nos parâmetros uuid.
     -- Saída aceita: erro, ou resultado sem marcador proibido e sem mudança nos dados do outro lado.
-    for fn in select p.oid, p.proname, p.pronargs, p.proargtypes, p.oid::regprocedure::text as assinatura
+    for fn in select p.oid, p.proname, p.pronargs, p.proargtypes, p.oid::regprocedure::text as assinatura, p.provolatile = 'v' as pode_escrever
               from pg_proc p join pg_namespace s on s.oid = p.pronamespace
               where s.nspname = 'public' and p.prokind = 'f' and p.prorettype <> 'trigger'::regtype
                 and has_function_privilege(ator.papel, p.oid, 'execute')
@@ -231,11 +236,11 @@ begin
         txt := null; antes := null; depois := null;
         begin
           execute 'reset role';
-          execute sql_fp into antes;
+          if fn.pode_escrever then execute sql_fp into antes; end if;
           execute format('set local role %I', ator.papel);
           execute format('select coalesce(string_agg(x::text, ''|''), '''') from (select public.%I(%s) as x) s', fn.proname, args) into txt;
           execute 'reset role';
-          execute sql_fp into depois;
+          if fn.pode_escrever then execute sql_fp into depois; end if;
           execute format('set local role %I', ator.papel);
           raise exception using errcode = 'P0001', message = 'ISO_DESFAZ';
         exception when others then
@@ -246,7 +251,8 @@ begin
           select string_agg(m, ', ') into achou from unnest(proibidos) m where strpos(txt, m) > 0;
           if achou is not null then falhas := falhas || jsonb_build_object(ator.nome || ' recebe de ' || fn.assinatura, achou); end if;
         end if;
-        if antes is distinct from depois then falhas := falhas || jsonb_build_object(ator.nome || ' muda dados alheios via ' || fn.assinatura, coalesce(v_id::text, 'sem uuid')); end if;
+        -- Abrir manifestação contra outra empresa é permitido ao trabalhador por desenho.
+        if antes is distinct from depois and not (fn.proname = 'create_complaint' and ator.nome like 'trabalhador%') then falhas := falhas || jsonb_build_object(ator.nome || ' muda dados alheios via ' || fn.assinatura, coalesce(v_id::text, 'sem uuid')); end if;
       end loop;
     end loop;
   end loop;
@@ -288,4 +294,8 @@ begin
   execute 'reset role';
   res := res || jsonb_build_object('falhas', falhas, 'aprovado', jsonb_array_length(falhas) = 0);
   raise exception 'RESULTADOS %', res;
+  exception when others then
+    if sqlerrm like 'RESULTADOS %' then raise; end if;
+    raise exception 'ABORTADO (nada gravado): %', sqlerrm;
+  end;
 end $$;
