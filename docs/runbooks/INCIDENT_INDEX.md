@@ -14,3 +14,8 @@ Runbooks a criar e testar antes do piloto:
 Cada runbook deve conter detecção, severidade, contenção, responsáveis, comunicação, recuperação, evidências e pós-incidente.
 
 Os procedimentos abaixo são rascunhos de fundação e devem receber comandos, contatos e links do provedor após a infraestrutura existir.
+
+Para o piloto fechado (2026-11):
+
+- [Incidente e suspensão do piloto](PILOT_SUSPENSION.md).
+- [Ensaio de restauração](RESTORE_DRILL.md).

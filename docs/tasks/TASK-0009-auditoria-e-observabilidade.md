@@ -87,3 +87,47 @@ As tabelas `complaint_reviews`, `original_access_log`, `company_response_reviews
 4. Registro do texto compartilhável efetivamente liberado (hash ou versão) na decisão de liberação.
 5. Orientação no front para que justificativas e motivos não reproduzam o relato; limite o defeito do motivo.
 6. Verificar, com liberação, o log de Auth e o pgaudit no projeto remoto.
+
+## Levantamento de logs para o piloto (2026-11-17)
+
+Fontes: documentação oficial lida em 2026-11-17. O plano contratado de cada serviço é "a confirmar" no painel (checklist na [TASK-0010](TASK-0010-backup-e-resposta-a-incidente.md)).
+
+### Retenção
+
+| Serviço / log | Retenção | Fonte |
+|---|---|---|
+| Vercel, runtime logs | Hobby 1 h; Pro 1 dia; Pro com Observability Plus 30 dias | [vercel.com/docs/logs/runtime](https://vercel.com/docs/logs/runtime) |
+| Vercel, build logs | Indefinida, por deploy | [vercel.com/docs/deployments/logs](https://vercel.com/docs/deployments/logs) |
+| Vercel, activity log | Disponível em todos os planos; a retenção não é informada ("a confirmar") | [vercel.com/docs/activity-log](https://vercel.com/docs/activity-log) |
+| Vercel, log drains | Só Pro e Enterprise | [vercel.com/docs/logs](https://vercel.com/docs/logs) |
+| Supabase, API e Database | Free 1 dia; Pro 7 dias; Team 28 dias; Enterprise 90 dias | [supabase.com/pricing](https://supabase.com/pricing) |
+| Supabase, Auth audit | Free 24 h; Pro 7 dias; Team 28 dias | [supabase.com/pricing](https://supabase.com/pricing) |
+| Supabase, log drains | Não no Free; Pro US$ 60 por drain por mês, mais volume | [supabase.com/pricing](https://supabase.com/pricing) |
+
+A documentação não diz se o cliente pode apagar ou mascarar log já gravado ("a confirmar"). Na prática, o log some quando vence a retenção.
+
+### O que pode carregar dado pessoal ou relato
+
+- **Vercel:**
+  - O front é estático. Os runtime logs registram path, search params, user agent e status, e para estático só as requisições servidas de cache.
+  - As rotas do front não levam dado pessoal na URL. Conferido em 2026-11-17: o único fetch externo é o ViaCEP, chamado direto do navegador e fora da Vercel.
+  - Risco baixo.
+- **Supabase API (`edge_logs`):**
+  - Grava path e query string (`request.search`), user agent, referer e os cabeçalhos de IP (`x-real-ip`, `cf-connecting-ip`), além de cidade e país.
+  - Não lista corpo de requisição ou de resposta ([log-field-reference](https://supabase.com/docs/guides/observability/log-field-reference)).
+  - No código (2026-11-17), os filtros na URL usam só ids UUID e status. Relato, CPF, CNPJ e e-mail vão no corpo de RPC (POST) ou de insert/update, que não entram no log. Não há RPC via GET.
+  - O IP do trabalhador fica no log pelo período de retenção. É dado pessoal e pode identificar quem fez o relato. Isso precisa constar na política de privacidade do piloto.
+- **Supabase Auth (`auth_logs`):** tem campos de e-mail, id e telefone do usuário, além do IP (`remote_addr`). Dado pessoal por desenho, com a retenção do plano.
+- **Supabase Postgres (`postgres_logs`):**
+  - "statement text and error details can appear in `event_message`" ([configure-logging](https://supabase.com/docs/guides/observability/configure-logging)).
+  - As mensagens de erro próprias do schema não interpolam dado pessoal: os `raise exception` só usam o tipo de campanha.
+  - Risco a confirmar: um erro não tratado de restrição única (`cnpj`, `cpf`) costuma trazer o valor no DETAIL do Postgres. As funções de cadastro e de troca de documento capturam o `unique_violation`. Falta confirmar, num teste local, se o Supabase grava o DETAIL e se algum caminho chega ao insert sem tratamento.
+  - pgAudit pode ser ligado, mas a documentação avisa que os registros "can contain sensitive values". Recomendação: não ligar no piloto sem decisão registrada.
+- **Navegador:** o código-fonte em `src/` não tem `console.log`, `console.error` nem `console.warn` (conferido em 2026-11-17).
+
+### Recomendações para o go/no-go
+
+1. Confirmar os planos (Vercel e Supabase). No Free do Supabase, um incidente investigado no dia seguinte já não tem log, porque a retenção é de 1 dia. Esse é mais um motivo para o Pro (ver TASK-0010).
+2. Política de privacidade do piloto: citar IP e e-mail em logs técnicos da Vercel e do Supabase, com a retenção de cada plano.
+3. Não ligar pgAudit, log drain nem `log_statement` sem decisão registrada.
+4. Teste local do DETAIL de `unique_violation` (DevOps com Back), antes de 25/11.
