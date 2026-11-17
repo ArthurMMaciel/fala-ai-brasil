@@ -9,9 +9,9 @@ declare
   u_w uuid := 'e1111111-1111-1111-1111-111111111111'; u_c uuid := 'e2222222-2222-2222-2222-222222222222'; u_c2 uuid := 'e3333333-3333-3333-3333-333333333333'; u_op uuid := 'e4444444-4444-4444-4444-444444444444'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; v_co uuid; v_cp uuid; n int; v_ok boolean;
 begin
   begin  -- trava: nada pode commitar daqui para dentro
-    -- Sem lock em 3 s, falha limpa em vez de enfileirar o site atrás do DDL; teto de 60 s para a execução.
+    -- Sem lock em 3 s, falha limpa em vez de enfileirar o site atrás do DDL. (statement_timeout não se aplica: o
+    -- cronômetro começa no DO, que é a instrução de topo; um SET aqui dentro não o rearma.)
     execute 'set local lock_timeout = ''3s''';
-    execute 'set local statement_timeout = ''60s''';
 
     -- 20261109180000_resposta_revisada_ativa.sql (4 instruções)
     if exists (select 1 from supabase_migrations.schema_migrations where version = '20261109180000') then
@@ -187,7 +187,7 @@ $$$s0$;
       res := res || jsonb_build_object('20261117120000', 'aplicada na transação de teste');
     end if;
 
-    -- 20261117130000_representante_verificado_gate.sql (7 instruções)
+    -- 20261117130000_representante_verificado_gate.sql (8 instruções)
     if exists (select 1 from supabase_migrations.schema_migrations where version = '20261117130000') then
       res := res || jsonb_build_object('20261117130000', 'já aplicada em produção; pulada');
     else
@@ -200,6 +200,8 @@ $$$s0$;
 --
 -- ATENÇÃO na aplicação: todo vínculo existente nasce 'pending' pela 20261117120000. Depois desta migration, nenhuma
 -- empresa vê manifestação até a equipe verificar o representante (ops_verify_representative).
+--
+-- Também: update_company_profile recusa vínculo 'rejected' ou 'revoked' (ajuste aceito pelo Gestor em 17/11, dentro da ADR-0012).
 --
 -- Rollback: reaplicar os mesmos blocos trocando is_verified_company_user por is_company_user e retirando o filtro
 -- verification_status (texto pronto em supabase/tests/rollback/20261117130000_rollback.sql). Isso reabre o risco do
@@ -315,6 +317,58 @@ language sql stable security definer set search_path = '' as $$
   where cu.user_id = auth.uid() and cu.verification_status = 'verified'
   group by cu.company_id;
 $$$s0$;
+      execute $s0$-- Vínculo recusado ou revogado também perde a edição do perfil da empresa (inclusive contato). 'pending' continua
+-- editando para completar o cadastro. Corpo de 20261108120000 com a checagem nova depois da de dono.
+create or replace function public.update_company_profile(p_company uuid, p jsonb)
+returns void language plpgsql security definer set search_path = '' as $$
+declare
+  c public.companies%rowtype;
+  v_trade text; v_email text; v_phone text; v_changed text[] := '{}';
+begin
+  if not public.is_company_owner(p_company) then
+    raise exception 'Só o responsável pela conta da empresa pode alterar estes dados.' using errcode = 'P0001';
+  end if;
+  if exists (select 1 from public.company_users where company_id = p_company and user_id = auth.uid()
+             and verification_status in ('rejected', 'revoked')) then
+    raise exception 'Vínculo com a empresa recusado ou revogado pela equipe.' using errcode = 'P0001';
+  end if;
+  if p is null or jsonb_typeof(p) <> 'object' then raise exception 'Nada para atualizar.' using errcode = 'P0001'; end if;
+  if p ? 'cnpj' or p ? 'legal_name' then raise exception 'CNPJ e razão social só podem ser alterados pela equipe.' using errcode = 'P0001'; end if;
+  select * into c from public.companies where id = p_company for update;
+
+  if p ? 'trade_name' then
+    v_trade := nullif(btrim(coalesce(p ->> 'trade_name', '')), '');
+    if char_length(coalesce(v_trade, '')) > 160 then raise exception 'O nome fantasia pode ter até 160 caracteres.' using errcode = 'P0001'; end if;
+    if v_trade is distinct from c.trade_name then
+      update public.companies set trade_name = v_trade where id = p_company; v_changed := v_changed || 'trade_name'::text;
+    end if;
+  end if;
+  if p ? 'contact_email' then
+    v_email := nullif(lower(btrim(coalesce(p ->> 'contact_email', ''))), '');
+    if v_email is not null and (v_email !~* '^[^@\s]+@[^@\s]+\.[^@\s]+$' or char_length(v_email) > 254) then
+      raise exception 'Informe um e-mail de contato válido.' using errcode = 'P0001';
+    end if;
+    if v_email is distinct from c.contact_email then
+      update public.companies set contact_email = v_email where id = p_company; v_changed := v_changed || 'contact_email'::text;
+    end if;
+  end if;
+  if p ? 'contact_phone' then
+    v_phone := nullif(regexp_replace(coalesce(p ->> 'contact_phone', ''), '\D', '', 'g'), '');
+    if v_phone is not null and v_phone !~ '^[1-9][0-9](9[0-9]{8}|[2-5][0-9]{7})$' then
+      raise exception 'Informe um telefone válido com DDD: celular com 9 dígitos ou fixo com 8.' using errcode = 'P0001';
+    end if;
+    if v_phone is distinct from c.contact_phone then
+      update public.companies set contact_phone = v_phone where id = p_company; v_changed := v_changed || 'contact_phone'::text;
+    end if;
+  end if;
+  if p ? 'address' then v_changed := v_changed || private.update_address(c.address_id, p -> 'address'); end if;
+
+  if cardinality(v_changed) > 0 then
+    insert into public.profile_change_log (actor_user_id, entity_type, entity_id, fields, source)
+    values (auth.uid(), 'company', p_company, v_changed, 'self');
+  end if;
+end;
+$$$s0$;
       res := res || jsonb_build_object('20261117130000', 'aplicada na transação de teste');
     end if;
 
@@ -363,6 +417,9 @@ $$$s0$;
       falhas := falhas || jsonb_build_object('pending responde', true);
     exception when others then null; end;
     
+    begin
+      perform public.update_company_profile(v_co, jsonb_build_object('trade_name', 'Tx nome do pending'));
+    exception when others then falhas := falhas || jsonb_build_object('pending não edita perfil: ' || sqlerrm, true); end;
     -- A empresa não se autoverifica.
     begin
       update public.company_users set verification_status = 'verified' where user_id = u_c;
@@ -403,6 +460,10 @@ $$$s0$;
     perform set_config('request.jwt.claims', json_build_object('sub', u_c, 'role', 'authenticated')::text, true);
     if (select count(*) from public.list_company_complaints() where id = v_cp) <> 0 then falhas := falhas || jsonb_build_object('revoked vê caso', true); end if;
     if (select count(*) from public.get_company_complaint_timeline(v_cp)) <> 0 then falhas := falhas || jsonb_build_object('revoked vê linha do tempo', true); end if;
+    begin
+      perform public.update_company_profile(v_co, jsonb_build_object('trade_name', 'Tx nome trocado por revogado'));
+      falhas := falhas || jsonb_build_object('revoked edita perfil da empresa', true);
+    exception when others then null; end;
     
     -- Anon não executa as funções novas.
     execute 'reset role';

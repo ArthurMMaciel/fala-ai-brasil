@@ -9,9 +9,9 @@ declare
   u_w uuid := 'e8888888-8888-8888-8888-888888888888'; u_c uuid := 'e9999999-9999-9999-9999-999999999999'; u_op uuid := 'eaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; v_co uuid; v_cp uuid; n int;
 begin
   begin  -- trava: nada pode commitar daqui para dentro
-    -- Sem lock em 3 s, falha limpa em vez de enfileirar o site atrás do DDL; teto de 60 s para a execução.
+    -- Sem lock em 3 s, falha limpa em vez de enfileirar o site atrás do DDL. (statement_timeout não se aplica: o
+    -- cronômetro começa no DO, que é a instrução de topo; um SET aqui dentro não o rearma.)
     execute 'set local lock_timeout = ''3s''';
-    execute 'set local statement_timeout = ''60s''';
 
     -- 20261117120000_representante_verificado_estrutura.sql (17 instruções)
     if exists (select 1 from supabase_migrations.schema_migrations where version = '20261117120000') then

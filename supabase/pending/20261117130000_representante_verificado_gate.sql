@@ -8,6 +8,8 @@
 -- ATENÇÃO na aplicação: todo vínculo existente nasce 'pending' pela 20261117120000. Depois desta migration, nenhuma
 -- empresa vê manifestação até a equipe verificar o representante (ops_verify_representative).
 --
+-- Também: update_company_profile recusa vínculo 'rejected' ou 'revoked' (ajuste aceito pelo Gestor em 17/11, dentro da ADR-0012).
+--
 -- Rollback: reaplicar os mesmos blocos trocando is_verified_company_user por is_company_user e retirando o filtro
 -- verification_status (texto pronto em supabase/tests/rollback/20261117130000_rollback.sql). Isso reabre o risco do
 -- representante não verificado; só com decisão registrada.
@@ -127,4 +129,57 @@ language sql stable security definer set search_path = '' as $$
   left join public.response_ratings rr on rr.response_id = r.id
   where cu.user_id = auth.uid() and cu.verification_status = 'verified'
   group by cu.company_id;
+$$;
+
+-- Vínculo recusado ou revogado também perde a edição do perfil da empresa (inclusive contato). 'pending' continua
+-- editando para completar o cadastro. Corpo de 20261108120000 com a checagem nova depois da de dono.
+create or replace function public.update_company_profile(p_company uuid, p jsonb)
+returns void language plpgsql security definer set search_path = '' as $$
+declare
+  c public.companies%rowtype;
+  v_trade text; v_email text; v_phone text; v_changed text[] := '{}';
+begin
+  if not public.is_company_owner(p_company) then
+    raise exception 'Só o responsável pela conta da empresa pode alterar estes dados.' using errcode = 'P0001';
+  end if;
+  if exists (select 1 from public.company_users where company_id = p_company and user_id = auth.uid()
+             and verification_status in ('rejected', 'revoked')) then
+    raise exception 'Vínculo com a empresa recusado ou revogado pela equipe.' using errcode = 'P0001';
+  end if;
+  if p is null or jsonb_typeof(p) <> 'object' then raise exception 'Nada para atualizar.' using errcode = 'P0001'; end if;
+  if p ? 'cnpj' or p ? 'legal_name' then raise exception 'CNPJ e razão social só podem ser alterados pela equipe.' using errcode = 'P0001'; end if;
+  select * into c from public.companies where id = p_company for update;
+
+  if p ? 'trade_name' then
+    v_trade := nullif(btrim(coalesce(p ->> 'trade_name', '')), '');
+    if char_length(coalesce(v_trade, '')) > 160 then raise exception 'O nome fantasia pode ter até 160 caracteres.' using errcode = 'P0001'; end if;
+    if v_trade is distinct from c.trade_name then
+      update public.companies set trade_name = v_trade where id = p_company; v_changed := v_changed || 'trade_name'::text;
+    end if;
+  end if;
+  if p ? 'contact_email' then
+    v_email := nullif(lower(btrim(coalesce(p ->> 'contact_email', ''))), '');
+    if v_email is not null and (v_email !~* '^[^@\s]+@[^@\s]+\.[^@\s]+$' or char_length(v_email) > 254) then
+      raise exception 'Informe um e-mail de contato válido.' using errcode = 'P0001';
+    end if;
+    if v_email is distinct from c.contact_email then
+      update public.companies set contact_email = v_email where id = p_company; v_changed := v_changed || 'contact_email'::text;
+    end if;
+  end if;
+  if p ? 'contact_phone' then
+    v_phone := nullif(regexp_replace(coalesce(p ->> 'contact_phone', ''), '\D', '', 'g'), '');
+    if v_phone is not null and v_phone !~ '^[1-9][0-9](9[0-9]{8}|[2-5][0-9]{7})$' then
+      raise exception 'Informe um telefone válido com DDD: celular com 9 dígitos ou fixo com 8.' using errcode = 'P0001';
+    end if;
+    if v_phone is distinct from c.contact_phone then
+      update public.companies set contact_phone = v_phone where id = p_company; v_changed := v_changed || 'contact_phone'::text;
+    end if;
+  end if;
+  if p ? 'address' then v_changed := v_changed || private.update_address(c.address_id, p -> 'address'); end if;
+
+  if cardinality(v_changed) > 0 then
+    insert into public.profile_change_log (actor_user_id, entity_type, entity_id, fields, source)
+    values (auth.uid(), 'company', p_company, v_changed, 'self');
+  end if;
+end;
 $$;

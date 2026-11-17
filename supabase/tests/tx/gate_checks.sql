@@ -42,6 +42,9 @@ begin
   falhas := falhas || jsonb_build_object('pending responde', true);
 exception when others then null; end;
 
+begin
+  perform public.update_company_profile(v_co, jsonb_build_object('trade_name', 'Tx nome do pending'));
+exception when others then falhas := falhas || jsonb_build_object('pending não edita perfil: ' || sqlerrm, true); end;
 -- A empresa não se autoverifica.
 begin
   update public.company_users set verification_status = 'verified' where user_id = u_c;
@@ -82,6 +85,10 @@ perform public.ops_verify_representative(v_co, u_c, 'revoked', null, null, 'Tx r
 perform set_config('request.jwt.claims', json_build_object('sub', u_c, 'role', 'authenticated')::text, true);
 if (select count(*) from public.list_company_complaints() where id = v_cp) <> 0 then falhas := falhas || jsonb_build_object('revoked vê caso', true); end if;
 if (select count(*) from public.get_company_complaint_timeline(v_cp)) <> 0 then falhas := falhas || jsonb_build_object('revoked vê linha do tempo', true); end if;
+begin
+  perform public.update_company_profile(v_co, jsonb_build_object('trade_name', 'Tx nome trocado por revogado'));
+  falhas := falhas || jsonb_build_object('revoked edita perfil da empresa', true);
+exception when others then null; end;
 
 -- Anon não executa as funções novas.
 execute 'reset role';

@@ -9,9 +9,9 @@ declare
   u_w uuid := 'e5555555-5555-5555-5555-555555555555'; u_c uuid := 'e6666666-6666-6666-6666-666666666666'; u_op uuid := 'e7777777-7777-7777-7777-777777777777'; n int; r record;
 begin
   begin  -- trava: nada pode commitar daqui para dentro
-    -- Sem lock em 3 s, falha limpa em vez de enfileirar o site atrás do DDL; teto de 60 s para a execução.
+    -- Sem lock em 3 s, falha limpa em vez de enfileirar o site atrás do DDL. (statement_timeout não se aplica: o
+    -- cronômetro começa no DO, que é a instrução de topo; um SET aqui dentro não o rearma.)
     execute 'set local lock_timeout = ''3s''';
-    execute 'set local statement_timeout = ''60s''';
 
     -- 20261117140000_aceite_termos_privacidade.sql (18 instruções)
     if exists (select 1 from supabase_migrations.schema_migrations where version = '20261117140000') then
