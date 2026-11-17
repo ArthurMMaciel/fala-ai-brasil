@@ -29,6 +29,8 @@ O passo 9d documenta o comportamento atual (a empresa continua vendo). O ensaio 
 
 Banco único (produção), por decisão do responsável. **Cada execução exige liberação escrita do responsável**, com o script mostrado antes e o resultado registrado depois.
 
+**Pré-requisito:** as migrations `20261109180000` (resposta revisada ativa) e `20261117120000` (representante verificado) aplicadas em produção pelo Back. Antes disso, o ensaio testa o fluxo antigo, sem revisão da resposta nem verificação; uma rodada antes desses db push vale só como checagem de sintaxe.
+
 O ensaio é uma única instrução `DO` gerada por `scripts/ensaio-piloto.mjs`, no mesmo formato do `supabase/tests/isolation_smoke.sql`. Ela:
 - cria quatro contas fictícias (trabalhador, empresa A, empresa B e equipe) pelo mesmo gatilho de cadastro de produção, com e-mails `ensaio-*-<execução>@example.com`, nomes marcados "TESTE" e CPF/CNPJ gerados a cada execução;
 - com a ADR-0012 aplicada, verifica o representante da empresa A pela mesma RPC da fila da Operação;
