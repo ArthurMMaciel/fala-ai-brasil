@@ -1,4 +1,5 @@
 import { isAccountServiceConfigured, supabase, type AuthResult } from "./account";
+import type { VerificationStatus } from "../domain/representatives";
 import { onlyDigits, type CampaignKind, type ContentInput } from "../domain/account-rules";
 import { partnerMediaBucket } from "./account";
 import { compareTimeline } from "../domain/complaint-status";
@@ -225,4 +226,15 @@ export interface CompanySatisfaction { companyId: string; ratings: number | null
 export async function loadMyCompanySatisfaction(): Promise<CompanySatisfaction[]> {
   const { data } = await supabase().rpc("my_company_satisfaction");
   return (data ?? []).map((row: { company_id: string; ratings: number | null; satisfaction_band: string | null }) => ({ companyId: row.company_id, ratings: row.ratings, band: row.satisfaction_band }));
+}
+
+// Representante verificado (ADR-0012). Sem a coluna (migration 20261117120000 ausente) devolve null e o portal segue como hoje.
+export async function loadMyVerificationStatus(companyId: string): Promise<VerificationStatus | null> {
+  const db = supabase();
+  const { data: auth } = await db.auth.getUser();
+  if (!auth.user) return null;
+  const { data, error } = await db.from("company_users").select("verification_status").eq("company_id", companyId).eq("user_id", auth.user.id).maybeSingle();
+  if (error || !data) return null;
+  const status = (data as { verification_status?: string }).verification_status;
+  return status === "pending" || status === "verified" || status === "rejected" || status === "revoked" ? status : null;
 }

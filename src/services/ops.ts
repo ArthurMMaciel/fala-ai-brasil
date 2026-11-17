@@ -1,5 +1,6 @@
 import { supabase, type AuthResult } from "./account";
 import type { ComplaintStatusDb } from "./data";
+import type { VerificationDecision, VerificationMethod, VerificationStatus } from "../domain/representatives";
 
 // Área da equipe (ADR-0010): só funções do banco que exigem is_platform_admin; nada de identidade do trabalhador.
 export type ReviewDecision = "released" | "adjustment_requested" | "held";
@@ -100,4 +101,33 @@ export async function decideOpsResponse(id: string, decision: "released" | "retu
 export async function correctOpsResponseSummary(id: string, summary: string, reason: string): Promise<AuthResult<null>> {
   const { error } = await supabase().rpc("ops_correct_response_summary", { p_response: id, p_summary: summary.trim(), p_reason: reason.trim() });
   return error ? { ok: false, message: failure(error, "Não foi possível corrigir a descrição.") } : { ok: true, value: null };
+}
+
+// Representante verificado (ADR-0012, migration 20261117120000). Sem a migration, as RPCs não existem: missing = true.
+export interface OpsRepresentative {
+  companyId: string; companyName: string; cnpj: string; userId: string; email: string; role: "owner" | "member";
+  status: VerificationStatus; linkedAt: string; verifiedAt: string | null;
+}
+export interface RepresentativeHistoryItem { userId: string; decision: VerificationDecision; method: VerificationMethod | null; evidenceRef: string | null; reason: string | null; createdAt: string }
+const missingFunction = (error: { code?: string }) => error.code === "PGRST202" || error.code === "42883";
+
+export async function listOpsRepresentatives(status: VerificationStatus | null): Promise<{ missing: true } | { missing: false; rows: OpsRepresentative[] }> {
+  const { data, error } = await supabase().rpc("ops_list_representatives", { p_status: status });
+  if (error) { if (missingFunction(error)) return { missing: true }; throw new Error(failure(error, "Não foi possível carregar os representantes.")); }
+  return { missing: false, rows: (data ?? []).map((row: Record<string, unknown>) => ({
+    companyId: String(row.company_id), companyName: String(row.company_name), cnpj: String(row.cnpj ?? ""), userId: String(row.user_id), email: String(row.email ?? ""),
+    role: row.role === "member" ? "member" : "owner", status: row.verification_status as VerificationStatus, linkedAt: String(row.linked_at), verifiedAt: (row.verified_at as string | null) ?? null,
+  })) };
+}
+
+export async function verifyOpsRepresentative(companyId: string, userId: string, decision: VerificationDecision, method: VerificationMethod | "", evidenceRef: string, reason: string): Promise<AuthResult<null>> {
+  const verified = decision === "verified";
+  const { error } = await supabase().rpc("ops_verify_representative", { p_company: companyId, p_user: userId, p_decision: decision, p_method: verified ? method : null, p_evidence_ref: verified ? evidenceRef.trim() : null, p_reason: verified ? null : reason.trim() });
+  return error ? { ok: false, message: failure(error, "Não foi possível registrar a verificação.") } : { ok: true, value: null };
+}
+
+export async function loadRepresentativeHistory(companyId: string): Promise<RepresentativeHistoryItem[]> {
+  const { data, error } = await supabase().rpc("ops_representative_history", { p_company: companyId });
+  if (error) throw new Error(failure(error, "Não foi possível carregar o histórico."));
+  return (data ?? []).map((row: Record<string, unknown>) => ({ userId: String(row.user_id), decision: row.decision as VerificationDecision, method: (row.method as VerificationMethod | null) ?? null, evidenceRef: (row.evidence_ref as string | null) ?? null, reason: (row.reason as string | null) ?? null, createdAt: String(row.created_at) }));
 }

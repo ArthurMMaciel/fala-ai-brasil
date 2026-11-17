@@ -8,9 +8,10 @@ import { Metric, Sidebar } from './portal-live';
 import { QuickActions } from './ui';
 import { ContactSolicitationsAdmin } from './contact-solicitations-admin';
 import { OpsResponses } from './response-review';
+import { OpsRepresentatives } from './representatives';
 
 // Área da equipe (ADR-0010): revisão antes da liberação, acesso ao original só com justificativa, números agregados.
-type OpsView = 'overview' | 'queue' | 'responses' | 'all' | 'companies' | 'contacts';
+type OpsView = 'overview' | 'queue' | 'responses' | 'representatives' | 'all' | 'companies' | 'contacts';
 
 const statusLabels: Record<ComplaintStatusDb, string> = { received: 'Guardada pelo trabalhador', in_review: 'Em revisão', adjustment_requested: 'Ajuste solicitado', held: 'Retida', shared: 'Liberada · aguardando empresa', answer_in_review: 'Resposta em revisão', answered: 'Respondida', closed: 'Finalizada', canceled: 'Retirada' };
 const statusTone: Record<ComplaintStatusDb, string> = { received: 'em-aberto', in_review: 'em-revisão', adjustment_requested: 'em-revisão', held: 'retida', shared: 'encaminhada-para-empresa', answer_in_review: 'em-revisão', answered: 'respondida', closed: 'finalizada', canceled: 'finalizada' };
@@ -30,6 +31,7 @@ function Overview({ metrics, onView }: { metrics: OpsMetrics | null; onView: (vi
   <QuickActions label="Atalhos da equipe" items={[
    { icon: 'inbox', label: 'Fila de revisão', badge: (s.in_review ?? 0) + (s.held ?? 0), onClick: () => onView('queue') },
    { icon: 'inbox', label: 'Respostas em revisão', badge: metrics.responsesInReview, onClick: () => onView('responses') },
+   { icon: 'building', label: 'Representantes a verificar', onClick: () => onView('representatives') },
    { icon: 'list', label: 'Todas as manifestações', onClick: () => onView('all') },
    { icon: 'building', label: 'Empresas', onClick: () => onView('companies') },
    { icon: 'users', label: 'Solicitações de contato', badge: metrics.contactsWaiting, onClick: () => onView('contacts') },
@@ -132,7 +134,7 @@ export function OpsPortalLive() {
  const filtered = useMemo(() => (complaints ?? []).filter(item => (!filter || item.status === filter) && `${item.protocol} ${item.companyName} ${item.title} ${item.category}`.toLowerCase().includes(search.toLowerCase())), [complaints, filter, search]);
  const opened = complaints?.find(item => item.id === openId) ?? null;
  const go = (next: OpsView) => { setView(next); setOpenId(null); };
- const items: [OpsView, string][] = [['overview', 'Visão geral'], ['queue', `Fila de revisão${queue.length ? ` (${queue.length})` : ''}`], ['responses', `Respostas em revisão${metrics?.responsesInReview ? ` (${metrics.responsesInReview})` : ''}`], ['all', 'Manifestações'], ['companies', 'Empresas'], ['contacts', 'Solicitações de contato']];
+ const items: [OpsView, string][] = [['overview', 'Visão geral'], ['queue', `Fila de revisão${queue.length ? ` (${queue.length})` : ''}`], ['responses', `Respostas em revisão${metrics?.responsesInReview ? ` (${metrics.responsesInReview})` : ''}`], ['representatives', 'Representantes'], ['all', 'Manifestações'], ['companies', 'Empresas'], ['contacts', 'Solicitações de contato']];
  return <main className="commercial-portal-content"><Sidebar eyebrow="Operação" name="Equipe Escuta Aí Brasil" items={items} view={view} onView={go} /><section className="commercial-portal-main">
   {failure ? <section className="commercial-panel"><h2>Não foi possível carregar</h2><p>{failure}</p></section> :
    opened ? <ComplaintDetail key={opened.id + opened.status} complaint={opened} onBack={() => setOpenId(null)} onChanged={() => setVersion(value => value + 1)} /> :
@@ -143,6 +145,7 @@ export function OpsPortalLive() {
     <div className="worker-filters"><label>Buscar<input value={search} onChange={event => setSearch(event.target.value)} placeholder="Protocolo, empresa ou assunto" /></label><label>Situação<select value={filter} onChange={event => setFilter(event.target.value as ComplaintStatusDb | '')}><option value="">Todas</option>{(Object.keys(statusLabels) as ComplaintStatusDb[]).map(key => <option key={key} value={key}>{statusLabels[key]}</option>)}</select></label></div>
     {complaints === null ? <p className="muted">Carregando…</p> : <ComplaintList rows={filtered} onOpen={row => setOpenId(row.id)} empty="Nenhuma manifestação com esse filtro." />}</> :
    view === 'responses' ? <OpsResponses onChanged={() => setVersion(value => value + 1)} /> :
+   view === 'representatives' ? <OpsRepresentatives onChanged={() => setVersion(v => v + 1)} /> :
    view === 'companies' ? <Companies rows={companies} /> :
    <ContactSolicitationsAdmin />}
  </section></main>;

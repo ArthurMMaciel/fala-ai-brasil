@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { listPartnerDirectory, loadCompanyContext, loadPartnerPhoto, uploadPartnerPhoto, type CompanyContext, type DirectoryPartner } from '../services/account';
-import { listCompanyComplaints, listPartnerCompanies, listCompanyResponsiveness, loadMyCompanyResponsiveness, loadMyCompanySatisfaction, loadCompanyTimeline, loadPartnerProfile, requestPartner, respondCompanyComplaint, setPartnerConnection, updatePartnerProfile, loadPartnerPlan, listMyContents, listPartnerContents, createPartnerContent, deletePartnerContent, type PartnerContent, type CompanySatisfaction, type CompanyComplaint, type ComplaintStatusDb, type PartnerCompany, type PartnerProfileData, type MyResponsiveness, type ResponsivenessRow, type TimelineItem } from '../services/data';
+import { listCompanyComplaints, listPartnerCompanies, listCompanyResponsiveness, loadMyCompanyResponsiveness, loadMyCompanySatisfaction, loadMyVerificationStatus, loadCompanyTimeline, loadPartnerProfile, requestPartner, respondCompanyComplaint, setPartnerConnection, updatePartnerProfile, loadPartnerPlan, listMyContents, listPartnerContents, createPartnerContent, deletePartnerContent, type PartnerContent, type CompanySatisfaction, type CompanyComplaint, type ComplaintStatusDb, type PartnerCompany, type PartnerProfileData, type MyResponsiveness, type ResponsivenessRow, type TimelineItem } from '../services/data';
 import { showToast } from '../app/toast';
 import { Icon, QuickActions, initials, type IconName } from './ui';
 import { formatPhone, planIncludesContent, validateContent, whatsappLink } from '../domain/account-rules';
@@ -10,6 +10,7 @@ import { usePrintDocument } from './print-document';
 import { CompanyProfile } from './profile-live';
 import { MyResponsivenessPanel, ResponsivenessTable, responsivenessMethod } from './responsiveness';
 import { statusLabel } from '../domain/complaint-status';
+import { companyAccessPending, type VerificationStatus } from '../domain/representatives';
 
 // Portais de empresa e parceiro com dados reais (modelo v3). A empresa lê apenas versões compartilhadas, sem identidade.
 type CompanyView = 'dashboard' | 'complaints' | 'ranking' | 'partners' | 'profile';
@@ -134,6 +135,18 @@ function PartnerDirectoryLive() {
   {selected && <div className="commercial-modal-backdrop" onMouseDown={event => event.target === event.currentTarget && setSelected(null)}><section className="commercial-modal partner-modal" role="dialog" aria-modal="true" aria-labelledby="partner-title"><button className="commercial-modal-close" onClick={() => setSelected(null)} aria-label="Fechar">×</button>{avatar(selected, true)}<span className="editorial-eyebrow">Perfil profissional</span><h2 id="partner-title">{selected.name}</h2><p>{selected.specialty} · {selected.city} / {selected.state}</p>{selected.description && <p>{selected.description}</p>}{contents.length > 0 && <><h3>Conteúdos</h3><ContentGallery contents={contents} /></>}<div className="commercial-callout">A plataforma não intermedia o serviço. O parceiro recebe o interesse da sua empresa e retorna diretamente.</div>{selected.requested ? <p className="commercial-feedback" role="status">Interesse já enviado a este parceiro.</p> : <button className="btn primary" onClick={() => contact(selected)}>Entrar em contato</button>}</section></div>}</>;
 }
 
+// ADR-0012: fora de "verified", nada de casos nem números; perfil e parceiros seguem abertos.
+const verificationCopy: Record<Exclude<VerificationStatus, 'verified'>, [string, string]> = {
+ pending: ['Aguardando verificação', 'Antes de mostrar manifestações e indicadores, a equipe Escuta Aí Brasil confirma que você representa a empresa. Para isso, entramos em contato pelo telefone público da empresa ou pedimos um documento, sempre fora da plataforma. Quando a verificação terminar, esta área passa a mostrar os casos.'],
+ rejected: ['Não foi possível confirmar o vínculo', 'A equipe Escuta Aí Brasil não conseguiu confirmar que esta conta representa a empresa. Por isso, manifestações e indicadores continuam ocultos. Se houve engano, fale com a equipe Escuta Aí Brasil.'],
+ revoked: ['Acesso suspenso', 'O acesso desta conta às manifestações e aos indicadores da empresa foi retirado pela equipe Escuta Aí Brasil. Se houve engano, fale com a equipe Escuta Aí Brasil.'],
+};
+function VerificationPending({ status, companyName, onView }: { status: VerificationStatus; companyName: string; onView: (view: CompanyView) => void }) {
+ const [title, text] = verificationCopy[status === 'verified' ? 'pending' : status];
+ return <><div className="commercial-page-head"><div><span className="editorial-eyebrow">{companyName}</span><h1>{title}</h1></div></div>
+  <section className="commercial-panel company-verification" role="status"><p>{text}</p><p className="muted small">Enquanto isso, você pode completar o perfil da empresa e conhecer os parceiros.</p><div className="ops-decision-actions"><button className="btn" onClick={() => onView('profile')}>Completar perfil</button><button className="btn" onClick={() => onView('partners')}>Ver parceiros</button></div></section></>;
+}
+
 export function CompanyPortalLive({ companyId }: { companyId: string }) {
  const [view, setView] = useState<CompanyView>('dashboard');
  const [company, setCompany] = useState<CompanyContext | null | undefined>(undefined);
@@ -144,13 +157,16 @@ export function CompanyPortalLive({ companyId }: { companyId: string }) {
  const [openId, setOpenId] = useState<string | null>(null);
  const [version, setVersion] = useState(0);
  const [contextVersion, setContextVersion] = useState(0);
+ const [verification, setVerification] = useState<VerificationStatus | null | undefined>(undefined);
+ useEffect(() => { let active = true; loadMyVerificationStatus(companyId).then(value => { if (active) setVerification(value); }).catch(() => active && setVerification(null)); return () => { active = false; }; }, [companyId, contextVersion]);
  useEffect(() => { let active = true; loadCompanyContext(companyId).then(value => { if (active) setCompany(value); }).catch(() => active && setCompany(null)); return () => { active = false; }; }, [companyId, contextVersion]);
  useEffect(() => { let active = true; Promise.all([listCompanyComplaints(), listCompanyResponsiveness(), loadMyCompanyResponsiveness()]).then(([rows, rank, own]) => { if (active) { setComplaints(rows); setRanking(rank); setMyStats(own); } }); loadMyCompanySatisfaction().then(rows => { if (active) setSatisfaction(rows); }).catch(() => undefined); return () => { active = false; }; }, [companyId, version]);
  const mine = useMemo(() => myStats?.find(row => row.companyId === companyId), [myStats, companyId]);
  const open = (id: string | null) => { setOpenId(id); setView('complaints'); };
  const items: [CompanyView, string][] = [['dashboard', 'Dashboard'], ['complaints', 'Manifestações'], ['ranking', 'Responsividade'], ['partners', 'Parceiros'], ['profile', 'Meu perfil']];
  return <main className="commercial-portal-content"><Sidebar eyebrow="Área da empresa" name={company?.name ?? 'Carregando…'} items={items} view={view} onView={next => { setView(next); setOpenId(null); }} /><section className="commercial-portal-main">
-  {company === undefined || complaints === null ? <p className="muted">Carregando dados da empresa…</p> : company === null ? <section className="commercial-panel"><h2>Não foi possível carregar sua empresa</h2><p>Saia e entre novamente. Se continuar, fale com o suporte.</p></section> :
+  {company === undefined || complaints === null || verification === undefined ? <p className="muted">Carregando dados da empresa…</p> : company === null ? <section className="commercial-panel"><h2>Não foi possível carregar sua empresa</h2><p>Saia e entre novamente. Se continuar, fale com o suporte.</p></section> :
+   companyAccessPending(verification) && view !== 'partners' && view !== 'profile' ? <VerificationPending status={verification as VerificationStatus} companyName={company.name} onView={setView} /> :
    view === 'dashboard' ? <CompanyDashboard company={company} complaints={complaints} mine={mine} onOpen={open} onView={setView} /> :
    view === 'complaints' ? <CompanyComplaints complaints={complaints} openId={openId} onOpen={setOpenId} onChanged={() => setVersion(value => value + 1)} companyName={company.name} /> :
    view === 'ranking' ? <CompanyResponsiveness rows={ranking} mine={mine} satisfaction={satisfaction.find(row => row.companyId === companyId)} /> :
