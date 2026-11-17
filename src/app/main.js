@@ -13,7 +13,8 @@ import { commercialCatalog } from "../domain/commercial";
 import { listPublicSponsors } from "../services/data";
 import { createCampaign, deleteCampaignDraft, listCampaigns, submitCampaign } from "../services/account";
 import { campaignKindForPlan, campaignKindLabels, campaignStatusLabels, isActiveCampaign, validateCampaign } from "../domain/account-rules";
-import { consumeEmailConfirmation, isAccountServiceConfigured, loadAccount, loadPartnerPhoto, readRedirectError, registerAccount, resendConfirmation, signIn, signOut, uploadPartnerPhoto } from "../services/account";
+import { consumeEmailConfirmation, isAccountServiceConfigured, loadAccount, loadPartnerPhoto, readRedirectError, registerAccount, resendConfirmation, signIn, signOut, uploadPartnerPhoto, watchSession } from "../services/account";
+import { sessionChange, sessionChangeMessages } from "../domain/session-sync";
 import { showToast } from "./toast";
 import { escapeHtml, safeHttpUrl } from "../domain/html-safety";
 import { brazilianStates, isDemoEmail, minPasswordLength, profileLabels, splitStreet, streetTypeLabels, validateRegistration } from "../domain/account-rules";
@@ -485,6 +486,8 @@ if(!isAccountServiceConfigured()){n("Login indisponível neste ambiente.");retur
 s&&(s.disabled=!0,s.textContent="Entrando…");const r=await signIn(t,i);if(!r.ok){s&&(s.disabled=!1,s.textContent="Entrar");n(r.message);if(r.code==="email_not_confirmed")m("login",{authNotice:{email:t.trim().toLowerCase(),unconfirmed:!0}});return}
 return acctApply({},r.value)}
 async function acctResend(e){const a=o.authNotice?.email;if(!a)return;e.disabled=!0;e.textContent="Reenviando…";const t=await resendConfirmation(a);e.disabled=!1;e.textContent="Reenviar e-mail de confirmação";t.ok?showToast("success",`Se houver um cadastro pendente para ${a}, um novo link foi enviado.`):showToast("error",t.message)}
-function acctLogout(){v.dispatchEvent?.(new CustomEvent("escuta:reset-portal"));m("landing",{user:null,accountProfiles:null,partnerPhotoUrl:null,campaigns:null,sponsorTab:"plans",authNotice:null});signOut().catch(()=>{})}
+function acctResetUi(){v.dispatchEvent?.(new CustomEvent("escuta:reset-portal"));m("landing",{user:null,accountProfiles:null,partnerPhotoUrl:null,campaigns:null,sponsorTab:"plans",authNotice:null})}
+function acctLogout(){acctResetUi();signOut().catch(()=>{})}
+watchSession((e,a)=>{const t=sessionChange(e,a,o.user?.id??null);if(t==="ended"){acctResetUi();showToast("info",sessionChangeMessages.ended)}else if(t==="changed"){showToast("info",sessionChangeMessages.changed);setTimeout(()=>window.location.reload(),1500)}});
 async function acctRestore(){const e=readRedirectError();if(e){showToast("error",e);return m("login",{authNotice:null})}const f=await consumeEmailConfirmation();if(f){showToast("success","E-mail confirmado! Entre com sua senha.");return m("login",{authNotice:{email:f}})}try{const a=await loadAccount();a&&acctApply({},a)}catch{}}
 y();acctRestore();acctLoadSponsors();

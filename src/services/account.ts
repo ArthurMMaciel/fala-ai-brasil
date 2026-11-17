@@ -100,6 +100,13 @@ export async function signIn(email: string, password: string): Promise<AuthResul
   return account ? { ok: true, value: account } : { ok: false, message: "Conta autenticada, mas nenhum perfil foi encontrado. Fale com o suporte." };
 }
 
+// Avisa a tela quando a sessão termina ou muda em outra aba, ou quando o token não renova (bug 17tu7rpc7ru).
+export function watchSession(onChange: (event: string, sessionUserId: string | null) => void): () => void {
+  if (!isAccountServiceConfigured()) return () => undefined;
+  const { data } = supabase().auth.onAuthStateChange((event, session) => onChange(event, session?.user.id ?? null));
+  return () => data.subscription.unsubscribe();
+}
+
 export async function signOut(): Promise<void> {
   if (isAccountServiceConfigured()) await supabase().auth.signOut();
 }
