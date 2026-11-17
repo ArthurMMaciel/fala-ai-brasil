@@ -189,6 +189,7 @@ $$$s0$;
       execute $s0$-- ADR-0012 (recorte do piloto), parte 2 de 2: troca do gate. Só o vínculo 'verified' vê e responde manifestações
 -- e vê os próprios números; o vínculo 'pending', 'rejected' ou 'revoked' continua com portal, perfil e diretório.
 -- Depende da 20261109180000 (respond_complaint com revisão) e da 20261117120000.
+-- Fica em supabase/pending/ até o Front publicar a fila de verificação; só então é movida para supabase/migrations/.
 -- Corpos copiados das últimas definições (170000, 150000, 180000), com is_company_user -> is_verified_company_user
 -- e o filtro verification_status = 'verified' nas duas funções de números próprios. Mesmas assinaturas: os grants seguem.
 --
