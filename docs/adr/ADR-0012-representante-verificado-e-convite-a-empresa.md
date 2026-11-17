@@ -1,6 +1,6 @@
 # ADR-0012 — Representante verificado e convite seguro à empresa
 
-- Estado: **Proposta**, revisada em 2026-11-08 com as decisões do responsável sobre D7, base de empresas e prazos. Nenhuma migration foi criada.
+- Estado: **Aceita no recorte do piloto** (V1 + C1 + R3), pelo responsável em 2026-11-17 ("Aprovo todas", repassado pelo Gestor). O restante do modelo segue como proposta. Implementação: `20261117120000` e `20261117130000`, ainda não aplicadas.
 - Data: 2026-11-06
 - Tarefas: [TASK-0011](../tasks/TASK-0011-verificacao-de-contatos-empresariais.md) · [TASK-0029](../tasks/TASK-0029-convite-seguro-a-empresa-apos-manifestacao.md) · TASK-0031
 - Relacionadas: ADR-0009, ADR-0010, ADR-0011
