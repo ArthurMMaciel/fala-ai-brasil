@@ -28,6 +28,8 @@ D3. **Gate no banco.** `private.assert_legal_current()` recusa, com mensagem fix
 
 D4. **Publicação de versão nova pela equipe.** `ops_publish_legal_version(p_document, p_version, p_content_hash)` marca a nova versão como vigente e registra quem publicou. A partir daí, todos voltam a ter aceite pendente.
 
+D4a. **Convenção do hash (17/11, com o Front).** O `content_hash` é o sha256, em hexadecimal minúsculo, do arquivo inteiro em `src/content/legal/`, comentários incluídos, como está no commit da main que publicou o texto: `git show <sha>:src/content/legal/termos-de-uso.md | sha256sum`. A cópia da pasta de trabalho não serve, porque o CRLF do Windows muda o hash. O roteiro de publicação registra também o SHA do commit.
+
 D5. **Sem dados extras.** Não gravar IP, user agent nem geolocalização. Se o advogado pedir, isso é uma decisão nova, com retenção própria.
 
 ## Modelo previsto
