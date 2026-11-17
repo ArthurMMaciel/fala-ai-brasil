@@ -21,3 +21,13 @@ test('fila em ordem dos mais antigos, sem alterar a lista original', () => {
   assert.deepEqual(JSON.parse(JSON.stringify(queue.oldestFirst(rows).map(row => row.id))), ['a', 'c', 'b']);
   assert.equal(rows[0].id, 'b');
 });
+
+test('motivo da decisão: até 469 caracteres, mínimo de 10 fora da liberação', () => {
+  assert.equal(queue.opsReasonMax, 469);
+  assert.equal(queue.validateOpsReason('released', ''), null);
+  assert.equal(queue.validateOpsReason('held', 'curto'), 'Explique o motivo com pelo menos 10 caracteres.');
+  assert.equal(queue.validateOpsReason('adjustment_requested', 'a'.repeat(469)), null);
+  assert.equal(queue.validateOpsReason('adjustment_requested', 'a'.repeat(470)), 'O motivo pode ter até 469 caracteres (agora tem 470).');
+  assert.equal('Ajuste solicitado pela equipe: '.length + queue.opsReasonMax, 500);
+  assert.ok(readFileSync('src/portals/ops-portal-live.tsx', 'utf8').includes('<textarea rows={3} maxLength={opsReasonMax}'));
+});

@@ -12,3 +12,15 @@ export function waitingLabel(since: string, now: Date = new Date()): string {
 export function oldestFirst<T extends { updatedAt: string }>(rows: readonly T[]): T[] {
   return [...rows].sort((a, b) => Date.parse(a.updatedAt) - Date.parse(b.updatedAt));
 }
+
+// O banco grava o motivo na trilha com o prefixo "Ajuste solicitado pela equipe: " (31 caracteres) e a nota tem até 500.
+// Acima de 469 caracteres a RPC ops_decide_complaint falha; o limite fica aqui e no campo.
+export const opsReasonMax = 469;
+
+/** Mensagem de erro do motivo da decisão da Operação, ou null quando está válido. */
+export function validateOpsReason(decision: "released" | "adjustment_requested" | "held", reason: string): string | null {
+  const length = reason.trim().length;
+  if (length > opsReasonMax) return `O motivo pode ter até ${opsReasonMax} caracteres (agora tem ${length}).`;
+  if (decision !== "released" && length < 10) return "Explique o motivo com pelo menos 10 caracteres.";
+  return null;
+}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { decideOpsComplaint, listOpsComplaints, listOpsCompanies, loadOpsMetrics, loadOpsTimeline, readOpsOriginal, type OpsComplaint, type OpsCompany, type OpsMetrics, type OpsTimelineItem, type ReviewDecision } from '../services/ops';
 import type { ComplaintStatusDb } from '../services/data';
 import { statusLabel } from '../domain/complaint-status';
-import { oldestFirst, waitingLabel } from '../domain/ops-queue';
+import { oldestFirst, opsReasonMax, validateOpsReason, waitingLabel } from '../domain/ops-queue';
 import { showToast } from '../app/toast';
 import { Metric, Sidebar } from './portal-live';
 import { QuickActions } from './ui';
@@ -72,7 +72,8 @@ function ComplaintDetail({ complaint, onBack, onChanged }: { complaint: OpsCompl
  useEffect(() => { let active = true; loadOpsTimeline(complaint.id).then(rows => { if (active) setTimeline(rows); }); return () => { active = false; }; }, [complaint.id, version]);
  const canDecide = complaint.status === 'in_review' || complaint.status === 'held';
  async function decide(decision: ReviewDecision) {
-  if (decision !== 'released' && reason.trim().length < 10) return showToast('error', 'Explique o motivo com pelo menos 10 caracteres.', 'Confira os dados');
+  const reasonError = validateOpsReason(decision, reason);
+  if (reasonError) return showToast('error', reasonError, 'Confira os dados');
   if (decision === 'released' && !window.confirm('Liberar esta versão para a empresa? Ela passará a ver o texto compartilhável.')) return;
   setBusy(true); const result = await decideOpsComplaint(complaint.id, decision, reason); setBusy(false);
   if (!result.ok) return showToast('error', result.message);
@@ -92,7 +93,7 @@ function ComplaintDetail({ complaint, onBack, onChanged }: { complaint: OpsCompl
    <section className="worker-detail-section"><h3>Versão compartilhável</h3><p className="muted small">É o único texto que a empresa pode receber. Confira se não há nomes, locais, datas ou detalhes que identifiquem pessoas.</p>{complaint.shared ? <p className="worker-original">{complaint.shared}</p> : <p className="muted">O trabalhador ainda não escreveu a versão compartilhável.</p>}</section>
    <section className="worker-detail-section"><h3>Contexto</h3><dl><div><dt>Quando aconteceu</dt><dd>{complaint.incidentPeriod ?? '—'}</dd></div><div><dt>Recorrência</dt><dd>{complaint.recurrence ?? '—'}</dd></div><div><dt>O que espera</dt><dd>{complaint.expectedOutcomes.length ? complaint.expectedOutcomes.join(', ') : '—'}</dd></div><div><dt>Respostas da empresa</dt><dd>{complaint.responses}</dd></div></dl></section>
    {canDecide && <section className="worker-detail-section ops-decision"><h3>Decisão da equipe</h3>
-    <label className="field">Motivo (obrigatório para ajuste ou retenção)<textarea rows={3} maxLength={500} value={reason} onChange={event => setReason(event.target.value)} placeholder="Ex.: a versão cita o nome do gestor; retire antes da liberação." /><small className="muted">No pedido de ajuste, o motivo aparece para o trabalhador. Na retenção, fica só na trilha da equipe.</small></label>
+    <label className="field">Motivo (obrigatório para ajuste ou retenção)<textarea rows={3} maxLength={opsReasonMax} aria-describedby="ops-reason-count" value={reason} onChange={event => setReason(event.target.value)} placeholder="Ex.: a versão cita o nome do gestor; retire antes da liberação." /><small className="muted">No pedido de ajuste, o motivo aparece para o trabalhador. Na retenção, fica só na trilha da equipe.</small><small id="ops-reason-count" className={`muted ops-reason-count${reason.trim().length > opsReasonMax - 30 ? ' near-limit' : ''}`}>{reason.trim().length}/{opsReasonMax} caracteres</small></label>
     <div className="ops-decision-actions"><button className="btn primary" disabled={busy || !complaint.shared} onClick={() => decide('released')}>{decisionLabels.released}</button><button className="btn" disabled={busy} onClick={() => decide('adjustment_requested')}>{decisionLabels.adjustment_requested}</button>{complaint.status !== 'held' && <button className="btn" disabled={busy} onClick={() => decide('held')}>{decisionLabels.held}</button>}</div></section>}
    <section className="worker-detail-section"><h3>Relato original</h3>
     {original !== null ? <><p className="muted small">Acesso registrado. Não copie este texto para fora da plataforma.</p><p className="worker-original">{original}</p></> :
