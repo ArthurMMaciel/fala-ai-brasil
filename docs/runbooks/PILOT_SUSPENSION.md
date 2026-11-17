@@ -18,7 +18,7 @@ Vale para o piloto fechado a partir de 30/11. Usa só o que existe em 2026-11-17
 
 Qualquer pessoa que perceber um problema avisa o responsável e o Gestor. O aviso não inclui conteúdo de relato, dado pessoal nem segredo, só o identificador (protocolo, id da empresa, nome da chave).
 
-**Lacuna:** não há plantão nem contato fora do horário. Definir antes de 30/11 o canal (telefone ou grupo) e quem substitui o responsável na ausência dele.
+**Lacuna aceita (2026-11-17):** não há plantão, contato fora do horário nem substituto do responsável. Na ausência dele, ninguém executa contenção em produção.
 
 ## Severidade
 
@@ -58,12 +58,12 @@ Segue também [CREDENTIAL_LEAK](CREDENTIAL_LEAK.md). Inventário em 2026-11-17:
 | Chave publishable do Supabase | Front (`VITE_SUPABASE_PUBLISHABLE_KEY` na Vercel) | É pública por desenho, e a proteção real é a RLS. Só se troca se houver abuso. Criar a nova em Supabase > Settings > API Keys, atualizar a variável na Vercel, fazer redeploy e depois revogar a antiga. |
 | Chave secret / service_role do Supabase | Nenhum código do repositório a usa hoje: não há Edge Function nem backend próprio | Supabase > Settings > API Keys: revogar e gerar outra. Sem impacto no app, que não a usa. |
 | Senha do banco (Postgres) | CLI (`db push`, `db dump`) na máquina do responsável | Supabase > Settings > Database > reset da senha. |
-| SMTP do Auth (senha de app do Gmail do responsável, ADR-0009 e TASK-0023) | Supabase > Authentication > SMTP | Revogar a senha de app na conta Google, gerar outra e colar no painel do Supabase. Enquanto isso, os e-mails de confirmação param. |
+| SMTP do Auth (senha de app do Gmail do responsável, uso estendido ao piloto; ADR-0009, revisão de 2026-11-17) | Supabase > Authentication > SMTP | Na conta Google, remover a senha de app comprometida, gerar outra e colar no painel do Supabase. Enquanto isso, os e-mails de confirmação e de recuperação param. Trocar a senha da conta Google revoga todas as senhas de app, e aí o mesmo procedimento é obrigatório. |
 | Token da Vercel e token do GitHub | Contas pessoais do responsável | Revogar no painel de cada serviço. |
 
 Nunca colar um segredo em chat, task ou commit. No registro do incidente entra só o nome da chave e a hora da troca.
 
-**Lacuna (antes do piloto):** o ADR-0009 aceita o Gmail do responsável no SMTP "só para a demonstração" e pede domínio próprio e provedor transacional antes do piloto. A proposta do ADR-0020 também usa Gmail. A decisão é do responsável.
+**Risco aceito (2026-11-17):** o piloto usa o Gmail do responsável no SMTP (ADR-0009, revisão de 2026-11-17). Os riscos aceitos são o limite diário, o remetente pessoal e a dependência de uma conta pessoal.
 
 ## 2. Preservar evidências
 

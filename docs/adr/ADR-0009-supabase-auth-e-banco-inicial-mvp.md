@@ -113,3 +113,23 @@ Desativar as chamadas Supabase no front (contas demo continuam funcionando) e, s
 ## Alternativas rejeitadas
 
 API própria agora (prazo); Firebase (modelo não relacional, divergente da direção PostgreSQL).
+
+## Revisão de 2026-11-17: SMTP do Gmail estendido ao piloto fechado
+
+Decisão do responsável, comunicada pelo Gestor: o piloto fechado de 30/11 continua enviando os e-mails do Auth (confirmação de cadastro e recuperação de senha) pelo Gmail atual do responsável, com senha de app. A pendência anterior, "domínio próprio e provedor transacional antes do piloto", fica adiada. Nenhuma configuração foi alterada.
+
+Riscos aceitos:
+- **Limite de envio:**
+  - A ajuda do Gmail para contas pessoais cita o erro de limite ao enviar "more than 500 emails sent in a day" ou uma mensagem com mais de 500 destinatários ([support.google.com/mail/answer/22839](https://support.google.com/mail/answer/22839)).
+  - A mesma página diz que o envio volta "within 1 to 24 hours".
+  - Ela não informa um limite específico para SMTP (`smtp.gmail.com`), e esse limite fica "a confirmar".
+  - Com 3 empresas, o volume esperado do piloto fica muito abaixo de 500 por dia.
+  - Se o limite for atingido, cadastros e recuperações de senha param até a liberação.
+- **Remetente pessoal:** os e-mails saem de um endereço que não é da plataforma. O usuário pode desconfiar, marcar como spam ou responder para a conta pessoal do responsável.
+- **Dependência de uma conta pessoal:**
+  - A senha de app exige verificação em duas etapas, e o Google "revoke[s] your app passwords when you change your Google Account password" ([support.google.com/mail/answer/185833](https://support.google.com/mail/answer/185833)).
+  - **Trocar a senha da conta Google derruba o envio sem aviso.** Depois de qualquer troca, é preciso gerar uma nova senha de app e colá-la no painel do Supabase.
+  - Suspensão, bloqueio ou perda de acesso à conta também param o envio.
+- O Supabase também limita os envios de e-mail do Auth. O valor configurado no projeto é "a confirmar" no painel.
+
+Troca da senha de app: ver o inventário de segredos em [PILOT_SUSPENSION](../runbooks/PILOT_SUSPENSION.md). A troca para um provedor transacional com domínio próprio continua como pendência pós-piloto, sem data.
