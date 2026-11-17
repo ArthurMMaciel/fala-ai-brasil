@@ -2,7 +2,11 @@
 
 Objetivo: provar que uma cópia lógica do banco de produção pode ser restaurada, e medir quanto tempo isso leva (RTO). O teste copia os dados do remoto e os restaura no Supabase local. Depois confere se cada tabela tem o mesmo número de linhas nos dois lados.
 
-**Este procedimento lê produção inteira e traz dado pessoal para a máquina. Só roda com liberação escrita do responsável na sessão do DevOps.**
+**Situação em 2026-11-17: NÃO ensaiado.** Por decisão do responsável, comunicada pelo Gestor, não há segundo banco: nem Docker local, nem projeto de dev. Sem um segundo banco, não há onde restaurar sem sobrescrever a produção. O piloto abre sem restauração comprovada, como risco aceito (TASK-0010). A [rotina de backup](BACKUP_FREE.md) faz só a verificação mínima do arquivo.
+
+**Sugestão futura:** religar o Docker Desktop só no dia do ensaio e seguir o roteiro abaixo. A cópia não sai desta máquina, e o Docker volta a ser desligado depois. O mesmo Docker serve ao dump da rotina de backup. Nunca restaurar num banco usado para testes por Front ou Back.
+
+**O roteiro lê a produção inteira e traz dado pessoal para a máquina. Só roda com liberação escrita do responsável na sessão do DevOps.**
 
 ## Quando
 

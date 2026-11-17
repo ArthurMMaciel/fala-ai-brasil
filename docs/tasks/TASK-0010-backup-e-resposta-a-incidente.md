@@ -83,3 +83,53 @@ Contexto: piloto fechado com relato real a partir de 30/11; go/no-go em 25/11. F
 6. Project > Settings > General: se aparece aviso de pausa por inatividade.
 
 Basta anotar as respostas em texto. Nenhuma tela traz chave nem senha que precise ser copiada.
+
+### Risco residual aceito (2026-11-17)
+
+Decisão do responsável, comunicada pelo Gestor: o piloto fica no plano Free, com um único banco.
+
+Riscos aceitos:
+- **Sem backup automático e sem PITR.** A única cópia é a [rotina de dump](../runbooks/BACKUP_FREE.md), que é manual, ainda é proposta e depende de Docker ou do `pg_dump` 17.
+- **Restauração não ensaiada** ([RESTORE_DRILL](../runbooks/RESTORE_DRILL.md)).
+- **Pausa do projeto após 1 semana sem uso.** Com o piloto ativo, deve haver uso diário, mas um feriado longo sem acesso pode pausar o projeto.
+- **Logs de 1 dia** (API, Postgres e Auth). Um incidente precisa ser investigado e exportado no mesmo dia ([TASK-0009](TASK-0009-auditoria-e-observabilidade.md)).
+
+Para o gate de 25/11: o go/no-go precisa registrar que a restauração **não foi ensaiada**.
+
+### Dados de demonstração em produção (achado de 2026-11-17)
+
+Inventário feito só pela leitura de `scripts/seed-demo-data.mjs` (TASK-0022). A produção não foi consultada.
+
+- O comentário do script manda rodar com `db query --linked`, ou seja, em produção. Se o script rodou, e quantas vezes, é "a confirmar" por uma leitura liberada.
+
+O que o script cria:
+
+| Item | Quantidade | Detalhe |
+|---|---|---|
+| Contas | 20 | Todas `@example.com`, com e-mail confirmado e a mesma senha (lida de `supabase/test-users.local.md`): 6 empresas (`rh.<empresa>@`), 5 trabalhadores, 4 parceiros, 5 patrocinadores |
+| Empresas | 6 | Aurora Tecnologia, Nova Essencial, Lumina Alimentos, Via Serena, Arco Norte e Porto Claro, com CNPJ de dígitos válidos, endereço e contato fictícios |
+| Trabalhadores | 5 | CPF de dígitos válidos e endereço |
+| Parceiros | 4 | Com especialidade, descrição e CPF |
+| Patrocinadores | 5 | Com CNPJ e endereço na Av. Paulista |
+| Manifestações | 19 | Só se a tabela estiver vazia. Com relato original, versão compartilhável e eventos; 10 respostas de empresa e 3 encerradas com avaliação. Distribuídas entre as 6 empresas e a `empresa.teste` |
+| Conexões do Hub | 9 | Parceiro × empresa |
+| Campanhas aprovadas | 6 | 5 vigentes (de 5 dias atrás a 45 dias à frente, contados da execução) e 1 encerrada |
+| Ajustes | — | E-mail e telefone de contato das empresas; `parceiro.teste` no plano Nacional |
+
+O script também usa as contas `trabalhador.teste`, `empresa.teste`, `parceiro.teste` e `patrocinador.teste`, que já existiam e não são criadas por ele.
+
+Onde esses dados aparecem:
+- **Landing pública (anon):** `list_public_sponsors`, usada no bundle da landing, lista patrocinadores com campanha aprovada e vigente. As campanhas do seed valem por 45 dias a partir da execução.
+- **Portal do trabalhador (autenticado):**
+  - diretório de empresas (`list_company_directory`), onde o trabalhador escolhe a empresa do relato. As 6 empresas fictícias aparecem ao lado das 3 empresas reais do piloto;
+  - responsividade das empresas (`company_responsiveness`), calculada a partir das manifestações e respostas, inclusive as fictícias.
+- **Diretório de parceiros e conteúdos (autenticado):** `list_partner_directory` e `list_partner_contents`.
+- **Operação:** fila, métricas (`ops_metrics`) e lista de empresas (`ops_list_companies`) contam os casos fictícios.
+
+Riscos para o piloto:
+- Um trabalhador real pode registrar relato contra uma empresa fictícia.
+- As métricas do piloto ficam misturadas com as da demonstração.
+- **CPF e CNPJ com dígitos válidos podem coincidir com pessoas ou empresas reais.** Com `workers.cpf` e `companies.cnpj` únicos, uma pessoa real com o mesmo número não conseguiria se cadastrar.
+- Os nomes fictícios de empresa podem coincidir com nomes reais, e eles aparecem com relatos negativos.
+
+Decisão do responsável antes de 30/11: remover os dados de demonstração, ou isolá-los do que o piloto exibe. A remoção é uma escrita em produção, com backup antes e liberação própria.

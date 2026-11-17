@@ -19,3 +19,4 @@ Para o piloto fechado (2026-11):
 
 - [Incidente e suspensão do piloto](PILOT_SUSPENSION.md).
 - [Ensaio de restauração](RESTORE_DRILL.md).
+- [Rotina de backup gratuito (proposta)](BACKUP_FREE.md).
