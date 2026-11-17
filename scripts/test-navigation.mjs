@@ -24,7 +24,10 @@ const contactService = compile('src/services/contact-solicitations.ts', '', name
 const contactForm = compile('src/landing/contact-solicitation-form.tsx', '', name => name === '../services/contact-solicitations' ? contactService : name === '../domain/account-rules' ? accountRules : require(name));
 const showcase = compile('src/landing/persona-showcase.tsx', '', name => name === './contact-solicitation-form' ? contactForm : require(name));
 const tracking = compile('src/editorial/editorial-tracking.tsx', '', name => name === './editorial-ui' ? ui : name === './editorial-model' ? model : require(name));
-const experience = compile('src/editorial/editorial-experience.tsx', '', name => name === './editorial-ui' ? ui : name === './editorial-model' ? model : name === './editorial-tracking' ? tracking : require(name));
+const legalDocs = compile('src/domain/legal-docs.ts');
+const rawContent = name => name.endsWith('.md?raw') ? { default: readFileSync(new URL(`../src/content/legal/${name.split('/').pop().replace('?raw', '')}`, import.meta.url), 'utf8') } : null;
+const legalPage = compile('src/editorial/legal-page.tsx', '', name => rawContent(name) ?? (name === '../domain/legal-docs' ? legalDocs : name === './editorial-ui' ? ui : require(name)));
+const experience = compile('src/editorial/editorial-experience.tsx', '', name => name === './editorial-ui' ? ui : name === './editorial-model' ? model : name === './editorial-tracking' ? tracking : name === './legal-page' ? legalPage : require(name));
 const landing = compile('src/landing/landing-react.tsx', '\nexport { Landing };', name => ({ '../domain/commercial': { commercialCatalog: catalog }, '../editorial/editorial-ui': ui, '../editorial/editorial-landing': stories, '../editorial/editorial-experience': experience, './persona-showcase': showcase }[name] ?? require(name)));
 
 // Minimal host for the legacy renderer: checks transitions and bound actions without a browser.
@@ -53,7 +56,7 @@ function app() {
     // Cadastro real (ADR-0009) fica desligado no host de teste; contas demo seguem locais.
     isAccountServiceConfigured: () => false, loadAccount: async () => null, readRedirectError: () => null, consumeEmailConfirmation: async () => null, passwordRulesMarkup: () => "",
     registerAccount: async () => ({ ok: false, message: 'indisponível' }), resendConfirmation: async () => ({ ok: true, value: null }),
-    signIn: async () => ({ ok: false, message: 'indisponível' }), signOut: async () => {}, watchSession: () => () => {}, sessionChange: () => null, sessionChangeMessages: {}, loadPartnerPhoto: async () => ({ url: null }), uploadPartnerPhoto: async () => ({ ok: false, message: 'indisponível' }),
+    signIn: async () => ({ ok: false, message: 'indisponível' }), signOut: async () => {}, watchSession: () => () => {}, sessionChange: () => null, sessionChangeMessages: {}, legalRouteFromHash: () => null, location: { hash: '', pathname: '/', search: '' }, loadPartnerPhoto: async () => ({ url: null }), uploadPartnerPhoto: async () => ({ ok: false, message: 'indisponível' }),
     isDemoEmail: email => email.endsWith('@escutaai.demo'), listPublicSponsors: async () => [], minPasswordLength: 8, validateRegistration: () => null,
     escapeHtml: htmlSafety.escapeHtml, safeHttpUrl: htmlSafety.safeHttpUrl,
     brazilianStates: ['SP'], showToast() {}, createCampaign: async () => ({ ok: false, message: 'indisponível' }), deleteCampaignDraft: async () => ({ ok: true }), listCampaigns: async () => [], submitCampaign: async () => ({ ok: true }), campaignKindForPlan: () => null, campaignKindLabels: {}, campaignStatusLabels: {}, isActiveCampaign: () => false, validateCampaign: () => null, profileLabels: {}, splitStreet: () => null, streetTypeLabels: { street: 'Rua' },
@@ -310,4 +313,15 @@ test('Operação continua fechada para quem não é da equipe, mesmo vindo no lo
   screen.api.route('ops', { user: null });
   assert.equal(screen.api.state.route, 'ops', 'saída com user:null não reabre a rota (permanece onde estava, sem gravar)');
   assert.equal(screen.api.state.user?.role, 'platform_admin', 'user:null barrado não foi gravado');
+});
+
+test('termos e privacidade abrem fora do protótipo, com aviso de revisão jurídica e links no rodapé', () => {
+  for (const [route, title] of [['terms', 'Termos de uso'], ['privacy', 'Aviso de privacidade']]) {
+    const html = renderToStaticMarkup(React.createElement(experience.Experience, { route, onRoute() {} }));
+    assert.match(html, new RegExp(`<h1>${title}</h1>`));
+    assert.match(html, /Texto em revisão jurídica/);
+    assert.doesNotMatch(html, /Protótipo · Dados fictícios/);
+  }
+  assert.ok(experience.experienceRoutes.includes('terms') && experience.experienceRoutes.includes('privacy'));
+  assert.match(renderToStaticMarkup(React.createElement(ui.EditorialFooter, { onRoute() {} })), /Termos de uso<\/button><button>Privacidade/);
 });

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Confirmation, WorkerCase } from './editorial-tracking';
 import { Journey, Note, PrototypeBar } from './editorial-ui';
+import { LegalPage } from './legal-page';
 import { session, topics, validateReport, submitReport, lookupReport, queueCompanyUpdate, companyCaseStatus, filterCompanyCases, type ReportDraft, type CompanyFilters, type CompanyCase } from './editorial-model';
 
 type Props = { route: string; onRoute: (route: string) => void };
 const operationalRoutes = ['company-portal', 'company-pending', 'company-detail', 'company-review', 'company-guidance'];
-export const experienceRoutes = ['report', 'report-confirmation', 'tracking', 'tracking-case', ...operationalRoutes];
+export const experienceRoutes = ['report', 'report-confirmation', 'tracking', 'tracking-case', 'terms', 'privacy', ...operationalRoutes];
 
 function Actions({ children }: { children: ReactNode }) { return <div className="form-actions">{children}</div>; }
 function FieldError({ children }: { children: string }) { return children ? <p className="field-error" id="field-error">Atenção: {children}</p> : null; }
@@ -66,6 +67,7 @@ function CompanyDetail({ onRoute, review = false }: Pick<Props, 'onRoute'> & { r
 export function Experience({ route, onRoute }: Props) {
  const company = operationalRoutes.includes(route);
  useEffect(() => { document.querySelector<HTMLElement>('#main-content')?.focus({ preventScroll: true }); }, [route]);
+ if (route === 'terms' || route === 'privacy') return <LegalPage route={route} onRoute={onRoute} />;
  return <div className="app-shell editorial-app"><a className="skip-link" href="#main-content">Ir para o conteúdo principal</a><PrototypeBar label={company ? 'Área da empresa · Ambiente demonstrativo' : route.startsWith('report') ? 'Manifestação' : 'Acompanhamento'} /><header className={`editorial-header${company ? ' company-header' : ''}`}><button className="editorial-wordmark" onClick={() => onRoute('landing')} aria-label="Escuta Aí Brasil — página inicial">Escuta Aí Brasil</button>{company ? <span>Área da empresa / Organização demonstrativa</span> : <button className="text-action" onClick={() => onRoute('landing')}>← Voltar à inicial</button>}</header>{company && <nav className="company-nav" aria-label="Navegação da área da empresa"><button aria-current={['company-portal', 'company-detail', 'company-review'].includes(route) ? 'page' : undefined} onClick={() => onRoute('company-portal')}>Manifestações</button><button aria-current={route === 'company-pending' ? 'page' : undefined} onClick={() => onRoute('company-pending')}>Pendências</button><button aria-current={route === 'company-guidance' ? 'page' : undefined} onClick={() => onRoute('company-guidance')}>Orientações de resposta</button></nav>}
   {route === 'report' ? <Report onRoute={onRoute} /> : route === 'report-confirmation' ? <Confirmation onRoute={onRoute} /> : route === 'tracking' ? <Tracking onRoute={onRoute} /> : route === 'tracking-case' ? <WorkerCase key={session.activeProtocol} onRoute={onRoute} /> : route === 'company-portal' || route === 'company-pending' ? <CompanyList key={route} onRoute={onRoute} pendingOnly={route === 'company-pending'} /> : route === 'company-detail' || route === 'company-review' ? <CompanyDetail key={route + session.activeCompanyProtocol} onRoute={onRoute} review={route === 'company-review'} /> : <main className="operational-workspace" id="main-content" tabIndex={-1}><span className="editorial-eyebrow">Orientações de resposta</span><h1>Responder com clareza e cuidado.</h1><Note title="Somente a versão compartilhável">Não procure identificar quem relatou. Não inclua nomes, contatos, setores específicos ou informações que permitam reconhecer o trabalhador.</Note><h2>Separe o previsto do realizado.</h2><p>Registre o próximo passo e os limites encontrados. Uma proposta não é uma providência concluída. Revise a atualização antes de enviar.</p><h2>Preserve a continuidade.</h2><p>O novo retorno permanece vinculado ao mesmo protocolo. A atualização aguarda revisão antes de poder integrar o histórico do trabalhador.</p><button className="btn" onClick={() => onRoute('company-portal')}>Voltar para manifestações</button></main>}
  </div>;

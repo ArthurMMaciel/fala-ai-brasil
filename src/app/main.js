@@ -15,6 +15,7 @@ import { createCampaign, deleteCampaignDraft, listCampaigns, submitCampaign } fr
 import { campaignKindForPlan, campaignKindLabels, campaignStatusLabels, isActiveCampaign, validateCampaign } from "../domain/account-rules";
 import { consumeEmailConfirmation, isAccountServiceConfigured, loadAccount, loadPartnerPhoto, readRedirectError, registerAccount, resendConfirmation, signIn, signOut, uploadPartnerPhoto, watchSession } from "../services/account";
 import { sessionChange, sessionChangeMessages } from "../domain/session-sync";
+import { legalRouteFromHash } from "../domain/legal-docs";
 import { showToast } from "./toast";
 import { escapeHtml, safeHttpUrl } from "../domain/html-safety";
 import { brazilianStates, isDemoEmail, minPasswordLength, profileLabels, splitStreet, streetTypeLabels, validateRegistration } from "../domain/account-rules";
@@ -121,8 +122,8 @@ function u(e,a){return`<article class="card"><h3>${e}</h3><p class="muted">${a}<
           ${i?`<fieldset class="auth-step" data-title="Plano">${se(o.authAudience,o.selectedPlanId)}</fieldset>`:""}
           <fieldset class="auth-step" data-title="Senha e termos">${acctPasswordField("auth-password","password","Senha","new-password",minPasswordLength)}
             ${acctPasswordField("auth-confirm","confirm","Confirmação de senha","new-password",minPasswordLength,passwordRulesMarkup())}
-            <label class="check-row"><input name="terms" type="checkbox" required /> <span>Aceito os termos de uso.</span></label>
-            <label class="check-row"><input name="privacy" type="checkbox" required /> <span>Li a política de privacidade.</span></label></fieldset>
+            <label class="check-row"><input name="terms" type="checkbox" required /> <span>Aceito os <a href="/#termos" target="_blank" rel="noopener">termos de uso</a>.</span></label>
+            <label class="check-row"><input name="privacy" type="checkbox" required /> <span>Li o <a href="/#privacidade" target="_blank" rel="noopener">aviso de privacidade</a>.</span></label></fieldset>
           <div class="auth-step-nav">
             <button class="btn" type="button" data-step-back>Voltar</button>
             <button class="btn primary" type="button" data-step-next>Continuar</button>
@@ -489,5 +490,7 @@ async function acctResend(e){const a=o.authNotice?.email;if(!a)return;e.disabled
 function acctResetUi(){v.dispatchEvent?.(new CustomEvent("escuta:reset-portal"));m("landing",{user:null,accountProfiles:null,partnerPhotoUrl:null,campaigns:null,sponsorTab:"plans",authNotice:null})}
 function acctLogout(){acctResetUi();signOut().catch(()=>{})}
 watchSession((e,a)=>{const t=sessionChange(e,a,o.user?.id??null);if(t==="ended"){acctResetUi();showToast("info",sessionChangeMessages.ended)}else if(t==="changed"){showToast("info",sessionChangeMessages.changed);setTimeout(()=>window.location.reload(),1500)}});
-async function acctRestore(){const e=readRedirectError();if(e){showToast("error",e);return m("login",{authNotice:null})}const f=await consumeEmailConfirmation();if(f){showToast("success","E-mail confirmado! Entre com sua senha.");return m("login",{authNotice:{email:f}})}try{const a=await loadAccount();a&&acctApply({},a)}catch{}}
+async function acctRestore(){const e=readRedirectError();if(e){showToast("error",e);return m("login",{authNotice:null})}const f=await consumeEmailConfirmation();if(f){showToast("success","E-mail confirmado! Entre com sua senha.");return m("login",{authNotice:{email:f}})}try{const a=await loadAccount();if(a){const h=legalRouteFromHash(location.hash);acctApply({},a);h&&m(h)}}catch{}}
+{const h=legalRouteFromHash(location.hash);h&&(o.route=h)}
+window.addEventListener?.("hashchange",()=>{const h=legalRouteFromHash(location.hash);h&&o.route!==h&&m(h)});
 y();acctRestore();acctLoadSponsors();
