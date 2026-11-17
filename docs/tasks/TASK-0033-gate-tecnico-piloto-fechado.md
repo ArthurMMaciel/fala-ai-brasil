@@ -24,10 +24,10 @@ Liberar um piloto por convite, com poucas empresas verificadas e capacidade oper
 
 ## Evidências do Front (2026-11-17)
 
-- Sessão entre abas (ClickUp 17tu7rpc7ru): commit `9171d4d`. A tela escuta `onAuthStateChange`; saída em outra aba ou token sem renovação volta à landing com aviso; outra conta no mesmo navegador recarrega a tela. Testes unitários verdes. **Pendente:** teste com duas abas num banco (o Supabase local saiu do ar; aguarda o projeto de dev).
+- Sessão entre abas (ClickUp 17tu7rpc7ru): commit `9171d4d`. A tela escuta `onAuthStateChange`; saída em outra aba ou token sem renovação volta à landing com aviso; outra conta no mesmo navegador recarrega a tela. Testes unitários verdes. **Pendente:** teste manual de duas abas pelo responsável no site de produção, sem gravar nada (passo a passo no roteiro do ensaio).
 - Termos e aviso de privacidade: commit `6030adb`. Páginas públicas `/#termos` e `/#privacidade` com texto vindo de `src/content/legal/*.md`, marcador visível "Texto em revisão jurídica" e links no rodapé e nas caixas obrigatórias do cadastro. Sem texto jurídico. Conferido no navegador em desktop e 375 px, sem rolagem horizontal. **Pendente:** registro do aceite em tabela própria, a desenhar pelo Back e aprovar pelo responsável; até lá as caixas seguem obrigatórias e sem registro.
-- Ensaio ponta a ponta: roteiro em `docs/runbooks/ENSAIO-PILOTO-PONTA-A-PONTA.md`, gerador em `scripts/ensaio-piloto.mjs` (SQL que desfaz tudo e devolve `passo | esperado | obtido | ok`). **Ainda não rodado:** depende do projeto Supabase de dev. O resultado entra aqui com data, quando rodar.
-- Lacuna: não há revogação do compartilhamento depois da liberação; o encerramento mantém a empresa vendo o caso (passo 9d do ensaio). Requer tarefa e decisão.
+- Ensaio ponta a ponta: roteiro em `docs/runbooks/ENSAIO-PILOTO-PONTA-A-PONTA.md`, gerador em `scripts/ensaio-piloto.mjs`: uma instrução `DO` que termina sempre em exceção, no formato do `isolation_smoke`, para rodar em produção (banco único). **Ainda não rodado:** cada execução exige liberação escrita do responsável. O resultado entra aqui com data.
+- Lacuna conhecida, decisão do responsável em 17/11: não há revogação do compartilhamento depois da liberação; o encerramento mantém a empresa vendo o caso (passo 9d do ensaio). Fica para depois do piloto.
 
 ## Decisão go/no-go
 

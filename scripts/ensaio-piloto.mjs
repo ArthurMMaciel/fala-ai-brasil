@@ -1,13 +1,16 @@
 // Ensaio ponta a ponta do piloto (TASK-0033), reproduzível e sem deixar dados.
-// Gera um SQL que cria contas fictícias, percorre o fluxo pelas mesmas RPCs e políticas que o front usa
-// (assumindo o papel de cada pessoa via request.jwt.claims) e desfaz tudo no fim: o resultado volta como tabela.
+// Gera UMA instrução DO que cria contas fictícias, percorre o fluxo pelas mesmas RPCs e políticas que o front usa
+// (assumindo o papel de cada pessoa via request.jwt.claims) e termina SEMPRE em exceção: o Postgres desfaz tudo,
+// inclusive auth.users. O resultado vem na mensagem de erro "RESULTADOS ...".
+// Trava, como no supabase/tests/isolation_smoke.sql: o corpo roda num bloco com tratador de exceção (subtransação),
+// onde COMMIT e ROLLBACK explícitos são proibidos pelo Postgres. Não cria função, tabela nem objeto temporário.
+// Efeito que o rollback não desfaz: a sequência complaint_protocol_seq avança (2 números de protocolo pulados).
 //
-// Uso (banco de dev, nunca produção):
+// Uso (produção, banco único; só com liberação escrita do responsável a cada execução):
 //   node scripts/ensaio-piloto.mjs > <pasta-temporaria>/ensaio.sql
-//   node scripts/dev-db.mjs query <pasta-temporaria>/ensaio.sql
-// Local com Docker: npx supabase db query --local < <pasta-temporaria>/ensaio.sql
+//   npx supabase db query --linked < <pasta-temporaria>/ensaio.sql
 //
-// Não usa senha, chave de serviço nem dado real. E-mails em example.invalid; CPF e CNPJ gerados a cada execução.
+// Não usa senha, chave de serviço nem dado real. E-mails @example.com; nomes marcados "TESTE"; CPF e CNPJ gerados.
 import { randomInt } from 'node:crypto';
 
 const cpf = base => { const d = String(base).padStart(9, '0').split('').map(Number); for (const len of [9, 10]) { const sum = d.slice(0, len).reduce((t, n, i) => t + n * (len + 1 - i), 0); const r = (sum * 10) % 11; d.push(r === 10 ? 0 : r); } return d.join(''); };
@@ -17,10 +20,10 @@ const run = `${Date.now().toString(36)}${randomInt(1000, 9999)}`;
 const address = { zip_code: '01310100', street_type: 'avenue', street_name: 'Paulista', number: '1000', neighborhood: 'Bela Vista', city: 'São Paulo', state: 'SP' };
 const meta = (name, type, signup) => q(JSON.stringify({ full_name: name, signup_type: type, signup }));
 const people = {
-  w: ['Pessoa Ensaio Trabalhadora', 'worker', { full_name: 'Pessoa Ensaio Trabalhadora', cpf: cpf(randomInt(100000000, 899999999)), address }],
-  a: ['Empresa Ensaio A', 'company', { legal_name: 'Empresa Ensaio A Ltda.', trade_name: 'Empresa Ensaio A', cnpj: cnpj(randomInt(10000000, 89999999)), plan_id: 'company-essential', subscription_mode: 'trial', address }],
-  b: ['Empresa Ensaio B', 'company', { legal_name: 'Empresa Ensaio B Ltda.', trade_name: 'Empresa Ensaio B', cnpj: cnpj(randomInt(10000000, 89999999)), plan_id: 'company-essential', subscription_mode: 'trial', address }],
-  ops: ['Equipe Ensaio', null, null],
+  w: ['TESTE Pessoa Trabalhadora', 'worker', { full_name: 'TESTE Pessoa Trabalhadora', cpf: cpf(randomInt(100000000, 899999999)), address }],
+  a: ['TESTE Empresa Ensaio A', 'company', { legal_name: 'TESTE Empresa Ensaio A Ltda.', trade_name: 'TESTE Empresa Ensaio A', cnpj: cnpj(randomInt(10000000, 89999999)), plan_id: 'company-essential', subscription_mode: 'trial', address }],
+  b: ['TESTE Empresa Ensaio B', 'company', { legal_name: 'TESTE Empresa Ensaio B Ltda.', trade_name: 'TESTE Empresa Ensaio B', cnpj: cnpj(randomInt(10000000, 89999999)), plan_id: 'company-essential', subscription_mode: 'trial', address }],
+  ops: ['TESTE Equipe Ensaio', null, null],
 };
 
 const ORIGINAL = `Relato original fictício ${run}: só a equipe pode ler este texto.`;
@@ -30,8 +33,8 @@ const RESPONSE_2 = `Resposta fictícia ${run}: vamos revisar a escala do setor n
 const SUMMARY = `Descrição da equipe ${run}: a empresa informou que vai revisar a escala do setor em duas semanas.`;
 
 // Troca de papel: mesmas claims que o PostgREST entrega ao banco para uma sessão autenticada.
-const as = who => `perform set_config('request.jwt.claims', json_build_object('sub', u_${who}, 'role', 'authenticated')::text, true); perform set_config('role', 'authenticated', true);`;
-const asSystem = `perform set_config('role', 'none', true); perform set_config('request.jwt.claims', '', true);`;
+const as = who => `perform set_config('request.jwt.claims', json_build_object('sub', u_${who}, 'role', 'authenticated')::text, true); execute 'set local role authenticated';`;
+const asSystem = `execute 'reset role'; perform set_config('request.jwt.claims', '', true);`;
 const record = (step, expected, got, ok) => `res := res || jsonb_build_object('passo', ${q(step)}, 'esperado', ${q(expected)}, 'obtido', (${got})::text, 'ok', coalesce((${ok})::boolean, false));`;
 const expectError = (step, statement, message) => { const expected = message ? `erro "${message}"` : 'erro (recusado)'; return `begin
     ${statement};
@@ -44,12 +47,11 @@ const companyTimelineHas = text => `exists (select 1 from public.get_company_com
 
 const users = Object.entries(people).map(([key, [name, type, signup]]) => `  u_${key} := gen_random_uuid();
   insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change, email_change_token_current, reauthentication_token, phone_change, phone_change_token)
-  values ('00000000-0000-0000-0000-000000000000', u_${key}, 'authenticated', 'authenticated', ${q(`ensaio-${key}-${run}@example.invalid`)}, '', now(), '{"provider":"email","providers":["email"]}', ${type ? meta(name, type, signup) : q(JSON.stringify({ full_name: name }))}::jsonb, now(), now(), '', '', '', '', '', '', '', '');`).join('\n');
+  values ('00000000-0000-0000-0000-000000000000', u_${key}, 'authenticated', 'authenticated', ${q(`ensaio-${key}-${run}@example.com`)}, '', now(), '{"provider":"email","providers":["email"]}', ${type ? meta(name, type, signup) : q(JSON.stringify({ full_name: name }))}::jsonb, now(), now(), '', '', '', '', '', '', '', '');`).join('\n');
 
-const sql = `-- Ensaio ponta a ponta ${run} (TASK-0033). Gerado por scripts/ensaio-piloto.mjs; tudo é desfeito no fim.
--- A trava contra produção fica no executor (scripts/dev-db.mjs, assertDevTarget); este SQL não grava nada.
-create or replace function pg_temp.ensaio_piloto() returns table (n bigint, passo text, esperado text, obtido text, ok boolean)
-language plpgsql as $fn$
+const sql = `-- Ensaio ponta a ponta ${run} (TASK-0033). Gerado por scripts/ensaio-piloto.mjs.
+-- Uma única instrução DO que termina sempre em exceção: nada fica gravado. Resultado na mensagem "RESULTADOS".
+do $ensaio$
 declare
   res jsonb := '[]'::jsonb;
   u_w uuid; u_a uuid; u_b uuid; u_ops uuid;
@@ -61,6 +63,12 @@ ${users}
   insert into private.platform_admins (user_id) values (u_ops);
   select company_id into v_company_a from public.company_users where user_id = u_a;
   select company_id into v_company_b from public.company_users where user_id = u_b;
+  -- Com a ADR-0012 aplicada, a empresa A precisa de representante verificado para ver casos (pela mesma RPC da fila).
+  if to_regprocedure('public.ops_verify_representative(uuid, uuid, text, text, text, text)') is not null then
+    ${as('ops')}
+    execute 'select public.ops_verify_representative($1, $2, $3, $4, $5, null)' using v_company_a, u_a, 'verified', 'callback', 'Ensaio fictício: conferência simulada';
+    ${asSystem}
+  end if;
   ${record('0. Preparação: contas fictícias criadas pelo cadastro', 'trabalhador e duas empresas com perfil', `(select count(*) from public.workers where user_id = u_w) || ' trabalhador, ' || (case when v_company_a is not null and v_company_b is not null then 2 else 0 end) || ' empresas'`, `exists (select 1 from public.workers where user_id = u_w) and v_company_a is not null and v_company_b is not null`)}
 
   -- 1. Trabalhador manifesta.
@@ -158,20 +166,21 @@ ${users}
   ${as('w')}
   perform public.close_complaint(v_main, 'partial');
   ${as('a')}
-  ${record('9d. LACUNA: encerrar depois da liberação não revoga o acesso', 'empresa continua vendo (comportamento atual; não há revogação)', companySees('v_main', SHARED), companySees('v_main', SHARED))}
+  ${record('9d. LACUNA CONHECIDA (decisão do responsável em 17/11): encerrar depois da liberação não revoga o acesso', 'empresa continua vendo (comportamento atual; revogação fica para depois do piloto)', companySees('v_main', SHARED), companySees('v_main', SHARED))}
 
   ${asSystem}
   raise exception 'ensaio-desfeito';
   exception when others then
-    perform set_config('role', 'none', true);
     if sqlerrm <> 'ensaio-desfeito' then
-      res := res || jsonb_build_object('passo', 'FALHA INESPERADA (ensaio interrompido)', 'esperado', '-', 'obtido', sqlerrm, 'ok', false);
+      res := res || jsonb_build_object('passo', 'FALHA INESPERADA (ensaio interrompido aqui; passos seguintes não rodaram)', 'esperado', '-', 'obtido', sqlerrm, 'ok', false);
     end if;
   end;
-  return query select e.i, e.v ->> 'passo', e.v ->> 'esperado', e.v ->> 'obtido', (e.v ->> 'ok')::boolean from jsonb_array_elements(res) with ordinality as e(v, i);
+  -- Fora da subtransação já desfeita: a exceção final aborta a instrução inteira e entrega o resultado.
+  raise exception 'RESULTADOS aprovado=% (% de % ok)%', not exists (select 1 from jsonb_array_elements(res) e where not (e ->> 'ok')::boolean),
+    (select count(*) from jsonb_array_elements(res) e where (e ->> 'ok')::boolean), jsonb_array_length(res),
+    (select string_agg(E'\n' || case when (e ->> 'ok')::boolean then '[ok]    ' else '[FALHA] ' end || (e ->> 'passo') || ' | esperado: ' || (e ->> 'esperado') || ' | obtido: ' || coalesce(e ->> 'obtido', 'null'), '' order by i)
+     from jsonb_array_elements(res) with ordinality as x(e, i));
 end
-$fn$;
-
-select * from pg_temp.ensaio_piloto();
+$ensaio$;
 `;
 process.stdout.write(sql);
