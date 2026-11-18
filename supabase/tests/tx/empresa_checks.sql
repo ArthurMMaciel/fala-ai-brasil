@@ -1,7 +1,7 @@
--- declare: u_w uuid := 'ebbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'; u_c uuid := 'eccccccc-cccc-cccc-cccc-cccccccccccc'; u_op uuid := 'eddddddd-dddd-dddd-dddd-dddddddddddd'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_api text := '27182818000129'; cnpj_pf text := '31415926000171'; cnpj_man text := '16180339000157'; cnpj_extra text := '57721566000120'; cnpj_reg text := '14142135000104'; co_reg uuid; co_api uuid; co_pf uuid; co_man uuid; cp1 uuid; cp2 uuid; cp3 uuid; cp4 uuid; cp5 uuid; cp6 uuid; cp7 uuid; n1 uuid; n int; r record; base jsonb;
+-- declare: u_w uuid := 'ebbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'; u_c uuid := 'eccccccc-cccc-cccc-cccc-cccccccccccc'; u_op uuid := 'eddddddd-dddd-dddd-dddd-dddddddddddd'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_api text := '98765001987643'; cnpj_pf text := '98765002987698'; cnpj_man text := '98765003987632'; cnpj_extra text := '98765004987687'; cnpj_reg text := '98765005987621'; co_reg uuid; co_api uuid; co_pf uuid; co_man uuid; cp1 uuid; cp2 uuid; cp3 uuid; cp4 uuid; cp5 uuid; cp6 uuid; cp7 uuid; n1 uuid; n int; r record; base jsonb;
 -- Verificações da ADR-0023/ADR-0017 (20261118120000 e 20261118130000, revista após a revisão do DevOps) na transação
 -- de teste. Imprime só contagens e nomes. CNPJs e CPF de teste (dígitos válidos); se algum existir em produção, para
--- antes de criar dados. Trocar por valores conferidos como inexistentes antes da primeira rodada.
+-- antes de criar dados. CNPJs conferidos como inexistentes na Minha Receita e na BrasilAPI em 2026-11-18 (só o código HTTP 404).
 if exists (select 1 from public.companies where cnpj in (cnpj_api, cnpj_pf, cnpj_man, cnpj_extra, cnpj_reg))
    or exists (select 1 from public.workers where cpf = '27182818205') then
   raise exception 'Valor de teste já existe em produção; troque os CNPJs/CPF do teste.';
@@ -82,7 +82,7 @@ begin
   falhas := falhas || jsonb_build_object('contato aceito sem compartilhar', true);
 exception when others then null; end;
 -- Três relatos pelo CNPJ do cache: o primeiro cria a pré-cadastrada, os seguintes entram nela.
-cp1 := public.create_complaint(base || jsonb_build_object('company_cnpj', '27.182.818/0001-29',
+cp1 := public.create_complaint(base || jsonb_build_object('company_cnpj', '98.765.001/9876-43',
   'notice_contact', jsonb_build_object('email', ' RH@Tx-Api.invalid ', 'possibly_involved', false, 'consent', true)), true);
 cp2 := public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_api,
   'notice_contact', jsonb_build_object('email', 'chefe@tx-api.invalid', 'possibly_involved', true, 'consent', true)), true);

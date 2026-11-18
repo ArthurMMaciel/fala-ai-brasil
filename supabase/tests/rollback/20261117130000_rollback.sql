@@ -1,7 +1,22 @@
--- Rollback da 20261117130000 (troca do gate). NÃO é migration: aplicar só com decisão registrada do responsável,
--- porque reabre o acesso de vínculos não verificados às manifestações. Volta as 8 funções às definições anteriores.
--- Depois, se for desfazer também a 20261117120000, ver o roteiro no cabeçalho dela (exportar a trilha antes).
--- Aplicar como migration nova (para o histórico de produção ficar coerente), nunca por migration repair.
+-- Rollback do lote 2, passo 01 (20261117130000, troca do gate). SQL Editor de produção, arquivo INTEIRO, uma vez.
+-- Aplicar só com decisão registrada do responsável: reabre o acesso de vínculos não verificados às manifestações.
+-- Volta as 8 funções às definições anteriores e tira a versão de schema_migrations.
+-- Exige antes: rollback da 20261118140000 (a reivindicação no cadastro depende do gate). Os avisos (20261118130000)
+-- passam a ser recusados por ops_decide_notice sem o gate.
+-- Depois, se for desfazer também a 20261117120000, usar o R3 do lote 1.
+-- Erro = nada foi feito; rode `rollback;` sozinho.
+begin;
+set local lock_timeout = '5s';
+
+do $trava$
+begin
+  if not exists (select 1 from supabase_migrations.schema_migrations where version = '20261117130000') then
+    raise exception 'A 20261117130000 não está registrada. Nada foi feito.';
+  end if;
+  if exists (select 1 from supabase_migrations.schema_migrations where version = '20261118140000') then
+    raise exception 'A reivindicação (20261118140000) está aplicada e depende do gate: desfaça-a antes. Nada foi feito.';
+  end if;
+end $trava$;
 
 create or replace function public.list_company_complaints()
 returns table (id uuid, protocol text, category text, title text, status public.complaint_status, shared_content text,
@@ -167,3 +182,9 @@ begin
   end if;
 end;
 $$;
+
+delete from supabase_migrations.schema_migrations where version = '20261117130000';
+
+commit;
+-- Conferir: select prosrc not like '%is_verified_company_user%' as ok from pg_proc
+--   where oid = 'public.list_company_complaints()'::regprocedure;

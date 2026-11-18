@@ -386,7 +386,7 @@ $$$s0$;
     -- Montagem: trabalhador, empresa (dono + segundo membro, ambos pending) e equipe.
     insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
     ('00000000-0000-0000-0000-000000000000', u_w, 'authenticated', 'authenticated', 'tx-w@teste.invalid', jsonb_build_object('signup_type', 'worker', 'signup', jsonb_build_object('full_name', 'Tx Trabalhador', 'cpf', '11144477735', 'address', addr)), now(), now()),
-    ('00000000-0000-0000-0000-000000000000', u_c, 'authenticated', 'authenticated', 'tx-c@teste.invalid', jsonb_build_object('signup_type', 'company', 'signup', jsonb_build_object('legal_name', 'Tx Empresa Gate Ltda', 'cnpj', '11444777000161', 'plan_id', 'company-essential', 'subscription_mode', 'trial', 'address', addr)), now(), now()),
+    ('00000000-0000-0000-0000-000000000000', u_c, 'authenticated', 'authenticated', 'tx-c@teste.invalid', jsonb_build_object('signup_type', 'company', 'signup', jsonb_build_object('legal_name', 'Tx Empresa Gate Ltda', 'cnpj', '98765008987665', 'plan_id', 'company-essential', 'subscription_mode', 'trial', 'address', addr)), now(), now()),
     ('00000000-0000-0000-0000-000000000000', u_c2, 'authenticated', 'authenticated', 'tx-c2@teste.invalid', '{}', now(), now()),
     ('00000000-0000-0000-0000-000000000000', u_op, 'authenticated', 'authenticated', 'tx-op@teste.invalid', '{}', now(), now());
     insert into private.platform_admins (user_id) values (u_op);

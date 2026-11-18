@@ -1,5 +1,5 @@
 // Gera, para cada migration, um arquivo para o responsável colar no SQL Editor de produção (sem db push).
-// Uso: node supabase/sql-editor/build.mjs   (regrava supabase/sql-editor/0N_aplicar_<versão>.sql)
+// Uso: node supabase/sql-editor/build.mjs   (regrava supabase/sql-editor/0N_aplicar_<versão>.sql e lote2/0N_aplicar_<versão>.sql)
 //
 // Cada arquivo gerado:
 //   - roda entre begin e commit: ou entra tudo, ou nada;
@@ -8,22 +8,49 @@
 //   - termina gravando a versão em supabase_migrations.schema_migrations (version, name, statements), como o CLI faz,
 //     para que um db push futuro não tente reaplicar. `statements` usa o mesmo divisor dos testes tx; o CLI compara só
 //     a versão ao decidir o que aplicar.
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { splitSql } from '../tests/tx/build.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const migDir = join(here, '..', 'migrations');
+const supabaseDir = join(here, '..');
 
-// Ordem aprovada. A 20261117130000 (troca do gate) fica de fora: está em supabase/pending.
-const PLAN = [
-  // requireAdmin: a partir da 180000 toda resposta espera a equipe; sem ninguém em platform_admins, ficariam presas.
-  { file: '20261109180000_resposta_revisada_ativa.sql', after: '20261109170000', requireAdmin: true },
-  { file: '20261117120000_representante_verificado_estrutura.sql', after: '20261109180000' },
-  { file: '20261117140000_aceite_termos_privacidade.sql', after: '20261117120000' },
-  { file: '20261117150000_pausa_do_piloto.sql', after: '20261117140000' },
+const ADMIN_GUARD = `
+  if not exists (select 1 from private.platform_admins) then
+    raise exception 'Ninguém na equipe (private.platform_admins). Rode o passo 00 antes: sem equipe, as respostas ficariam presas em revisão. Nada foi feito.';
+  end if;`;
+const VERIFIED_GUARD = `
+  if not exists (select 1 from public.company_users where verification_status = 'verified') then
+    raise exception 'Nenhum representante verificado. Verifique antes as empresas reais na fila da Operação: depois deste passo, só vínculo verificado vê manifestações. Nada foi feito.';
+  end if;`;
+
+// Lote 1: aplicado pelo responsável em 2026-11-18. Lote 2: troca do gate e empresa pré-cadastrada (ADR-0012, ADR-0023);
+// os arquivos do lote 2 podem estar em supabase/pending até serem aplicados.
+const BATCHES = [
+  { out: '.', plan: [
+    { file: '20261109180000_resposta_revisada_ativa.sql', after: '20261109170000', guard: ADMIN_GUARD,
+      warn: 'a partir deste passo, toda resposta de empresa espera a revisão do operador antes de chegar ao trabalhador.' },
+    { file: '20261117120000_representante_verificado_estrutura.sql', after: '20261109180000' },
+    { file: '20261117140000_aceite_termos_privacidade.sql', after: '20261117120000' },
+    { file: '20261117150000_pausa_do_piloto.sql', after: '20261117140000' },
+  ] },
+  { out: 'lote2', plan: [
+    { file: '20261117130000_representante_verificado_gate.sql', after: '20261117150000', guard: VERIFIED_GUARD,
+      warn: 'a partir deste passo, só representante verificado vê manifestações e responde; confira antes a fila da Operação.' },
+    { file: '20261118120000_empresa_pre_cadastrada_estrutura.sql', after: '20261117130000' },
+    { file: '20261118130000_empresa_pre_cadastrada_funcoes.sql', after: '20261118120000' },
+    { file: '20261118140000_reivindicacao_cnpj.sql', after: '20261118130000' },
+  ] },
 ];
+
+function source(file) {
+  for (const dir of ['migrations', 'pending']) {
+    const path = join(supabaseDir, dir, file);
+    if (existsSync(path)) return { dir, sql: readFileSync(path, 'utf8').replace(/\r\n/g, '\n') };
+  }
+  throw new Error(`migration não encontrada: ${file}`);
+}
 
 function quote(text) {
   let n = 0;
@@ -31,20 +58,22 @@ function quote(text) {
   return `$s${n}$${text}$s${n}$`;
 }
 
-PLAN.forEach(({ file, after, requireAdmin }, idx) => {
-  const [, version, name] = /^(\d{14})_(.+)\.sql$/.exec(file);
-  const sql = readFileSync(join(migDir, file), 'utf8').replace(/\r\n/g, '\n');
-  const stmts = splitSql(sql);
-  for (const s of stmts) {
-    if (/^\s*(begin|commit|rollback|start\s+transaction)\b/i.test(s)) throw new Error(`${file}: controle de transação`);
-    if (/alter\s+type\s+[^;]*\badd\s+value\b/i.test(s)) throw new Error(`${file}: ALTER TYPE ADD VALUE não roda em transação`);
-  }
-  const n = String(idx + 1).padStart(2, '0');
-  const out = `-- GERADO por supabase/sql-editor/build.mjs a partir de supabase/migrations/${file}. Não editar à mão.
--- Passo ${n} de ${String(PLAN.length).padStart(2, '0')}. SQL Editor de produção: colar o arquivo INTEIRO e rodar UMA vez.
+for (const { out: outDir, plan } of BATCHES) {
+  mkdirSync(join(here, outDir), { recursive: true });
+  plan.forEach(({ file, after, guard, warn }, idx) => {
+    const [, version, name] = /^(\d{14})_(.+)\.sql$/.exec(file);
+    const { dir, sql } = source(file);
+    const stmts = splitSql(sql);
+    for (const s of stmts) {
+      if (/^\s*(begin|commit|rollback|start\s+transaction)\b/i.test(s)) throw new Error(`${file}: controle de transação`);
+      if (/alter\s+type\s+[^;]*\badd\s+value\b/i.test(s)) throw new Error(`${file}: ALTER TYPE ADD VALUE não roda em transação`);
+    }
+    const n = String(idx + 1).padStart(2, '0');
+    const out = `-- GERADO por supabase/sql-editor/build.mjs a partir de supabase/${dir}/${file}. Não editar à mão.
+-- Passo ${n} de ${String(plan.length).padStart(2, '0')}. SQL Editor de produção: colar o arquivo INTEIRO e rodar UMA vez.
 -- Tudo ou nada (begin ... commit). Se aparecer erro, nada foi gravado: rode \`rollback;\` sozinho e avise o Back.
--- Depois de rodar: ${n}_conferir_${version}.sql (todas as linhas com ok = true).${requireAdmin ? `
--- AVISO: a partir deste passo, toda resposta de empresa espera a revisão do operador antes de chegar ao trabalhador.` : ''}
+-- Depois de rodar: ${n}_conferir_${version}.sql (todas as linhas com ok = true).${warn ? `
+-- AVISO: ${warn}` : ''}
 begin;
 set local lock_timeout = '5s';
 
@@ -55,10 +84,7 @@ begin
   end if;
   if not exists (select 1 from supabase_migrations.schema_migrations where version = '${after}') then
     raise exception 'Falta a ${after} (passo anterior). Nada foi feito.';
-  end if;${requireAdmin ? `
-  if not exists (select 1 from private.platform_admins) then
-    raise exception 'Ninguém na equipe (private.platform_admins). Rode o passo 00 antes: sem equipe, as respostas ficariam presas em revisão. Nada foi feito.';
-  end if;` : ''}
+  end if;${guard ?? ''}
 end $trava$;
 
 -- ======== início da migration ${file} (${stmts.length} instruções) ========
@@ -72,7 +98,8 @@ ${stmts.map((s) => quote(s)).join(',\n')}
 
 commit;
 `;
-  const target = join(here, `${n}_aplicar_${version}.sql`);
-  writeFileSync(target, out);
-  process.stderr.write(`${basename(target)}: ${stmts.length} instruções\n`);
-});
+    const target = join(here, outDir, `${n}_aplicar_${version}.sql`);
+    writeFileSync(target, out);
+    process.stderr.write(`${outDir}/${basename(target)}: ${stmts.length} instruções\n`);
+  });
+}

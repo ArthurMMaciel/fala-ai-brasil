@@ -1,4 +1,4 @@
--- declare: u_w uuid := 'efffffff-ffff-ffff-ffff-ffffffffffff'; u_c1 uuid := 'f1111111-1111-1111-1111-111111111111'; u_c2 uuid := 'f2222222-2222-2222-2222-222222222222'; u_c3 uuid := 'f3333333-3333-3333-3333-333333333333'; u_op uuid := 'f4444444-4444-4444-4444-444444444444'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_pre text := '16180339000157'; cnpj_reg text := '14142135000104'; co uuid; cp uuid; r record;
+-- declare: u_w uuid := 'efffffff-ffff-ffff-ffff-ffffffffffff'; u_c1 uuid := 'f1111111-1111-1111-1111-111111111111'; u_c2 uuid := 'f2222222-2222-2222-2222-222222222222'; u_c3 uuid := 'f3333333-3333-3333-3333-333333333333'; u_op uuid := 'f4444444-4444-4444-4444-444444444444'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_pre text := '98765003987632'; cnpj_reg text := '98765005987621'; co uuid; cp uuid; r record;
 -- Verificações da reivindicação (20261118140000, ADR-0012 D11) depois da troca do gate e das migrations 1 e 2, na
 -- transação de teste. Os CNPJs e o CPF são de teste; se existirem em produção, o teste para antes de criar dados.
 if exists (select 1 from public.companies where cnpj in (cnpj_pre, cnpj_reg)) or exists (select 1 from public.workers where cpf = '31415926590') then
@@ -25,7 +25,7 @@ execute 'reset role';
 
 -- Primeira conta da empresa reivindica.
 insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
-('00000000-0000-0000-0000-000000000000', u_c1, 'authenticated', 'authenticated', 'tx-rc1@teste.invalid', jsonb_build_object('signup_type', 'company', 'signup', jsonb_build_object('legal_name', 'Tx Empresa Reivindicada Ltda', 'cnpj', '16.180.339/0001-57', 'plan_id', 'company-essential', 'subscription_mode', 'trial', 'address', addr)), now(), now());
+('00000000-0000-0000-0000-000000000000', u_c1, 'authenticated', 'authenticated', 'tx-rc1@teste.invalid', jsonb_build_object('signup_type', 'company', 'signup', jsonb_build_object('legal_name', 'Tx Empresa Reivindicada Ltda', 'cnpj', '98.765.003/9876-32', 'plan_id', 'company-essential', 'subscription_mode', 'trial', 'address', addr)), now(), now());
 select c.registration_status, c.legal_name, c.address_id, c.created_by into r from public.companies c where c.id = co;
 if r.registration_status is distinct from 'registered' or r.legal_name is distinct from 'Tx Empresa Reivindicada Ltda'
    or r.address_id is null or r.created_by is distinct from u_c1 then

@@ -4,7 +4,7 @@
 if public.pilot_state() is distinct from 'open' then falhas := falhas || jsonb_build_object('estado inicial não é open', true); end if;
 insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
 ('00000000-0000-0000-0000-000000000000', u_w, 'authenticated', 'authenticated', 'tx-pw@teste.invalid', jsonb_build_object('signup_type', 'worker', 'signup', jsonb_build_object('full_name', 'Tx Pausa Trabalhador', 'cpf', '74682489070', 'address', addr)), now(), now()),
-('00000000-0000-0000-0000-000000000000', u_c, 'authenticated', 'authenticated', 'tx-pc@teste.invalid', jsonb_build_object('signup_type', 'company', 'signup', jsonb_build_object('legal_name', 'Tx Pausa Empresa Ltda', 'cnpj', '34028316000103', 'plan_id', 'company-essential', 'subscription_mode', 'trial', 'address', addr)), now(), now()),
+('00000000-0000-0000-0000-000000000000', u_c, 'authenticated', 'authenticated', 'tx-pc@teste.invalid', jsonb_build_object('signup_type', 'company', 'signup', jsonb_build_object('legal_name', 'Tx Pausa Empresa Ltda', 'cnpj', '98765009987600', 'plan_id', 'company-essential', 'subscription_mode', 'trial', 'address', addr)), now(), now()),
 ('00000000-0000-0000-0000-000000000000', u_op, 'authenticated', 'authenticated', 'tx-pop@teste.invalid', '{}', now(), now());
 insert into private.platform_admins (user_id) values (u_op);
 select company_id into v_co from public.company_users where user_id = u_c;
