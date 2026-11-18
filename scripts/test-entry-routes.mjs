@@ -47,7 +47,7 @@ test('páginas da landing: links válidos, contato ligado ao serviço, nada de N
     assert.ok(config.includes(`'${page}'`), `${page} é entrada do build`);
     const html = readFileSync(`${page}.html`, 'utf8');
     for (const [, hash] of html.matchAll(/href="\/(#(?:entrar|cadastrar)[^"]*)"/g)) assert.ok(entry.authEntryFromHash(hash), `${page}: ${hash}`);
-    assert.doesNotMatch(html, /(entrar|cadastrar)\.html|data-netlify|data-ajax|fala-ai-brasil\.vercel\.app|name="site"|href="\/?index\.html|href="#"/, page);
+    assert.doesNotMatch(html, /(entrar|cadastrar)\.html|data-netlify|data-ajax|fala-ai-brasil\.vercel\.app|images\.unsplash\.com|fonts\.googleapis|fonts\.gstatic|name="site"|href="\/?index\.html|href="#"/, page);
     const forms = html.match(/<form\b[^>]*>/g) ?? [];
     if (page === '404') { assert.equal(forms.length, 0); continue; }
     assert.deepEqual(forms, [`<form class="form" data-contato data-pagina="${page}" novalidate>`], page);
