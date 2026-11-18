@@ -138,6 +138,11 @@ erDiagram
 ```
 
 - **Quem lê:** a empresa nunca lê `complaint_contacts`, `company_notices` nem `notice_opt_outs`. O trabalhador lê só o próprio contato e o estado do aviso (enviado ou não, sem data exata). A equipe lê pelas funções `ops_*`. Tudo fica com RLS ligada, `revoke all` e acesso só por função.
+- **Implementação (2026-11-18), diferenças em relação ao ERD acima:**
+  - Os dados de origem da pré-cadastrada (município, UF, situação, CNAE, natureza, provedor, conferência da equipe) ficam em `private.company_preregistrations`, e não em `companies`.
+  - `companies.created_by` fica nulo, porque gravar o trabalhador ligaria a conta ao empregador.
+  - O diretório, o ranking, a responsividade, a lista dos parceiros e `ops_list_companies` já excluem a pré-cadastrada pelo join interno com `addresses`, então não são redefinidos. O teste tx confere.
+  - Migrations em `supabase/pending/20261118120000_*` e `20261118130000_*`; teste em `supabase/tests/tx/empresa_checks.sql`.
 - **Trilha:** `company_notices` é só inserção, com mudança de estado registrada. `private.block_trail_change` vale para linhas `sent` e `rejected`.
 
 ### Migrations previstas (nenhuma escrita)
