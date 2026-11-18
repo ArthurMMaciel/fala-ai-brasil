@@ -3,7 +3,7 @@ import { listMyContractedPartners, listPartnerDirectory, loadCompanyContext, loa
 import { listCompanyComplaints, listPartnerCompanies, listCompanyResponsiveness, loadMyCompanyResponsiveness, loadMyCompanySatisfaction, loadMyVerificationStatus, loadCompanyTimeline, loadPartnerProfile, requestPartner, respondCompanyComplaint, setPartnerConnection, updatePartnerProfile, loadPartnerPlan, listMyContents, listPartnerContents, createPartnerContent, deletePartnerContent, type PartnerContent, type CompanySatisfaction, type CompanyComplaint, type ComplaintStatusDb, type PartnerCompany, type PartnerProfileData, type MyResponsiveness, type ResponsivenessRow, type TimelineItem } from '../services/data';
 import { showToast } from '../app/toast';
 import { Icon, QuickActions, initials, type IconName } from './ui';
-import { formatPhone, planIncludesContent, validateContent, whatsappLink } from '../domain/account-rules';
+import { formatPhone, maskPhone, partnerContactEnabled, planIncludesContent, validateContent, whatsappLink } from '../domain/account-rules';
 import { safeHttpUrl } from '../domain/html-safety';
 import { buildCompanyPrint, printDateTime } from '../domain/print-document';
 import { usePrintDocument } from './print-document';
@@ -146,7 +146,7 @@ function ContractedPartners({ companyId }: { companyId: string }) {
   {missing ? <section className="commercial-panel"><p>A lista de parceiros contratados ainda não está ativa no banco. Ela aparece aqui assim que a atualização for aplicada.</p></section> :
    failure ? <section className="commercial-panel"><p>{failure}</p></section> : rows === null ? <p className="muted">Carregando…</p> :
    !rows.length ? <section className="commercial-panel"><h2>Nenhum parceiro contratado ainda</h2><p>Quando um parceiro marcar sua empresa como cliente, ele aparece aqui. Para começar, peça contato a um parceiro na aba Parceiros.</p></section> :
-   <div className="partner-grid">{rows.map(row => <article className="partner-card" key={row.partnerId}><PartnerPhoto url={row.avatarUrl} name={row.name} /><span className="commercial-badge">Cliente desde {since(row.since)}</span><h2>{row.name}</h2><p>{row.specialty}</p><small>{row.city} / {row.state}</small></article>)}</div>}</>;
+   <div className="partner-grid">{rows.map(row => <article className="partner-card" key={row.partnerId}><PartnerPhoto url={row.avatarUrl} name={row.name} /><span className="commercial-badge">Cliente desde {since(row.since)}</span><h2>{row.name}</h2><p>{row.specialty}</p><small>{row.city} / {row.state}</small>{(row.contactEmail || row.contactPhone) && <div className="partner-company-actions">{row.contactEmail && <a className="btn" href={`mailto:${row.contactEmail}`}>{row.contactEmail}</a>}{row.contactPhone && <a className="btn" href={whatsappLink(row.contactPhone)} target="_blank" rel="noopener noreferrer">{formatPhone(row.contactPhone)}</a>}</div>}</article>)}</div>}</>;
 }
 
 // ADR-0012: fora de "verified", nada de casos nem números; perfil e parceiros seguem abertos.
@@ -190,7 +190,7 @@ export function CompanyPortalLive({ companyId }: { companyId: string }) {
 }
 
 function PartnerProfileEditor({ partnerId, profile, onSaved }: { partnerId: string; profile: PartnerProfileData; onSaved: (next: PartnerProfileData) => void }) {
- const [form, setForm] = useState({ displayName: profile.displayName, specialty: profile.specialty, description: profile.description ?? '' });
+ const [form, setForm] = useState({ displayName: profile.displayName, specialty: profile.specialty, description: profile.description ?? '', contactEmail: profile.contactEmail ?? '', contactPhone: profile.contactPhone ? formatPhone(profile.contactPhone) : '' });
  const [photo, setPhoto] = useState<string | null | undefined>(undefined);
  const [busy, setBusy] = useState(false);
  useEffect(() => { let active = true; loadPartnerPhoto(partnerId).then(value => { if (active) setPhoto(value.url); }); return () => { active = false; }; }, [partnerId]);
@@ -199,7 +199,7 @@ function PartnerProfileEditor({ partnerId, profile, onSaved }: { partnerId: stri
   const result = await updatePartnerProfile(partnerId, form); setBusy(false);
   if (!result.ok) return showToast('error', result.message);
   showToast('success', 'Perfil atualizado. Empresas já veem a nova versão.');
-  onSaved({ ...profile, displayName: form.displayName.trim(), specialty: form.specialty.trim(), description: form.description.trim() || null });
+  onSaved({ ...profile, displayName: form.displayName.trim(), specialty: form.specialty.trim(), description: form.description.trim() || null, ...(partnerContactEnabled ? { contactEmail: form.contactEmail.trim().toLowerCase(), contactPhone: form.contactPhone } : {}) });
  }
  async function upload(file: File | undefined) {
   if (!file) return;
@@ -212,7 +212,9 @@ function PartnerProfileEditor({ partnerId, profile, onSaved }: { partnerId: stri
    <label className="field">Nome profissional<input value={form.displayName} maxLength={160} required onChange={event => setForm({ ...form, displayName: event.target.value })} /></label>
    <label className="field">Especialidade<input value={form.specialty} maxLength={120} required onChange={event => setForm({ ...form, specialty: event.target.value })} /></label>
    <label className="field">Descrição<textarea rows={6} maxLength={2000} value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} /><small className="muted">{form.description.length}/2000</small></label>
-   <p className="muted small">Cidade: {profile.city}/{profile.state}. Endereço e documento não aparecem para empresas.</p>
+   {partnerContactEnabled && <div className="grid two"><label className="field">E-mail de contato<input type="email" autoComplete="email" value={form.contactEmail} maxLength={254} required onChange={event => setForm({ ...form, contactEmail: event.target.value })} /></label>
+    <label className="field">Telefone de contato<input type="tel" inputMode="tel" autoComplete="tel-national" placeholder="(00) 00000-0000" value={form.contactPhone} maxLength={15} required onChange={event => setForm({ ...form, contactPhone: maskPhone(event.target.value) })} /></label></div>}
+   <p className="muted small">Cidade: {profile.city}/{profile.state}. Endereço e documento não aparecem para empresas.{partnerContactEnabled ? ' O e-mail e o telefone de contato aparecem para as empresas que pedirem contato e para as que você marcar como cliente.' : ''}</p>
    <button className="btn primary" type="submit" disabled={busy}>{busy ? 'Salvando…' : 'Salvar alterações'}</button>
   </form></section>
   <section className="commercial-panel"><h2>Foto de perfil</h2><PartnerPhoto url={photo} name={form.displayName} large />

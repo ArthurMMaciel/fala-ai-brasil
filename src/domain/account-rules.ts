@@ -177,6 +177,9 @@ export interface RegistrationInput {
   document?: string;
   specialty?: string;
   description?: string;
+  // Parceiro: contato público obrigatório (decisão do responsável, 2026-11-18). Ver partnerContactEnabled.
+  contactEmail?: string;
+  contactPhone?: string;
   planId?: string;
   subscriptionMode?: string;
   address: AddressInput;
@@ -189,6 +192,22 @@ export function validateAddress(address: AddressInput): string | null {
   if (!address.city.trim()) return "Informe a cidade.";
   if (!brazilianStates.includes(address.state.trim().toUpperCase())) return "Selecione a UF.";
   return null;
+}
+
+// Contato público do parceiro (e-mail e telefone), obrigatório no cadastro e editável no Meu perfil.
+// Desligado até o Back mandar o contrato (create_profile e perfil): sem ele, os campos não aparecem nem são enviados.
+// Ao ligar, conferir os nomes em partnerContactKeys.
+export const partnerContactEnabled = false;
+export const partnerContactKeys = { email: "contact_email", phone: "contact_phone" } as const;
+
+export function validatePartnerContact(email: string, phone: string): string | null {
+  if (email.trim().length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) return "Informe um e-mail de contato válido.";
+  if (!isValidPhone(phone)) return "Informe um telefone de contato com DDD: celular com 9 dígitos ou fixo com 8.";
+  return null;
+}
+
+export function partnerContactPayload(email: string, phone: string): Record<string, string> {
+  return { [partnerContactKeys.email]: email.trim().toLowerCase(), [partnerContactKeys.phone]: normalizePhone(phone) };
 }
 
 // Retorna a primeira mensagem de erro para exibir ao usuário, ou null se válido.
@@ -205,6 +224,10 @@ export function validateRegistration(input: RegistrationInput): string | null {
     }
     if (!input.specialty?.trim()) return "Informe sua especialidade.";
     if ((input.description ?? "").length > 2000) return "A descrição pode ter até 2.000 caracteres.";
+    if (partnerContactEnabled) {
+      const contact = validatePartnerContact(input.contactEmail ?? "", input.contactPhone ?? "");
+      if (contact) return contact;
+    }
   }
   const addressError = validateAddress(input.address);
   if (addressError) return addressError;
@@ -242,6 +265,7 @@ export function buildProfilePayload(input: RegistrationInput): Record<string, un
         document: input.documentType === "cnpj" ? normalizeCnpj(input.document ?? "") : onlyDigits(input.document ?? ""),
         specialty: input.specialty?.trim(),
         description: input.description?.trim() || undefined,
+        ...(partnerContactEnabled ? partnerContactPayload(input.contactEmail ?? "", input.contactPhone ?? "") : {}),
         address,
         ...plan,
       };

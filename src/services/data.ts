@@ -1,6 +1,6 @@
 import { isAccountServiceConfigured, supabase, type AuthResult } from "./account";
 import type { VerificationStatus } from "../domain/representatives";
-import { normalizeCnpj, onlyDigits, type CampaignKind, type ContentInput } from "../domain/account-rules";
+import { normalizeCnpj, onlyDigits, partnerContactEnabled, partnerContactKeys, partnerContactPayload, validatePartnerContact, type CampaignKind, type ContentInput } from "../domain/account-rules";
 import { partnerMediaBucket } from "./account";
 import { compareTimeline } from "../domain/complaint-status";
 
@@ -141,22 +141,34 @@ export async function setPartnerConnection(companyId: string, stage: Exclude<Con
   return error ? { ok: false, message: rpcError(error, "Não foi possível atualizar agora.") } : { ok: true, value: null };
 }
 
-export interface PartnerProfileData { displayName: string; specialty: string; description: string | null; city: string; state: string }
+export interface PartnerProfileData { displayName: string; specialty: string; description: string | null; city: string; state: string; contactEmail?: string; contactPhone?: string }
 
-export async function updatePartnerProfile(partnerId: string, input: { displayName: string; specialty: string; description: string }): Promise<AuthResult<null>> {
+// Contato público do parceiro: só entra no select e no update quando partnerContactEnabled (contrato do Back pendente).
+export async function updatePartnerProfile(partnerId: string, input: { displayName: string; specialty: string; description: string; contactEmail?: string; contactPhone?: string }): Promise<AuthResult<null>> {
   const displayName = input.displayName.trim(), specialty = input.specialty.trim(), description = input.description.trim();
   if (!displayName || displayName.length > 160) return { ok: false, message: "Informe o nome profissional (até 160 caracteres)." };
   if (!specialty || specialty.length > 120) return { ok: false, message: "Informe a especialidade (até 120 caracteres)." };
   if (description.length > 2000) return { ok: false, message: "A descrição pode ter até 2.000 caracteres." };
-  const { error } = await supabase().from("partners").update({ display_name: displayName, specialty, description: description || null }).eq("id", partnerId);
+  let contact: Record<string, string> = {};
+  if (partnerContactEnabled) {
+    const problem = validatePartnerContact(input.contactEmail ?? "", input.contactPhone ?? "");
+    if (problem) return { ok: false, message: problem };
+    contact = partnerContactPayload(input.contactEmail ?? "", input.contactPhone ?? "");
+  }
+  const { error } = await supabase().from("partners").update({ display_name: displayName, specialty, description: description || null, ...contact }).eq("id", partnerId);
   return error ? { ok: false, message: "Não foi possível salvar o perfil. Tente novamente." } : { ok: true, value: null };
 }
 
 export async function loadPartnerProfile(partnerId: string): Promise<PartnerProfileData | null> {
-  const { data } = await supabase().from("partners").select("display_name, specialty, description, address:address_id (city, state)").eq("id", partnerId).maybeSingle();
+  const contactColumns = partnerContactEnabled ? `, ${partnerContactKeys.email}, ${partnerContactKeys.phone}` : "";
+  const { data } = await supabase().from("partners").select(`display_name, specialty, description${contactColumns}, address:address_id (city, state)`).eq("id", partnerId).maybeSingle();
   if (!data) return null;
-  const address = (Array.isArray(data.address) ? data.address[0] : data.address) as { city?: string; state?: string } | null;
-  return { displayName: data.display_name, specialty: data.specialty, description: data.description, city: address?.city ?? "", state: address?.state ?? "" };
+  const row = data as unknown as Record<string, unknown> & { display_name: string; specialty: string; description: string | null; address: unknown };
+  const address = (Array.isArray(row.address) ? row.address[0] : row.address) as { city?: string; state?: string } | null;
+  return {
+    displayName: row.display_name, specialty: row.specialty, description: row.description, city: address?.city ?? "", state: address?.state ?? "",
+    ...(partnerContactEnabled ? { contactEmail: String(row[partnerContactKeys.email] ?? ""), contactPhone: String(row[partnerContactKeys.phone] ?? "") } : {}),
+  };
 }
 
 export interface PublicSponsor { id: string; name: string; campaignTitle: string; campaignKind: CampaignKind }
