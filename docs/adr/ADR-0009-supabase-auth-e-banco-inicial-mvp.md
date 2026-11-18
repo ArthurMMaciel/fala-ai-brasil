@@ -133,3 +133,25 @@ Riscos aceitos:
 - O Supabase também limita os envios de e-mail do Auth. O valor configurado no projeto é "a confirmar" no painel.
 
 Troca da senha de app: ver o inventário de segredos em [PILOT_SUSPENSION](../runbooks/PILOT_SUSPENSION.md). A troca para um provedor transacional com domínio próprio continua como pendência pós-piloto, sem data.
+
+## Revisão de 2026-11-18: avisos às empresas pela mesma conta
+
+Decisão do responsável, comunicada pelo Gestor: "mesma caixa, mesma conta". Os avisos às empresas não cadastradas (ADR-0017) são enviados **à mão** pelo operador, da mesma conta Gmail usada no SMTP do Auth. Nenhuma Edge Function nem SMTP novo envia esses avisos. Nenhuma configuração foi alterada.
+
+Riscos aceitos, além dos da revisão de 2026-11-17:
+- **Limite diário compartilhado:** os avisos manuais e os e-mails do Auth contam para a mesma conta. Se o limite do envio pela interface do Gmail é o mesmo do SMTP é "a confirmar". No volume de referência do piloto (até 5 casos novos por dia), o risco de atingir o limite é baixo.
+- **Bloqueio por denúncia:** o aviso vai a uma empresa que nunca pediu contato com a plataforma. Uma denúncia de spam ou uma suspensão da conta derrubam **juntas** a confirmação de cadastro e a recuperação de senha de todo o piloto.
+- **Exposição da conta pessoal:** as respostas das empresas chegam à caixa pessoal do responsável, e o endereço pessoal dele fica conhecido por terceiros.
+- **Sem alternativa imediata:** sem SMTP próprio, o Supabase só entrega e-mail do Auth a endereços da equipe da organização ("Email address not authorized" para os demais, segundo a [documentação de SMTP do Auth](https://supabase.com/docs/guides/auth/auth-smtp)). Desligar o SMTP próprio, portanto, não substitui a conta bloqueada.
+
+Mitigações dentro da decisão:
+- O aviso só sai depois da revisão humana do caso (ADR-0010), com texto curto, institucional e sem conteúdo do relato. Cada envio fica registrado no caso, com quem enviou e quando.
+- Não enviar avisos em sequência para muitos destinatários no mesmo dia.
+- O procedimento de conta bloqueada está no [PILOT_SUSPENSION](../runbooks/PILOT_SUSPENSION.md#conta-gmail-do-auth-bloqueada).
+
+**Recomendação:** migrar o SMTP do Auth e os avisos para a conta da empresa assim que ela existir. Se a conta tiver domínio próprio, configurar SPF, DKIM e DMARC no DNS antes. Depois:
+1. trocar host, usuário, remetente e senha de app em Authentication > SMTP;
+2. testar a confirmação de cadastro e a recuperação de senha;
+3. só então revogar a senha de app da conta pessoal;
+4. atualizar o inventário de segredos.
+A troca entra como nova revisão desta ADR.

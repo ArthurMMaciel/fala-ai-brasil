@@ -66,6 +66,34 @@ Nunca colar um segredo em chat, task ou commit. No registro do incidente entra s
 
 **Risco aceito (2026-11-17):** o piloto usa o Gmail do responsável no SMTP (ADR-0009, revisão de 2026-11-17). Os riscos aceitos são o limite diário, o remetente pessoal e a dependência de uma conta pessoal.
 
+**Risco aceito (2026-11-18):** os avisos manuais às empresas não cadastradas saem da mesma conta (ADR-0009, revisão de 2026-11-18). O limite diário é compartilhado com o Auth, e uma denúncia de spam ou um bloqueio derrubam a confirmação de cadastro e a recuperação de senha.
+
+### Conta Gmail do Auth bloqueada
+
+Severidade: SEV-2, porque o cadastro é fluxo crítico, sem exposição de dados.
+
+1. **Sinais:**
+   - usuários dizem não receber confirmação ou recuperação de senha;
+   - o Gmail mostra aviso de limite ou de suspensão;
+   - os logs do Auth mostram erro de SMTP. Exportar os logs no mesmo dia, porque a retenção é de 1 dia.
+2. **Conter:**
+   - parar os avisos manuais às empresas até a conta voltar;
+   - registrar a hora no incidente.
+3. **Limite diário atingido:** a ajuda do Gmail diz que o envio volta em 1 a 24 h. Esperar e não tentar reenviar em massa. Quando voltar, quem não recebeu pode pedir o reenvio da confirmação pelo site, que usa `auth.resend`.
+4. **Suspensão ou bloqueio por denúncia:**
+   - o responsável segue a recuperação da conta no Google;
+   - se a recuperação demorar, trocar o SMTP do Auth para outra conta. Hoje essa conta não existe, então é preciso criá-la, com verificação em duas etapas e senha de app, e colar a senha em Supabase > Authentication > SMTP. É o mesmo procedimento da troca de senha de app no inventário acima;
+   - testar a confirmação e a recuperação logo depois.
+5. **Não há saída sem SMTP próprio:** sem ele, o Supabase só entrega e-mail do Auth para endereços da equipe da organização.
+6. **Reabrir:**
+   - conta funcionando;
+   - teste de confirmação e de recuperação feito;
+   - avisos manuais retomados aos poucos.
+
+**Recomendação:**
+- Antes de 30/11, deixar criada, sem configurar, uma conta reserva (de preferência a futura conta da empresa). Assim, o passo 4 leva minutos em vez de depender da criação de conta durante o incidente.
+- Quando a conta da empresa existir, migrar para ela o SMTP do Auth e os avisos (ADR-0009, revisão de 2026-11-18).
+
 ## 2. Preservar evidências
 
 Anotar a hora do incidente e exportar em até 24 h:
