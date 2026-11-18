@@ -35,6 +35,25 @@ jobs:
             echo "dist/index.html tem script inline"; exit 1
           fi
 
+  functions-test:
+    # Testes das Edge Functions (ADR-0017). Só testes: sem deploy, sem token, sem secrets.
+    # Sem permissão de rede: os testes simulam o fetch dos provedores.
+    if: github.event_name != 'deployment_status'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Há funções no repositório?
+        id: has
+        run: |
+          if ls supabase/functions/*/index.ts >/dev/null 2>&1; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "sem supabase/functions: nada a testar"; fi
+      - if: steps.has.outputs.run == 'true'
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - if: steps.has.outputs.run == 'true'
+        run: deno test --frozen supabase/functions/
+
   production-smoke:
     # A Vercel publica deployment_status no GitHub. Só o deploy de Production concluído com sucesso.
     if: github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Production'
@@ -42,6 +61,8 @@ jobs:
     timeout-minutes: 5
     env:
       SITE: https://fala-ai-brasil.vercel.app
+      # "false" até o primeiro deploy da cnpj-lookup (runbook EDGE_FUNCTION_DEPLOY, passo 11); depois "true".
+      CNPJ_LOOKUP_REQUIRED: "false"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,3 +83,27 @@ jobs:
           [ -n "$js" ] || { echo "landing sem bundle principal"; exit 1; }
           curl -fsS -o /dev/null "$SITE$js"
           echo "ok: landing 200, bundle $js 200, CSP igual ao vercel.json"
+          curl -fsS -o bundle.js "$SITE$js"
+      - name: Edge Function cnpj-lookup recusa sem login
+        run: |
+          set -eu
+          # URL do projeto vem do vercel.json (CSP) e a chave publicável do bundle: ambas públicas.
+          api=$(grep -oE 'https://[a-z0-9]+\.supabase\.co' vercel.json | head -1)
+          [ -n "$api" ] || { echo "URL do Supabase não encontrada no vercel.json"; exit 1; }
+          fn="$api/functions/v1/cnpj-lookup"
+          sem=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$fn" -H 'content-type: application/json' -d '{}')
+          pub=$(grep -oE 'sb_publishable_[A-Za-z0-9_-]+' bundle.js | head -1 || true)
+          if [ -n "$pub" ]; then
+            com=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$fn" -H 'content-type: application/json' -H "apikey: $pub" -H "authorization: Bearer $pub" -d '{}')
+          else
+            com=skip
+          fi
+          echo "sem credencial: $sem; só chave publicável: $com"
+          if [ "$CNPJ_LOOKUP_REQUIRED" = "true" ]; then
+            [ "$sem" = "401" ] || { echo "esperado 401 sem login"; exit 1; }
+            [ "$com" = "401" ] || { echo "esperado 401 só com a chave publicável (ADR-0017 D3)"; exit 1; }
+          else
+            # Antes do primeiro deploy a função não existe (404). Qualquer coisa além de 401/404 é alarme.
+            case "$sem" in 401|404) ;; *) echo "resposta inesperada sem login: $sem"; exit 1;; esac
+            case "$com" in 401|404|skip) ;; *) echo "resposta inesperada só com a chave publicável: $com"; exit 1;; esac
+          fi
