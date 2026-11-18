@@ -6,7 +6,7 @@ Vale para o piloto fechado a partir de 30/11. Usa só o que existe em 2026-11-17
 
 - Referência: 3 empresas e até 5 casos novos por dia. São números de referência, não limites. O piloto se ajusta com a experiência, e não há gatilho automático nem critério operacional de pausa.
 - Operador único: o próprio responsável. **Lacuna aceita:** não há substituto do operador.
-- A pausa do piloto ([ADR-0021](../adr/ADR-0021-pausa-do-piloto.md)) fica reservada a incidente de segurança ou privacidade (SEV-1 abaixo). Em 2026-11-17, a ADR consta como "Proposta" no repositório e não está implementada. Até a migration chegar à produção, vale o que está em "Pausar novas entradas" abaixo.
+- A pausa do piloto ([ADR-0021](../adr/ADR-0021-pausa-do-piloto.md)) fica reservada a incidente de segurança ou privacidade (SEV-1 abaixo). A ADR foi aceita em 2026-11-17 e é implementada pela migration `20261117150000`, que ainda não foi aplicada em produção. Até ser aplicada, vale a lacuna descrita em "Pausar novas entradas" abaixo.
 
 ## Quem faz o quê
 
@@ -41,7 +41,8 @@ Qualquer pessoa que perceber um problema avisa o responsável e o Gestor. O avis
 
 ### Pausar novas entradas
 - **Novas contas:** Supabase > Authentication > configurações de Sign In: desligar "Allow new users to sign up". Isso bloqueia cadastros novos e não afeta quem já tem conta. O caminho exato no painel é "a confirmar".
-- **Lacuna (Back):** não há como pausar o envio de novos relatos por quem já tem conta. Hoje, a única forma de impedir é tirar o site do ar, o que derruba também a leitura. O Back está cuidando do mecanismo de pausa.
+- **Novos relatos (ADR-0021):** depois que a `20261117150000` for aplicada, um membro da equipe (`platform_admins`) chama `ops_set_pilot_state('paused', '<motivo>')`. O motivo tem de 10 a 500 caracteres e não pode conter conteúdo de relato. Com a pausa, `create_complaint` recusa novos relatos, e quem já tem caso aberto continua acompanhando. Reabrir é a mesma chamada com `'open'`. Cada mudança fica registrada em `pilot_state_log`. Se a tela da Operação já tem esse botão, é "a confirmar" com o Front. Sem tela, como chamar a função é "a confirmar" com o Back. A função confere quem chama como `platform_admins`, e o SQL Editor não roda como um usuário do app.
+- **Lacuna até a aplicação da 150000:** não há como pausar o envio de novos relatos por quem já tem conta. A única forma é tirar o site do ar, o que derruba também a leitura.
 - **Retenção já existente:** pela Operação, um relato em revisão pode ficar retido (`held`) antes de chegar à empresa (`ops_decide_complaint`). Isso contém um relato específico, sem pausar o fluxo.
 
 ### Revogar o acesso de uma empresa
