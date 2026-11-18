@@ -11,6 +11,7 @@
 // não usam enum novo. Os locks de DDL (ALTER TABLE) ficam presos até o fim da execução, em geral segundos.
 import { readFileSync } from 'node:fs';
 import { basename } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 // Divide SQL em instruções respeitando comentários, strings '...', identificadores "..." e corpos $tag$...$tag$.
 export function splitSql(sql) {
@@ -119,4 +120,5 @@ end $tx$;
 `);
 }
 
-main();
+// Só roda como script; importado (supabase/sql-editor/build.mjs), expõe splitSql.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
