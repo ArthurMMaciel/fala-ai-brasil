@@ -2,6 +2,7 @@
 -- Passo 01 de 04. SQL Editor de produção: colar o arquivo INTEIRO e rodar UMA vez.
 -- Tudo ou nada (begin ... commit). Se aparecer erro, nada foi gravado: rode `rollback;` sozinho e avise o Back.
 -- Depois de rodar: 01_conferir_20261109180000.sql (todas as linhas com ok = true).
+-- AVISO: a partir deste passo, toda resposta de empresa espera a revisão do operador antes de chegar ao trabalhador.
 begin;
 set local lock_timeout = '5s';
 
@@ -12,6 +13,9 @@ begin
   end if;
   if not exists (select 1 from supabase_migrations.schema_migrations where version = '20261109170000') then
     raise exception 'Falta a 20261109170000 (passo anterior). Nada foi feito.';
+  end if;
+  if not exists (select 1 from private.platform_admins) then
+    raise exception 'Ninguém na equipe (private.platform_admins). Rode o passo 00 antes: sem equipe, as respostas ficariam presas em revisão. Nada foi feito.';
   end if;
 end $trava$;
 

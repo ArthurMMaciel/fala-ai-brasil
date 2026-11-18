@@ -14,7 +14,7 @@ O responsável roda estes arquivos no SQL Editor do Supabase (produção). Não 
 
 | Passo | Arquivo | Esperado |
 |---|---|---|
-| 00 | `00_incluir_admin.sql` (troque o e-mail; não salve preenchido) | `equipe` ≥ 1 |
+| 00 | `00_incluir_admin.sql` (troque o e-mail; não salve preenchido). **Obrigatório antes do 01.** | `equipe` ≥ 1 |
 | 01 | `01_aplicar_20261109180000.sql` e depois `01_conferir_20261109180000.sql` | todas as linhas `ok = true` |
 | 02 | `02_aplicar_20261117120000.sql` e depois `02_conferir_20261117120000.sql` | todas as linhas `ok = true` |
 | 03 | `03_aplicar_20261117140000.sql` e depois `03_conferir_20261117140000.sql` | todas as linhas `ok = true` |
@@ -22,7 +22,8 @@ O responsável roda estes arquivos no SQL Editor do Supabase (produção). Não 
 
 - Cada arquivo deve ser colado inteiro e rodado uma vez. Não comece um passo antes de o anterior conferir tudo verdadeiro.
 - Cada `aplicar` roda entre `begin` e `commit`. A primeira instrução é uma trava, que recusa rodar se a versão já estiver registrada ou se faltar a anterior. A última grava a versão em `supabase_migrations.schema_migrations` (version, name, statements) no mesmo formato do CLI. Conferido: a divisão em instruções bate exatamente com o que o CLI gravou para a 20261109170000. Assim, um db push futuro não tenta reaplicar.
-- O passo 00 pode rodar a qualquer momento. As migrations não dependem dele, mas a fila de representantes e a pausa, sim.
+- O passo 00 vem antes do 01. Sem ninguém em `private.platform_admins`, as respostas que entram em revisão a partir do 01 ficam presas, porque ninguém consegue liberá-las. Por isso o 01 recusa rodar se `private.platform_admins` estiver vazia. A fila de representantes e a pausa também dependem dele.
+- **Aviso antes do passo 01:** a partir dele, toda resposta de empresa espera a revisão do operador (Operação → liberar ou devolver) antes de chegar ao trabalhador. Combine quem revisa e com que frequência antes de rodar.
 - O SQL Editor pode pedir confirmação de "operação destrutiva", porque o passo 01 troca uma policy com `drop policy`. Confirme só se o arquivo for o esperado.
 - No fim, avise o Back. O Back confere com `migration list`, em modo de leitura.
 
@@ -59,6 +60,7 @@ O responsável roda estes arquivos no SQL Editor do Supabase (produção). Não 
 - `05_pausar_piloto.sql` e `06_retomar_piloto.sql`: troque e-mail e motivo e não salve preenchido. Só funcionam depois dos passos 00 e 04.
 - No SQL Editor, `auth.uid()` é nulo. Por isso o script assume, só dentro da própria transação, a identidade da sua conta de equipe e chama `ops_set_pilot_state`, que confere a equipe, troca o estado e grava a trilha com você como autor.
 - O motivo não pode conter dado de trabalhador, de empresa ou de relato.
+- **Prova da pausa (obrigatória, uma vez):** depois do passo 04 e antes de 30/11, rode o 05 e, logo em seguida, o 06. A conferência do 05 deve mostrar `paused` e a do 06, `open`. Use um motivo como "Teste da pausa antes da abertura do piloto." Enquanto a pausa durar, novas manifestações são recusadas: faça em horário de pouco uso e não deixe intervalo entre os dois.
 
 ## Manutenção
 
