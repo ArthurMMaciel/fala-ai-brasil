@@ -372,29 +372,38 @@ $$$s0$;
       res := res || jsonb_build_object('20261117130000', 'aplicada na transação de teste');
     end if;
 
-    -- 20261118150000_empresa_contratados.sql (4 instruções)
+    -- 20261118150000_empresa_contratados.sql (6 instruções)
     if exists (select 1 from supabase_migrations.schema_migrations where version = '20261118150000') then
       res := res || jsonb_build_object('20261118150000', 'já aplicada em produção; pulada');
     else
       execute $s0$-- Fluxo 2 do teste ponta a ponta (pedido do Gestor, 2026-11-18): a empresa vê, na aba "Contratados", os parceiros que a
 -- marcaram como cliente (partner_connections.stage = 'client').
--- Só função; nenhuma tabela, coluna ou policy muda. Coerente com a troca do gate (20261117130000): só vínculo verificado.
---   1) list_my_contracted_partners(): parceiros com stage 'client' para as empresas em que a conta tem vínculo verified.
---      Devolve só o que o diretório de parceiros já mostra (nome, especialidade, descrição, foto, município, UF). O parceiro
---      não tem contato público no banco hoje; incluir e-mail/telefone exige colunas novas (decisão de modelo, à parte).
+-- Coerente com a troca do gate (20261117130000): só vínculo verificado.
+--   0) Contato do parceiro (modelo aprovado pelo responsável em 2026-11-18: "Colunas de contato"): partners ganha
+--      contact_email e contact_phone, opcionais, com o mesmo formato de companies. O próprio parceiro edita (policy
+--      partners_update já restringe à própria linha; grant só dessas colunas). Ninguém mais lê partners direto
+--      (partners_read: só a própria linha); o diretório não mostra o contato.
+--   1) list_my_contracted_partners(): parceiros com stage 'client' para as empresas em que a conta tem vínculo verified,
+--      com os dados do diretório e o contato do parceiro (o parceiro escolheu marcar a empresa como cliente).
 --   2) company_request_partner passa a exigir vínculo verified: com a D11 (20261118140000) qualquer conta entra como
 --      membro pending de uma empresa cadastrada, e o pedido de contato libera ao parceiro o e-mail e o telefone de contato
 --      da empresa (list_partner_companies, estágio company_interest). Sem verificação, uma conta não confirmada falaria em
 --      nome da empresa e exporia o contato dela.
 --
 -- Rollback: drop function public.list_my_contracted_partners(); reaplicar company_request_partner de
---   20261027024534_mvp_manifestacoes_e_conexoes.sql.
+--   20261027024534_mvp_manifestacoes_e_conexoes.sql; revoke update (contact_email, contact_phone) on public.partners from
+--   authenticated; alter table public.partners drop column contact_email, drop column contact_phone (exportar antes).
 
-create function public.list_my_contracted_partners()
+alter table public.partners
+  add column contact_email text check (contact_email is null or (char_length(contact_email) <= 254 and contact_email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$')),
+  add column contact_phone text check (contact_phone is null or contact_phone ~ '^\d{10,11}$')$s0$;
+      execute $s0$grant update (contact_email, contact_phone) on public.partners to authenticated$s0$;
+      execute $s0$create function public.list_my_contracted_partners()
 returns table (partner_id uuid, company_id uuid, display_name text, specialty text, description text, avatar_path text,
-               city text, state text, since timestamptz)
+               city text, state text, contact_email text, contact_phone text, since timestamptz)
 language sql stable security definer set search_path = '' as $$
-  select p.id, pc.company_id, p.display_name, p.specialty, p.description, m.storage_path, a.city, a.state, pc.updated_at
+  select p.id, pc.company_id, p.display_name, p.specialty, p.description, m.storage_path, a.city, a.state,
+         p.contact_email, p.contact_phone, pc.updated_at
   from public.partner_connections pc
   join public.company_users cu on cu.company_id = pc.company_id and cu.user_id = auth.uid() and cu.verification_status = 'verified'
   join public.partners p on p.id = pc.partner_id
@@ -475,7 +484,15 @@ $$$s0$;
       falhas := falhas || jsonb_build_object('parceiro não vê a empresa que pediu contato', true);
     end if;
     perform public.partner_set_connection(co_a, 'client');
+    -- Parceira Um preenche o próprio contato; formato inválido é recusado.
+    update public.partners set contact_email = 'contato@parceira-um.invalid', contact_phone = '11999990000' where user_id = u_p1;
+    begin
+      update public.partners set contact_email = 'sem-arroba' where user_id = u_p1;
+      falhas := falhas || jsonb_build_object('contato de parceiro com e-mail inválido aceito', true);
+    exception when others then null; end;
     perform set_config('request.jwt.claims', json_build_object('sub', u_p2, 'role', 'authenticated')::text, true);
+    -- Parceira Dois não altera o contato da Um (policy partners_update).
+    update public.partners set contact_email = 'invasor@tx.invalid' where id = p1;
     perform public.partner_set_connection(co_a, 'partner_contacted');
     
     -- Contratados: só o verificado de Alfa vê só a Parceira Um.
@@ -483,6 +500,14 @@ $$$s0$;
     if (select count(*) from public.list_my_contracted_partners()) <> 1
        or (select partner_id from public.list_my_contracted_partners() limit 1) is distinct from p1 then
       falhas := falhas || jsonb_build_object('Contratados da empresa verificada errado', true);
+    end if;
+    if (select contact_email || '/' || contact_phone from public.list_my_contracted_partners() limit 1)
+       is distinct from 'contato@parceira-um.invalid/11999990000' then
+      falhas := falhas || jsonb_build_object('Contratados sem o contato do parceiro (ou alterado por outro parceiro)', true);
+    end if;
+    -- O diretório de parceiros continua sem contato.
+    if exists (select 1 from pg_proc where oid = to_regprocedure('public.list_partner_directory()') and prosrc like '%contact_%') then
+      falhas := falhas || jsonb_build_object('diretório de parceiros mostra contato', true);
     end if;
     perform set_config('request.jwt.claims', json_build_object('sub', u_cam, 'role', 'authenticated')::text, true);
     if (select count(*) from public.list_my_contracted_partners()) <> 0 then falhas := falhas || jsonb_build_object('pending vê Contratados', true); end if;

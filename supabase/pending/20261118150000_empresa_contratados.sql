@@ -1,22 +1,32 @@
 -- Fluxo 2 do teste ponta a ponta (pedido do Gestor, 2026-11-18): a empresa vê, na aba "Contratados", os parceiros que a
 -- marcaram como cliente (partner_connections.stage = 'client').
--- Só função; nenhuma tabela, coluna ou policy muda. Coerente com a troca do gate (20261117130000): só vínculo verificado.
---   1) list_my_contracted_partners(): parceiros com stage 'client' para as empresas em que a conta tem vínculo verified.
---      Devolve só o que o diretório de parceiros já mostra (nome, especialidade, descrição, foto, município, UF). O parceiro
---      não tem contato público no banco hoje; incluir e-mail/telefone exige colunas novas (decisão de modelo, à parte).
+-- Coerente com a troca do gate (20261117130000): só vínculo verificado.
+--   0) Contato do parceiro (modelo aprovado pelo responsável em 2026-11-18: "Colunas de contato"): partners ganha
+--      contact_email e contact_phone, opcionais, com o mesmo formato de companies. O próprio parceiro edita (policy
+--      partners_update já restringe à própria linha; grant só dessas colunas). Ninguém mais lê partners direto
+--      (partners_read: só a própria linha); o diretório não mostra o contato.
+--   1) list_my_contracted_partners(): parceiros com stage 'client' para as empresas em que a conta tem vínculo verified,
+--      com os dados do diretório e o contato do parceiro (o parceiro escolheu marcar a empresa como cliente).
 --   2) company_request_partner passa a exigir vínculo verified: com a D11 (20261118140000) qualquer conta entra como
 --      membro pending de uma empresa cadastrada, e o pedido de contato libera ao parceiro o e-mail e o telefone de contato
 --      da empresa (list_partner_companies, estágio company_interest). Sem verificação, uma conta não confirmada falaria em
 --      nome da empresa e exporia o contato dela.
 --
 -- Rollback: drop function public.list_my_contracted_partners(); reaplicar company_request_partner de
---   20261027024534_mvp_manifestacoes_e_conexoes.sql.
+--   20261027024534_mvp_manifestacoes_e_conexoes.sql; revoke update (contact_email, contact_phone) on public.partners from
+--   authenticated; alter table public.partners drop column contact_email, drop column contact_phone (exportar antes).
+
+alter table public.partners
+  add column contact_email text check (contact_email is null or (char_length(contact_email) <= 254 and contact_email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$')),
+  add column contact_phone text check (contact_phone is null or contact_phone ~ '^\d{10,11}$');
+grant update (contact_email, contact_phone) on public.partners to authenticated;
 
 create function public.list_my_contracted_partners()
 returns table (partner_id uuid, company_id uuid, display_name text, specialty text, description text, avatar_path text,
-               city text, state text, since timestamptz)
+               city text, state text, contact_email text, contact_phone text, since timestamptz)
 language sql stable security definer set search_path = '' as $$
-  select p.id, pc.company_id, p.display_name, p.specialty, p.description, m.storage_path, a.city, a.state, pc.updated_at
+  select p.id, pc.company_id, p.display_name, p.specialty, p.description, m.storage_path, a.city, a.state,
+         p.contact_email, p.contact_phone, pc.updated_at
   from public.partner_connections pc
   join public.company_users cu on cu.company_id = pc.company_id and cu.user_id = auth.uid() and cu.verification_status = 'verified'
   join public.partners p on p.id = pc.partner_id

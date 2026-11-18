@@ -46,7 +46,15 @@ if (select contact_email is not distinct from (select contact_email from public.
   falhas := falhas || jsonb_build_object('parceiro não vê a empresa que pediu contato', true);
 end if;
 perform public.partner_set_connection(co_a, 'client');
+-- Parceira Um preenche o próprio contato; formato inválido é recusado.
+update public.partners set contact_email = 'contato@parceira-um.invalid', contact_phone = '11999990000' where user_id = u_p1;
+begin
+  update public.partners set contact_email = 'sem-arroba' where user_id = u_p1;
+  falhas := falhas || jsonb_build_object('contato de parceiro com e-mail inválido aceito', true);
+exception when others then null; end;
 perform set_config('request.jwt.claims', json_build_object('sub', u_p2, 'role', 'authenticated')::text, true);
+-- Parceira Dois não altera o contato da Um (policy partners_update).
+update public.partners set contact_email = 'invasor@tx.invalid' where id = p1;
 perform public.partner_set_connection(co_a, 'partner_contacted');
 
 -- Contratados: só o verificado de Alfa vê só a Parceira Um.
@@ -54,6 +62,14 @@ perform set_config('request.jwt.claims', json_build_object('sub', u_ca, 'role', 
 if (select count(*) from public.list_my_contracted_partners()) <> 1
    or (select partner_id from public.list_my_contracted_partners() limit 1) is distinct from p1 then
   falhas := falhas || jsonb_build_object('Contratados da empresa verificada errado', true);
+end if;
+if (select contact_email || '/' || contact_phone from public.list_my_contracted_partners() limit 1)
+   is distinct from 'contato@parceira-um.invalid/11999990000' then
+  falhas := falhas || jsonb_build_object('Contratados sem o contato do parceiro (ou alterado por outro parceiro)', true);
+end if;
+-- O diretório de parceiros continua sem contato.
+if exists (select 1 from pg_proc where oid = to_regprocedure('public.list_partner_directory()') and prosrc like '%contact_%') then
+  falhas := falhas || jsonb_build_object('diretório de parceiros mostra contato', true);
 end if;
 perform set_config('request.jwt.claims', json_build_object('sub', u_cam, 'role', 'authenticated')::text, true);
 if (select count(*) from public.list_my_contracted_partners()) <> 0 then falhas := falhas || jsonb_build_object('pending vê Contratados', true); end if;

@@ -2,6 +2,10 @@
 -- Deu certo se TODAS as linhas tiverem ok = true. Um erro ao rodar esta consulta também quer dizer que não deu certo.
 with c(n, verificacao, ok) as (values
   (1, 'versão registrada', exists (select 1 from supabase_migrations.schema_migrations where version = '20261118150000')),
+  (6, 'parceiro tem contato próprio, editável só por ele',
+      (select count(*) = 2 from information_schema.columns where table_schema = 'public' and table_name = 'partners'
+       and column_name in ('contact_email', 'contact_phone'))
+      and has_column_privilege('authenticated', 'public.partners', 'contact_email', 'update')),
   (2, 'Contratados só para vínculo verificado',
       (select prosrc like '%verification_status = ''verified''%' and prosrc like '%''client''%'
        from pg_proc where oid = to_regprocedure('public.list_my_contracted_partners()'))),

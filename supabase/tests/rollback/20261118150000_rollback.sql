@@ -1,13 +1,20 @@
 -- Rollback do lote 2, passo 05 (20261118150000, aba Contratados). SQL Editor de produção, arquivo INTEIRO, uma vez.
--- Efeito: some list_my_contracted_partners; company_request_partner volta a aceitar vínculo não verificado. Conexões
--- gravadas ficam. A versão sai de schema_migrations. Erro = nada foi feito; rode `rollback;` sozinho.
+-- Efeito: some list_my_contracted_partners; company_request_partner volta a aceitar vínculo não verificado; somem as
+-- colunas de contato do parceiro. Se algum parceiro tiver contato preenchido, exporte antes (select id, contact_email,
+-- contact_phone from public.partners where contact_email is not null or contact_phone is not null; -> Download CSV) e
+-- troque false por true em v_exportei. Conexões gravadas ficam. A versão sai de schema_migrations.
+-- Erro = nada foi feito; rode `rollback;` sozinho.
 begin;
 set local lock_timeout = '5s';
 
 do $trava$
+declare v_exportei boolean := false;
 begin
   if not exists (select 1 from supabase_migrations.schema_migrations where version = '20261118150000') then
     raise exception 'A 20261118150000 não está registrada. Nada foi feito.';
+  end if;
+  if not v_exportei and exists (select 1 from public.partners where contact_email is not null or contact_phone is not null) then
+    raise exception 'Há contato de parceiro preenchido. Exporte e marque v_exportei = true. Nada foi feito.';
   end if;
 end $trava$;
 
@@ -25,6 +32,8 @@ begin
 end;
 $$;
 
+revoke update (contact_email, contact_phone) on public.partners from authenticated;
+alter table public.partners drop column contact_email, drop column contact_phone;
 delete from supabase_migrations.schema_migrations where version = '20261118150000';
 
 commit;
