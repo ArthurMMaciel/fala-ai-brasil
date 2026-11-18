@@ -5,7 +5,7 @@
 - Prioridade: P1
 - Estimativa: 1 dia
 - Impacto: todas as contas
-- ClickUp: o Gestor cria a tarefa e manda o link. Conferido em 2026-11-18 que ela não existia.
+- ClickUp: https://app.clickup.com/t/17tu7rpfcuw (criada pelo Gestor em 2026-11-18, depois de conferir que não existia).
 - Decisão: ADR-0024
 
 ## Problema
