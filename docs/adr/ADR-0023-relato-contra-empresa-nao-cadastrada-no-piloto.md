@@ -73,6 +73,17 @@ O que fere:
   - "Nunca enviar... dados psicossociais a terceiros sem avaliação de privacidade, base legal e controles documentados": "existe um relato contra você" é informação sobre o caso, enviada a um endereço que ninguém conferiu.
 - **Abuso:** qualquer conta autenticada faria a plataforma mandar e-mail para qualquer endereço. Serviria para assédio, para spam e para derrubar a conta do Gmail, que é a mesma do Auth: a confirmação de cadastro pararia.
 
+### Remetente no piloto (responsável, 2026-11-17)
+
+"Por hora vai ser da minha conta, mas vamos abrir uma para a empresa": no piloto, o aviso sai da conta pessoal de e-mail do responsável. Ainda falta ele escolher entre envio manual (a1) e automático (a2 ou b). Efeito em cada variante:
+
+- **(a1) manual:** funciona sem mudança. Ele envia da própria caixa, com o texto fixo, e marca como enviado na Operação. Nenhuma credencial vai para a plataforma.
+- **(a2) e (b), automáticas:** a Edge Function precisaria da senha de app SMTP da conta pessoal nos Secrets. A ADR-0020 D1 desaconselha isso: a senha de app dá acesso SMTP à caixa inteira, e um vazamento da função expõe o e-mail pessoal do responsável. Se a escolha for automática, o caminho é abrir antes a conta da empresa e só então ligar o envio.
+- **Em qualquer variante:**
+  - O destinatário vê o nome e o e-mail pessoal do responsável, e as respostas da empresa caem na caixa pessoal dele, possivelmente com dado do caso ou de terceiros. Essas mensagens precisam de tratamento e retenção definidos (TASK-0007).
+  - Se o Auth usar a mesma conta, o limite de 500 envios por dia e o risco de bloqueio são compartilhados. O DevOps confirma qual conta o Auth usa hoje.
+  - Quando a conta da empresa existir, os avisos passam a sair dela. O texto não muda.
+
 ## 3. Modelo (para aprovação)
 
 ```mermaid
