@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { createWorkerComplaint, type DirectoryCompany } from '../services/data';
+import { findCompanyByCnpj, lookupCnpj, preregisterCompany } from '../services/notices';
 import { showToast } from '../app/toast';
-import { isValidPhone, maskPhone } from '../domain/account-rules';
+import { brazilianStates, isValidCnpj, isValidPhone, maskCnpj } from '../domain/account-rules';
+import { involvementLabels, noticeContactPayload, noticeTexts, noticeTextsInReview, validateManualCompany, validateNoticeContact, type Involvement, type NoticeContactInput } from '../domain/company-notice';
 
 // Assistente de nova manifestação em 9 etapas (conteúdo da POC, restaurado em 2026-10-30).
 // Relato, versão compartilhável e expectativas vão ao banco; respostas de contexto e contatos
 // indicados ficam só nesta sessão até a aprovação do modelo de dados (ADR-0009).
+// ADR-0023: a empresa é escolhida pelo CNPJ; fora da base, entra só no envio, com e-mail opcional para o aviso.
 type Answer = string | string[];
-interface Contact { name: string; role: string; email: string; phone: string }
 
 const contextSteps: { title: string; intro: string; fields: [string, string[]][] }[] = [
  { title: 'Seu contexto', intro: 'Antes de você falar sobre o que aconteceu, queremos entender um pouco do seu contexto.', fields: [
@@ -28,11 +30,9 @@ const contextSteps: { title: string; intro: string; fields: [string, string[]][]
   ['Se a empresa recebesse uma versão revisada do seu relato, sem seu nome e seus contatos, isso ajudaria?', ['1', '2', '3', '4', '5']],
   ['O que você espera que aconteça depois de enviar um relato?', ['Quero apenas ser ouvido(a)', 'Quero que a empresa dê um retorno', 'Quero que a empresa investigue internamente', 'Quero que o problema não aconteça com outras pessoas', 'Quero acompanhar providências']]] },
 ];
-const stepTitles = [...contextSteps.map(step => step.title), 'Tema', 'Relato', 'Formas de comunicação', 'O que você espera', 'Revisão protegida'];
 const themes = ['Sobrecarga / excesso de trabalho', 'Pressão ou cobrança excessiva', 'Assédio / humilhação', 'Conflito com liderança', 'Conflito com colegas', 'Falta de apoio', 'Jornada / disponibilidade', 'Discriminação', 'Insegurança / medo de demissão', 'Outro'];
 const expectations = ['Apenas registrar', 'Receber uma resposta', 'Que a empresa investigue', 'Que alguma prática seja revista', 'Que haja acompanhamento', 'Outro'];
 const multiple = (step: number, question: number) => (step === 1 && question === 3) || (step === 3 && question === 1);
-const emptyContact: Contact = { name: '', role: '', email: '', phone: '' };
 
 export function isBrazilianPhone(value: string): boolean {
  return isValidPhone(value);
@@ -45,102 +45,172 @@ function OptionGrid({ label, options, value, onSelect }: { label: string; option
  })}</div>;
 }
 
-export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, onCreated }: { companies: DirectoryCompany[]; initialCompanyId?: string; onCancel: () => void; onCreated: () => void }) {
- const [companyId, setCompanyId] = useState(initialCompanyId);
+interface ChosenCompany { id: string; name: string; city: string; state: string }
+// Empresa fora da base (ADR-0023): só é gravada no envio da manifestação ("grava quando relatar").
+interface PendingCompany { cnpj: string; name: string; city: string; state: string; source: 'lookup' | 'manual' }
+type CompanyPhase = 'input' | 'searching' | 'found' | 'lookup' | 'manual' | 'legacy';
+
+function LegacyCompanySearch({ companies, onChoose }: { companies: DirectoryCompany[]; onChoose: (company: ChosenCompany) => void }) {
  const [search, setSearch] = useState('');
+ const listed = companies.filter(item => `${item.name} ${item.city} ${item.state}`.toLowerCase().includes(search.toLowerCase()));
+ return <><label className="field worker-company-search">Empresa<input value={search} onChange={event => setSearch(event.target.value)} placeholder="Nome ou cidade" autoFocus /></label>
+  {listed.length ? <div className="worker-company-list">{listed.map(item => <article key={item.id} className="worker-company-row"><div><strong>{item.name}</strong><small>{item.city}/{item.state}</small></div><button className="btn primary" onClick={() => onChoose(item)}>É sobre esta empresa</button></article>)}</div>
+   : <p className="muted">Nenhuma empresa encontrada. Nesta versão, só empresas cadastradas podem receber manifestações.</p>}</>;
+}
+
+function CompanyStep({ companies, onChoose, onPending, onCancel }: { companies: DirectoryCompany[]; onChoose: (company: ChosenCompany) => void; onPending: (company: PendingCompany) => void; onCancel: () => void }) {
+ const [cnpj, setCnpj] = useState('');
+ const [phase, setPhase] = useState<CompanyPhase>('input');
+ const [found, setFound] = useState<ChosenCompany | null>(null);
+ const [manual, setManual] = useState({ name: '', city: '', state: '' });
+ const [error, setError] = useState('');
+ async function search(event: React.FormEvent) {
+  event.preventDefault();
+  if (!isValidCnpj(cnpj)) return setError('Confira o CNPJ: são 14 caracteres com os dígitos verificadores.');
+  setError(''); setPhase('searching');
+  const result = await findCompanyByCnpj(cnpj);
+  if (result.missing) return setPhase('legacy');
+  if (!result.ok) { setPhase('input'); return showToast('error', result.message); }
+  if (result.company) { setFound(result.company); return setPhase('found'); }
+  const lookup = await lookupCnpj(cnpj);
+  if (lookup.kind === 'found') { setFound({ id: '', ...lookup.company }); return setPhase('lookup'); }
+  setPhase('manual');
+ }
+ function continueManual() {
+  const problem = validateManualCompany(manual.name, manual.city, manual.state);
+  if (problem) return setError(problem);
+  onPending({ cnpj, name: manual.name.trim(), city: manual.city.trim(), state: manual.state.toUpperCase(), source: 'manual' });
+ }
+ const reset = () => { setPhase('input'); setFound(null); setError(''); };
+ const errorLine = error && <p className="field-error" role="alert">{error}</p>;
+ let body;
+ if (phase === 'legacy') body = <LegacyCompanySearch companies={companies} onChoose={onChoose} />;
+ else if ((phase === 'found' || phase === 'lookup') && found) body = <><div className="worker-company-list"><article className="worker-company-row"><div><strong>{found.name}</strong><small>{found.city}/{found.state} · CNPJ {maskCnpj(cnpj)}</small></div>
+   <button className="btn primary" onClick={() => phase === 'found' ? onChoose(found) : onPending({ cnpj, name: found.name, city: found.city, state: found.state, source: 'lookup' })}>É sobre esta empresa</button></article></div>
+  {phase === 'lookup' && <p className="muted small">Esta empresa ainda não usa a Escuta Aí Brasil. Ela só passa a constar na plataforma quando você enviar a manifestação.</p>}
+  <div className="nav-actions"><button className="btn" type="button" onClick={reset}>Buscar outro CNPJ</button></div></>;
+ else if (phase === 'manual') body = <><p className="muted">Não encontramos os dados deste CNPJ automaticamente. Preencha o nome e a cidade da empresa; a equipe confere na Receita Federal antes de qualquer aviso.</p>
+  <label className="field">Nome da empresa<input value={manual.name} maxLength={160} onChange={event => { setManual({ ...manual, name: event.target.value }); setError(''); }} placeholder="Razão social ou nome conhecido" /></label>
+  <div className="grid two"><label className="field">Município<input value={manual.city} maxLength={80} onChange={event => { setManual({ ...manual, city: event.target.value }); setError(''); }} /></label>
+   <label className="field">UF<select value={manual.state} onChange={event => { setManual({ ...manual, state: event.target.value }); setError(''); }}><option value="">Selecione</option>{brazilianStates.map(uf => <option key={uf} value={uf}>{uf}</option>)}</select></label></div>
+  <p className="muted small">Esta empresa só passa a constar na plataforma quando você enviar a manifestação.</p>
+  {errorLine}<div className="nav-actions"><button className="btn" type="button" onClick={reset}>Buscar outro CNPJ</button><button className="btn primary" type="button" onClick={continueManual}>Continuar</button></div></>;
+ else body = <form onSubmit={search} noValidate><label className="field worker-company-search">CNPJ da empresa<input value={cnpj} inputMode="text" maxLength={18} autoFocus placeholder="00.000.000/0000-00" onChange={event => { setCnpj(maskCnpj(event.target.value)); setError(''); }} /></label>
+  <p className="muted small">Você encontra o CNPJ no contracheque, no contrato ou no site da empresa.</p>
+  {errorLine}<div className="nav-actions"><button className="btn primary" type="submit" disabled={phase === 'searching'}>{phase === 'searching' ? 'Buscando…' : 'Buscar empresa'}</button></div></form>;
+ return <><button className="text-action worker-back" onClick={onCancel}>← Voltar</button>
+  <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Nova manifestação</span><h2>{phase === 'legacy' ? 'Pesquisar empresa' : 'Qual é o CNPJ da empresa?'}</h2><p className="muted">{phase === 'legacy' ? 'Digite o nome ou a cidade da empresa relacionada ao relato.' : 'Digite o CNPJ da empresa relacionada ao relato.'}</p></div></div>
+  {body}</>;
+}
+
+export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, onCreated }: { companies: DirectoryCompany[]; initialCompanyId?: string; onCancel: () => void; onCreated: () => void }) {
+ const initial = companies.find(item => item.id === initialCompanyId);
+ const [chosen, setChosen] = useState<ChosenCompany | null>(initial ? { id: initial.id, name: initial.name, city: initial.city, state: initial.state } : null);
+ const [pending, setPending] = useState<PendingCompany | null>(null);
+ const [createdCompanyId, setCreatedCompanyId] = useState('');
  const [step, setStep] = useState(0);
  const [answers, setAnswers] = useState<Record<string, Answer>>({});
  const [draft, setDraft] = useState({ category: '', title: '', original: '', incidentPeriod: '', recurrence: '', shared: '', expectedOutcomes: [] as string[] });
- const [contacts, setContacts] = useState<Contact[]>([]);
- const [contact, setContact] = useState<Contact>(emptyContact);
+ const [notice, setNotice] = useState<NoticeContactInput>({ email: '', involvement: '', consent: false });
  const [error, setError] = useState('');
  const [busy, setBusy] = useState(false);
- const company = companies.find(item => item.id === companyId);
  const set = (key: keyof typeof draft, value: string | string[]) => setDraft(current => ({ ...current, [key]: value }));
  const go = (next: number) => { setError(''); setStep(next); window.scrollTo({ top: 0 }); };
 
- if (!company) {
-  const listed = companies.filter(item => `${item.name} ${item.city} ${item.state}`.toLowerCase().includes(search.toLowerCase()));
-  return <><button className="text-action worker-back" onClick={onCancel}>← Voltar</button>
-   <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Nova manifestação</span><h2>Pesquisar empresa</h2><p className="muted">Digite o nome ou a cidade da empresa relacionada ao relato.</p></div></div>
-   <label className="field worker-company-search">Empresa<input value={search} onChange={event => setSearch(event.target.value)} placeholder="Nome ou cidade" autoFocus /></label>
-   {listed.length ? <div className="worker-company-list">{listed.map(item => <article key={item.id} className="worker-company-row"><div><strong>{item.name}</strong><small>{item.city}/{item.state}</small></div><button className="btn primary" onClick={() => setCompanyId(item.id)}>É sobre esta empresa</button></article>)}</div>
-    : <p className="muted">Nenhuma empresa encontrada. Nesta versão, só empresas cadastradas podem receber manifestações.</p>}</>;
- }
+ if (!chosen && !pending) return <CompanyStep companies={companies} onCancel={onCancel} onChoose={company => { setChosen(company); setStep(0); }} onPending={company => { setPending(company); setStep(0); }} />;
+ const companyName = chosen?.name ?? pending?.name ?? '';
+ // O aviso só existe para empresa fora da base, achada neste fluxo (a busca não revela se uma existente é pré-cadastrada).
+ const keys = [...contextSteps.map(() => 'context'), 'theme', 'report', ...(pending ? ['notice'] : []), 'expect', 'review'];
+ const key = keys[step];
+ const titles: Record<string, string> = { theme: 'Tema', report: 'Relato', notice: 'Aviso à empresa', expect: 'O que você espera', review: 'Revisão protegida' };
+ const total = keys.length;
 
  function select(question: number, option: string) {
-  const key = `${step}-${question}`;
+  const answerKey = `${step}-${question}`;
   setAnswers(all => {
-   const current = all[key];
+   const current = all[answerKey];
    const value = multiple(step, question) ? (Array.isArray(current) ? (current.includes(option) ? current.filter(item => item !== option) : [...current, option]) : [option]) : option;
-   return { ...all, [key]: value };
+   return { ...all, [answerKey]: value };
   });
   setError('');
  }
  function next() {
-  if (step < contextSteps.length && contextSteps[step].fields.some((_, index) => { const value = answers[`${step}-${index}`]; return !value || (Array.isArray(value) && !value.length); })) return setError('Responda todas as perguntas desta etapa para continuar.');
-  if (step === 4 && !draft.category) return setError('Escolha o tema que melhor descreve o que aconteceu.');
-  if (step === 5 && draft.title.trim().length < 3) return setError('Dê um título curto ao relato (pelo menos 3 caracteres).');
-  if (step === 5 && draft.original.trim().length < 10) return setError('Conte o que aconteceu com pelo menos 10 caracteres.');
-  if (step === 7 && !draft.expectedOutcomes.length) return setError('Escolha pelo menos uma expectativa.');
+  if (key === 'context' && contextSteps[step].fields.some((_, index) => { const value = answers[`${step}-${index}`]; return !value || (Array.isArray(value) && !value.length); })) return setError('Responda todas as perguntas desta etapa para continuar.');
+  if (key === 'theme' && !draft.category) return setError('Escolha o tema que melhor descreve o que aconteceu.');
+  if (key === 'report' && draft.title.trim().length < 3) return setError('Dê um título curto ao relato (pelo menos 3 caracteres).');
+  if (key === 'report' && draft.original.trim().length < 10) return setError('Conte o que aconteceu com pelo menos 10 caracteres.');
+  if (key === 'notice') { const problem = validateNoticeContact(notice); if (problem) return setError(problem); }
+  if (key === 'expect' && !draft.expectedOutcomes.length) return setError('Escolha pelo menos uma expectativa.');
   go(step + 1);
  }
- function addContact() {
-  const value = { name: contact.name.trim(), role: contact.role.trim(), email: contact.email.trim(), phone: contact.phone.trim() };
-  if (!value.name || !value.email || !value.phone || !value.role) return setError('Preencha nome, e-mail, telefone e cargo do contato.');
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(value.email) || !isBrazilianPhone(value.phone)) return setError('Digite um e-mail profissional válido e um telefone brasileiro com DDD.');
-  if (contacts.some(item => item.email.toLowerCase() === value.email.toLowerCase() || item.phone.replace(/\D/g, '') === value.phone.replace(/\D/g, ''))) return setError('Este contato já foi adicionado.');
-  setContacts([...contacts, value]); setContact(emptyContact); setError('');
+ async function companyIdForSubmit(): Promise<string | null> {
+  if (chosen) return chosen.id;
+  if (createdCompanyId) return createdCompanyId;
+  if (!pending) return null;
+  const manual = { name: pending.name, city: pending.city, state: pending.state };
+  let result = await preregisterCompany(pending.cnpj, pending.source === 'manual' ? manual : null);
+  // Cache vencido ou sem o CNPJ: cai no pré-cadastro manual com os dados já mostrados (a equipe confere).
+  if (!result.ok && pending.source === 'lookup') result = await preregisterCompany(pending.cnpj, manual);
+  if (!result.ok) { showToast('error', result.message); return null; }
+  setCreatedCompanyId(result.value);
+  return result.value;
  }
  async function submit(share: boolean) {
   if (share && draft.shared.trim().length < 10) return setError('Revise a versão que a empresa vai ler (pelo menos 10 caracteres).');
   setBusy(true);
-  const result = await createWorkerComplaint({ companyId, category: draft.category, title: draft.title, original: draft.original, shared: share ? draft.shared : '', incidentPeriod: draft.incidentPeriod.slice(0, 80), recurrence: draft.recurrence.slice(0, 80), expectedOutcomes: draft.expectedOutcomes }, share);
+  const companyId = await companyIdForSubmit();
+  if (!companyId) return setBusy(false);
+  const result = await createWorkerComplaint({ companyId, category: draft.category, title: draft.title, original: draft.original, shared: share ? draft.shared : '', incidentPeriod: draft.incidentPeriod.slice(0, 80), recurrence: draft.recurrence.slice(0, 80), expectedOutcomes: draft.expectedOutcomes, noticeContact: pending ? noticeContactPayload(notice) : null }, share);
   setBusy(false);
   if (!result.ok) return showToast('error', result.message);
   showToast('success', share ? 'Manifestação registrada. A equipe revisa a versão antes de liberar à empresa.' : 'Manifestação guardada. Você pode solicitar a revisão depois.'); onCreated();
  }
 
  const errorLine = error && <p className="field-error" role="alert">{error}</p>;
- const back = <button className="btn" type="button" onClick={() => step === 0 ? setCompanyId('') : go(step - 1)}>Voltar</button>;
+ const back = <button className="btn" type="button" onClick={() => { if (step > 0) return go(step - 1); setChosen(null); setPending(null); setCreatedCompanyId(''); }}>Voltar</button>;
+ const involved = notice.involvement === 'yes' || notice.involvement === 'unknown';
  let body;
- if (step < contextSteps.length) {
+ if (key === 'context') {
   const current = contextSteps[step];
   body = <><span className="eyebrow">Contexto desta manifestação</span><h2>{current.title}</h2><p className="muted">{current.intro} Responda pensando especificamente na empresa selecionada e na situação que você vai relatar.</p>
    {current.fields.map(([label, options], index) => <div className="field" key={label}><label>{label}{multiple(step, index) && <span className="muted small"> (selecione uma ou mais)</span>}</label><OptionGrid label={label} options={options} value={answers[`${step}-${index}`]} onSelect={option => select(index, option)} />
     {step === 2 && index === 2 && <div className="notice warn small">Se houver risco imediato para você ou outra pessoa, procure agora ajuda: CVV 188 (apoio emocional, 24 horas), SAMU 192 ou Polícia Militar 190. A Escuta Aí Brasil não é canal de emergência e não acompanha casos em tempo real. Nenhum contato com a empresa é feito de forma automática.</div>}</div>)}
    {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Continuar</button></div></>;
- } else if (step === 4) {
+ } else if (key === 'theme') {
   body = <><h2>O que melhor descreve o que aconteceu?</h2><OptionGrid label="Tema" options={themes} value={draft.category} onSelect={option => { set('category', option); setError(''); }} />
    {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Continuar</button></div></>;
- } else if (step === 5) {
+ } else if (key === 'report') {
   body = <><h2>Conte o que aconteceu do seu jeito.</h2><p className="muted">Você não precisa escrever de forma perfeita. Explique como se estivesse contando para alguém de confiança.</p>
    <div className="notice">Evite colocar seu nome, telefone, e-mail ou informações que facilitem sua identificação. Antes de enviar, você revisa a versão que a empresa vai ler.</div>
    <label className="field">Título curto<input value={draft.title} maxLength={140} onChange={event => set('title', event.target.value)} placeholder="Ex.: Sobrecarga e cobranças fora do horário" /></label>
    <label className="field">Relato<textarea rows={7} maxLength={5000} value={draft.original} onChange={event => set('original', event.target.value)} /></label>
    <div className="grid two"><label className="field">Quando isso aconteceu?<input value={draft.incidentPeriod} maxLength={80} onChange={event => set('incidentPeriod', event.target.value)} placeholder="Ex.: Últimas semanas" /></label><label className="field">Isso é recorrente?<input value={draft.recurrence} maxLength={80} onChange={event => set('recurrence', event.target.value)} placeholder="Ex.: Recorrente" /></label></div>
    {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Continuar</button></div></>;
- } else if (step === 6) {
-  const field = (key: keyof Contact, label: string, props: Record<string, string> = {}) => <div className="field"><label htmlFor={`contact-${key}`}>{label}</label><input id={`contact-${key}`} value={contact[key]} onChange={event => { setContact({ ...contact, [key]: key === 'phone' ? maskPhone(event.target.value) : event.target.value }); setError(''); }} aria-describedby="communication-help" {...props} /></div>;
-  body = <><h2>Formas de comunicação</h2><p className="muted">Se você conhece uma pessoa da empresa que possa receber a manifestação, pode indicá-la aqui. A Escuta Aí Brasil precisará validar o destino antes de qualquer contato. Se não conhece um contato seguro, continue sem indicar ninguém.</p>
-   <div className="notice warn small">Se o contato for proprietário(a), sócio(a) ou estiver diretamente envolvido no relato, informe o cargo com clareza. Esse contato exige revisão humana e pode não ser usado para proteger a pessoa manifestante.</div>
-   <div className="grid two contact-form">{field('name', 'Nome do contato', { autoComplete: 'off' })}{field('role', 'Cargo', { placeholder: 'Ex.: Analista de RH, Ouvidor(a), Proprietário(a)' })}{field('email', 'E-mail profissional', { type: 'email', placeholder: 'contato@empresa.com.br' })}{field('phone', 'Telefone', { inputMode: 'tel', placeholder: '(11) 99999-9999' })}</div>
-   <button className="btn primary" type="button" onClick={addContact}>Adicionar contato</button>
-   <p id="communication-help" className="muted small">Use dados profissionais e, no telefone, inclua o DDD. Não informe contatos pessoais sem necessidade.</p>
-   {errorLine}
-   <div className="contact-list" aria-live="polite">{contacts.length ? contacts.map((item, index) => <div className="contact-chip" key={item.email}><span><strong>{item.name}</strong> · {item.role}<br /><span className="small">{item.email} · {item.phone}</span></span><button type="button" onClick={() => setContacts(contacts.filter((_, i) => i !== index))} aria-label={`Remover contato ${item.name}`}>×</button></div>) : <div className="empty-contact">Nenhum contato adicionado ainda.</div>}</div>
-   <div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Continuar</button></div></>;
- } else if (step === 7) {
+ } else if (key === 'notice') {
+  const update = (next: Partial<NoticeContactInput>) => { setNotice(current => ({ ...current, ...next })); setError(''); };
+  body = <><h2>Aviso à empresa</h2><p className="muted">Esta empresa ainda não usa a Escuta Aí Brasil. Se quiser, indique um e-mail da empresa para ela receber um aviso de que existe um relato. É opcional: sem e-mail, sua manifestação segue normalmente.</p>
+   {noticeTextsInReview && <p className="legal-review-banner">Texto em revisão jurídica.</p>}
+   <div className="field"><label htmlFor="notice-email">{noticeTexts.field}</label><input id="notice-email" type="email" maxLength={254} autoComplete="off" value={notice.email} onChange={event => update({ email: event.target.value })} placeholder="rh@empresa.com.br" aria-describedby="notice-help" /><small id="notice-help" className="muted">{noticeTexts.help}</small></div>
+   {notice.email.trim() && <>
+    <fieldset className="response-rating"><legend>{noticeTexts.question}</legend>{(Object.keys(involvementLabels) as Exclude<Involvement, ''>[]).map(value => <label key={value} className="check-row"><input type="radio" name="notice-involvement" value={value} checked={notice.involvement === value} onChange={() => update({ involvement: value })} /> <span>{involvementLabels[value]}</span></label>)}</fieldset>
+    {involved && <div className="notice warn small">{noticeTexts.involvedWarning}</div>}
+    <label className="check-row"><input type="checkbox" checked={notice.consent} onChange={event => update({ consent: event.target.checked })} /> <span>{noticeTexts.consent}</span></label>
+   </>}
+   {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Continuar</button></div></>;
+ } else if (key === 'expect') {
   body = <><h2>O que você espera?</h2><OptionGrid label="O que você espera" options={expectations} value={draft.expectedOutcomes} onSelect={option => { setDraft(current => ({ ...current, expectedOutcomes: current.expectedOutcomes.includes(option) ? current.expectedOutcomes.filter(item => item !== option) : [...current.expectedOutcomes, option] })); setError(''); }} />
    {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Preparar revisão</button></div></>;
  } else {
+  const email = pending && noticeContactPayload(notice);
   body = <><h2>Revisão protegida</h2><p className="muted">Seu relato original não será mostrado à empresa. Escreva uma versão separada, sem nomes, locais, datas ou detalhes que possam identificar pessoas.</p>
    <div className="comparison"><div className="text-panel"><h3>Seu relato original</h3><p>{draft.original}</p></div>
     <div className="text-panel"><h3>Versão que será enviada à empresa</h3><textarea rows={8} maxLength={5000} value={draft.shared} onChange={event => { set('shared', event.target.value); setError(''); }} aria-label="Versão que será enviada à empresa" placeholder="Descreva o que a empresa precisa saber para entender e responder, sem dados que identifiquem pessoas." /></div></div>
-   <p className="muted small">{contacts.length ? `Contatos indicados: ${contacts.map(item => `${item.name} (${item.role})`).join(', ')}.` : 'Nenhum contato indicado.'} Demonstração: contatos e respostas de contexto não são armazenados nem usados para contato.</p>
-   {errorLine}<div className="nav-actions"><button className="btn" type="button" onClick={() => go(5)}>Quero ajustar meu relato</button><button className="btn" type="button" disabled={busy} onClick={() => submit(false)}>Guardar sem compartilhar</button><button className="btn primary" type="button" disabled={busy} onClick={() => submit(true)}>{busy ? 'Enviando…' : 'Solicitar revisão'}</button></div></>;
+   {email ? <p className="muted small">Aviso à empresa: {email.email}. {email.possibly_involved ? noticeTexts.involvedWarning : 'A equipe confere o e-mail antes de decidir pelo envio.'} {noticeTexts.notSharedWarning}</p> : pending ? <p className="muted small">Nenhum e-mail indicado para aviso.</p> : null}
+   <p className="muted small">As respostas de contexto ficam só nesta tela e não são armazenadas.</p>
+   {errorLine}<div className="nav-actions"><button className="btn" type="button" onClick={() => go(keys.indexOf('report'))}>Quero ajustar meu relato</button><button className="btn" type="button" disabled={busy} onClick={() => submit(false)}>Guardar sem compartilhar</button><button className="btn primary" type="button" disabled={busy} onClick={() => submit(true)}>{busy ? 'Enviando…' : 'Solicitar revisão'}</button></div></>;
  }
+ const stepTitle = key === 'context' ? contextSteps[step].title : titles[key];
  return <><button className="text-action worker-back" onClick={onCancel}>← Voltar</button>
-  <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Nova manifestação</span><h2>Nova manifestação</h2><p className="muted">Empresa selecionada: <strong>{company.name}</strong>. Etapa {step + 1} de 9 · {stepTitles[step]}</p><p className="muted small">Em caso de risco imediato, procure ajuda: CVV 188, SAMU 192 ou Polícia Militar 190. A Escuta Aí Brasil não é um canal de emergência.</p></div></div>
-  <section className="wizard-box"><div className="progress"><span style={{ width: `${(step + 1) / 9 * 100}%` }} /></div>{body}</section></>;
+  <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Nova manifestação</span><h2>Nova manifestação</h2><p className="muted">Empresa selecionada: <strong>{companyName}</strong>. Etapa {step + 1} de {total} · {stepTitle}</p><p className="muted small">Em caso de risco imediato, procure ajuda: CVV 188, SAMU 192 ou Polícia Militar 190. A Escuta Aí Brasil não é um canal de emergência.</p></div></div>
+  <section className="wizard-box"><div className="progress"><span style={{ width: `${(step + 1) / total * 100}%` }} /></div>{body}</section></>;
 }

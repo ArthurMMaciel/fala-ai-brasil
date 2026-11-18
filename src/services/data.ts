@@ -56,11 +56,13 @@ export async function loadWorkerComplaintDetail(id: string): Promise<WorkerCompl
 export interface NewComplaintInput {
   companyId: string; category: string; title: string; original: string; shared: string;
   incidentPeriod?: string; recurrence?: string; expectedOutcomes: string[];
+  // ADR-0023: e-mail para o aviso à empresa pré-cadastrada; só vai com a versão compartilhável.
+  noticeContact?: { email: string; possibly_involved: boolean; consent: true } | null;
 }
 
 export async function createWorkerComplaint(input: NewComplaintInput, share: boolean): Promise<AuthResult<string>> {
   const { data, error } = await supabase().rpc("create_complaint", {
-    p: { company_id: input.companyId, category: input.category, title: input.title.trim(), original_content: input.original.trim(), shared_content: share ? input.shared.trim() : null, incident_period: input.incidentPeriod, recurrence: input.recurrence, expected_outcomes: input.expectedOutcomes },
+    p: { company_id: input.companyId, category: input.category, title: input.title.trim(), original_content: input.original.trim(), shared_content: share ? input.shared.trim() : null, incident_period: input.incidentPeriod, recurrence: input.recurrence, expected_outcomes: input.expectedOutcomes, ...(share && input.noticeContact ? { notice_contact: input.noticeContact } : {}) },
     p_share: share,
   });
   return error ? { ok: false, message: rpcError(error, "Não foi possível registrar a manifestação. Tente novamente.") } : { ok: true, value: data as string };

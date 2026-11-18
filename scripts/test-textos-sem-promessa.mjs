@@ -27,6 +27,6 @@ test('assistente de manifestação mostra os canais de emergência e diz que nã
   const wizard = readFileSync('src/portals/complaint-wizard.tsx', 'utf8');
   assert.ok(wizard.includes('Em caso de risco imediato, procure ajuda: CVV 188, SAMU 192 ou Polícia Militar 190. A Escuta Aí Brasil não é um canal de emergência.'), 'frase fixa (B4)');
   assert.ok(wizard.includes('procure agora ajuda: CVV 188 (apoio emocional, 24 horas), SAMU 192 ou Polícia Militar 190. A Escuta Aí Brasil não é canal de emergência e não acompanha casos em tempo real.'), 'aviso da pergunta de risco (B1)');
-  const fixed = wizard.match(/Etapa \{step \+ 1\} de 9[\s\S]{0,200}?Em caso de risco imediato/);
+  const fixed = wizard.match(/Etapa \{step \+ 1\} de \{total\}[\s\S]{0,200}?Em caso de risco imediato/);
   assert.ok(fixed, 'a frase fixa fica no cabeçalho, visível em todas as etapas');
 });
