@@ -38,8 +38,10 @@ const BATCHES = [
   { out: 'lote2', plan: [
     { file: '20261117130000_representante_verificado_gate.sql', after: '20261117150000', guard: VERIFIED_GUARD,
       warn: 'a partir deste passo, só representante verificado vê manifestações e responde; confira antes a fila da Operação.' },
-    // 20261118120000, 20261118130000 e 20261118140000 entram aqui quando forem liberadas para aplicar (pedido do Gestor:
-    // por ora, só a 130000). Ordem prevista: { after: '20261117130000' }, { after: '20261118120000' }, { after: '20261118130000' }.
+    { file: '20261118120000_empresa_pre_cadastrada_estrutura.sql', after: '20261117130000' },
+    { file: '20261118130000_empresa_pre_cadastrada_funcoes.sql', after: '20261118120000' },
+    { file: '20261118140000_reivindicacao_cnpj.sql', after: '20261118130000' },
+    { file: '20261118150000_empresa_contratados.sql', after: '20261118140000' },
   ] },
 ];
 

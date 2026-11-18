@@ -1,5 +1,5 @@
 -- GERADO por supabase/sql-editor/build.mjs a partir de supabase/pending/20261117130000_representante_verificado_gate.sql. Não editar à mão.
--- Passo 01 de 01. SQL Editor de produção: colar o arquivo INTEIRO e rodar UMA vez.
+-- Passo 01 de 05. SQL Editor de produção: colar o arquivo INTEIRO e rodar UMA vez.
 -- Tudo ou nada (begin ... commit). Se aparecer erro, nada foi gravado: rode `rollback;` sozinho e avise o Back.
 -- Depois de rodar: 01_conferir_20261117130000.sql (todas as linhas com ok = true).
 -- AVISO: a partir deste passo, só representante verificado vê manifestações e responde; confira antes a fila da Operação.
