@@ -380,8 +380,8 @@ $$$s0$;
     -- Estado real (contagens): quantos vínculos ficam 'pending' e perdem acesso a manifestações com a troca do gate.
     select count(*) into n from public.company_users where verification_status = 'pending';
     res := res || jsonb_build_object('vínculos reais que ficam pending', n);
-    select count(*) into n from public.company_users where verification_status <> 'pending';
-    if n > 0 then falhas := falhas || jsonb_build_object('vínculo real nasceu fora de pending', n); end if;
+    select count(*) into n from public.company_users where verification_status = 'verified';
+    res := res || jsonb_build_object('vínculos reais já verificados', n);  -- informativo: o responsável verifica antes do passo 01
     
     -- Montagem: trabalhador, empresa (dono + segundo membro, ambos pending) e equipe.
     insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
