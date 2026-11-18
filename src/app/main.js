@@ -16,6 +16,7 @@ import { campaignKindForPlan, campaignKindLabels, campaignStatusLabels, isActive
 import { consumeEmailConfirmation, isAccountServiceConfigured, loadAccount, loadPartnerPhoto, readRedirectError, registerAccount, resendConfirmation, signIn, signOut, uploadPartnerPhoto, watchSession } from "../services/account";
 import { sessionChange, sessionChangeMessages } from "../domain/session-sync";
 import { legalRouteFromHash } from "../domain/legal-docs";
+import { authEntryFromHash, authEntryState } from "../domain/entry-routes";
 import { showToast } from "./toast";
 import { escapeHtml, safeHttpUrl } from "../domain/html-safety";
 import { brazilianStates, isDemoEmail, minPasswordLength, profileLabels, splitStreet, streetTypeLabels, validateRegistration } from "../domain/account-rules";
@@ -491,6 +492,6 @@ function acctResetUi(){v.dispatchEvent?.(new CustomEvent("escuta:reset-portal"))
 function acctLogout(){acctResetUi();signOut().catch(()=>{})}
 watchSession((e,a)=>{const t=sessionChange(e,a,o.user?.id??null);if(t==="ended"){acctResetUi();showToast("info",sessionChangeMessages.ended)}else if(t==="changed"){showToast("info",sessionChangeMessages.changed);setTimeout(()=>window.location.reload(),1500)}});
 async function acctRestore(){const e=readRedirectError();if(e){showToast("error",e);return m("login",{authNotice:null})}const f=await consumeEmailConfirmation();if(f){showToast("success","E-mail confirmado! Entre com sua senha.");return m("login",{authNotice:{email:f}})}try{const a=await loadAccount();if(a){const h=legalRouteFromHash(location.hash);acctApply({},a);h&&m(h)}}catch{}}
-{const h=legalRouteFromHash(location.hash);h&&(o.route=h)}
-window.addEventListener?.("hashchange",()=>{const h=legalRouteFromHash(location.hash);h&&o.route!==h&&m(h)});
+{const h=legalRouteFromHash(location.hash);h&&(o.route=h);const en=authEntryFromHash(location.hash);en&&(Object.assign(o,authEntryState(en),{route:en.mode}),window.history?.replaceState?.(null,"",location.pathname+location.search))}
+window.addEventListener?.("hashchange",()=>{const h=legalRouteFromHash(location.hash);h&&o.route!==h&&m(h);const en=authEntryFromHash(location.hash);en&&(window.history?.replaceState?.(null,"",location.pathname+location.search),m(en.mode,authEntryState(en)))});
 y();acctRestore();acctLoadSponsors();
