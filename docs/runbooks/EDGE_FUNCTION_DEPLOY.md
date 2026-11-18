@@ -57,16 +57,23 @@ Fontes: [limites](https://supabase.com/docs/guides/functions/limits) e [preço](
 
    O `<ref-de-producao>` é o `SUPABASE_PROJECT_REF` do `.env`, um valor público.
 
-5. Deploy, com a opção de JWT definida na revisão:
+5. Configurar a origem permitida (CORS). Não é segredo, mas fica guardada como secret da função. Sem ela, o navegador bloqueia a resposta e o site cai no preenchimento manual:
+
+   ```bash
+   npx supabase secrets set ALLOWED_ORIGINS=https://fala-ai-brasil.vercel.app --project-ref <ref-de-producao>
+   ```
+
+   Se o site ganhar outro domínio, ele entra na mesma variável, separado por vírgula.
+
+6. Deploy, **sem** `--no-verify-jwt`. A documentação atual manda manter `verify_jwt = true` em função usada por usuário logado. A plataforma barra quem não tem login, e a função confere a conta de novo com `auth.getUser` (revisão de 2026-11-18):
 
    ```bash
    npx supabase functions deploy cnpj-lookup --project-ref <ref-de-producao> --use-api
    ```
 
-   - Se a revisão decidir que a função confere o JWT sozinha, acrescentar `--no-verify-jwt`. Isso é provável com as chaves `sb_publishable_` que o front usa.
-   - A opção fica escrita no comando para não depender do que o `config.toml` diz.
-
-6. **Secrets: nenhum.** A ADR-0017 não usa chave de provedor. `SUPABASE_URL` e as chaves do projeto já são injetadas pela plataforma. Não rodar `secrets set`.
+   - A função usa as variáveis `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY`, que a plataforma injeta.
+   - As duas chaves são do formato antigo (legacy). Antes do deploy, confirmar em Settings > API Keys que as chaves antigas continuam ativas. Se estiverem desativadas, a função precisa ler `SUPABASE_SECRET_KEYS` e `SUPABASE_PUBLISHABLE_KEYS` ([secrets padrão](https://supabase.com/docs/guides/functions/secrets)), e o deploy espera essa troca.
+   - Nenhum outro `secrets set`: os provedores não usam chave.
 
 7. Conferir sem login. Esperado: `401`:
 

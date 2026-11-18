@@ -36,8 +36,8 @@ jobs:
           fi
 
   functions-test:
-    # Testes das Edge Functions (ADR-0017). Só testes: sem deploy, sem token, sem secrets.
-    # Sem permissão de rede: os testes simulam o fetch dos provedores.
+    # Edge Functions (ADR-0017): checagem de tipos no Deno e testes Deno, se houver. Sem deploy, sem token, sem secrets.
+    # A lógica da cnpj-lookup também é testada no Node (scripts/test-cnpj-lookup.mjs, dentro do npm test).
     if: github.event_name != 'deployment_status'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -51,8 +51,17 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - if: steps.has.outputs.run == 'true'
-        run: deno test --frozen supabase/functions/
+      - name: Tipos (deno check)
+        if: steps.has.outputs.run == 'true'
+        run: deno check supabase/functions/*/index.ts
+      - name: Testes Deno, sem permissão de rede
+        if: steps.has.outputs.run == 'true'
+        run: |
+          if ls supabase/functions/*/*_test.ts supabase/functions/*/*.test.ts >/dev/null 2>&1; then
+            deno test supabase/functions/
+          else
+            echo "sem testes Deno; a lógica é testada no npm test"
+          fi
 
   production-smoke:
     # A Vercel publica deployment_status no GitHub. Só o deploy de Production concluído com sucesso.
