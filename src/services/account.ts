@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { appRoleFor, authErrorMessage, buildProfilePayload, signUpErrorCode, type CampaignInput, type CampaignKind, type CampaignStatus, type ProfileType, type RegistrationInput } from "../domain/account-rules";
+import { authLinkType, passwordUpdateError, recoveryExpiredMessage, recoveryRequestOutcome } from "../domain/password-recovery";
 
 // ADR-0009: somente a chave pública no navegador; o acesso real é controlado por RLS.
 const url = import.meta.env.VITE_SUPABASE_URL;
@@ -209,8 +210,34 @@ export function readRedirectError(): string | null {
   if (!code) return null;
   history.replaceState(null, "", window.location.pathname + window.location.search);
   return code === "otp_expired"
-    ? "O link de confirmação expirou ou já foi usado. Entre com seu e-mail para receber um novo."
-    : "Não foi possível confirmar sua conta por este link. Tente entrar novamente.";
+    ? "O link expirou ou já foi usado. Entre com seu e-mail para receber um novo ou use \"Esqueci minha senha\"."
+    : "Não foi possível usar este link. Tente entrar novamente.";
+}
+
+// Esqueci minha senha (ADR-0024). O link do e-mail volta com "type=recovery" no hash; lido antes do cliente consumir a URL.
+const arrivedFromRecovery = typeof window !== "undefined" && authLinkType(window.location.hash) === "recovery";
+
+export async function requestPasswordReset(email: string): Promise<"sent" | "rate_limited"> {
+  if (!isAccountServiceConfigured()) return "sent";
+  try {
+    const { error } = await supabase().auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: redirectUrl() });
+    return error ? recoveryRequestOutcome(error.code, error.status) : "sent";
+  } catch {
+    return "sent";
+  }
+}
+
+// Retorno do link de recuperação: mantém a sessão aberta pelo link (necessária para o updateUser) e limpa a URL.
+export async function consumeRecoveryArrival(): Promise<{ state: "ready" } | { state: "expired"; message: string } | null> {
+  if (!arrivedFromRecovery || !isAccountServiceConfigured()) return null;
+  const { data } = await supabase().auth.getSession();
+  history.replaceState(null, "", window.location.pathname + window.location.search);
+  return data.session ? { state: "ready" } : { state: "expired", message: recoveryExpiredMessage };
+}
+
+export async function updatePassword(password: string): Promise<AuthResult<null>> {
+  const { error } = await supabase().auth.updateUser({ password });
+  return error ? { ok: false, message: passwordUpdateError(error.code ?? (error.name === "AuthSessionMissingError" ? "no_session" : null)) } : { ok: true, value: null };
 }
 
 export interface Campaign {

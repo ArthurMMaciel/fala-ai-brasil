@@ -56,7 +56,7 @@ function app() {
     // Cadastro real (ADR-0009) fica desligado no host de teste; contas demo seguem locais.
     isAccountServiceConfigured: () => false, loadAccount: async () => null, readRedirectError: () => null, consumeEmailConfirmation: async () => null, passwordRulesMarkup: () => "",
     registerAccount: async () => ({ ok: false, message: 'indisponível' }), resendConfirmation: async () => ({ ok: true, value: null }),
-    signIn: async () => ({ ok: false, message: 'indisponível' }), signOut: async () => {}, watchSession: () => () => {}, sessionChange: () => null, sessionChangeMessages: {}, legalRouteFromHash: () => null, authEntryFromHash: () => null, authEntryState: () => ({}), location: { hash: '', pathname: '/', search: '' }, loadPartnerPhoto: async () => ({ url: null }), uploadPartnerPhoto: async () => ({ ok: false, message: 'indisponível' }),
+    signIn: async () => ({ ok: false, message: 'indisponível' }), signOut: async () => {}, watchSession: () => () => {}, sessionChange: () => null, sessionChangeMessages: {}, legalRouteFromHash: () => null, authEntryFromHash: () => null, bindPasswordRecovery() {}, forgotPasswordMarkup: notice => `<main data-screen="forgot">${notice?.recoverySent ? "enviado" : "pedido"}</main>`, resetPasswordMarkup: () => '<main data-screen="reset"></main>', consumeRecoveryArrival: async () => null, recoverySavedMessage: '', authEntryState: () => ({}), location: { hash: '', pathname: '/', search: '' }, loadPartnerPhoto: async () => ({ url: null }), uploadPartnerPhoto: async () => ({ ok: false, message: 'indisponível' }),
     isDemoEmail: email => email.endsWith('@escutaai.demo'), listPublicSponsors: async () => [], minPasswordLength: 8, validateRegistration: () => null,
     escapeHtml: htmlSafety.escapeHtml, safeHttpUrl: htmlSafety.safeHttpUrl,
     brazilianStates: ['SP'], showToast() {}, createCampaign: async () => ({ ok: false, message: 'indisponível' }), deleteCampaignDraft: async () => ({ ok: true }), listCampaigns: async () => [], submitCampaign: async () => ({ ok: true }), campaignKindForPlan: () => null, campaignKindLabels: {}, campaignStatusLabels: {}, isActiveCampaign: () => false, validateCampaign: () => null, profileLabels: {}, splitStreet: () => null, streetTypeLabels: { street: 'Rua' },
@@ -325,4 +325,17 @@ test('termos e privacidade abrem fora do protótipo, com aviso de revisão jurí
   }
   assert.ok(experience.experienceRoutes.includes('terms') && experience.experienceRoutes.includes('privacy'));
   assert.match(renderToStaticMarkup(React.createElement(ui.EditorialFooter, { onRoute() {} })), /Termos de uso<\/button><button>Privacidade/);
+});
+
+test('login tem "Esqueci minha senha", que abre a tela de pedido e depois a resposta neutra', () => {
+  const screen = app();
+  screen.api.route('login', { authAudience: 'worker' });
+  assert.match(screen.html, /data-action="forgot-password">Esqueci minha senha</);
+  screen.button('forgot-password').click();
+  assert.equal(screen.api.state.route, 'forgot-password');
+  assert.match(screen.html, /data-screen="forgot">pedido/);
+  screen.api.route('forgot-password', { authNotice: { email: 'teste@example.com', recoverySent: true } });
+  assert.match(screen.html, /data-screen="forgot">enviado/);
+  screen.api.route('reset-password', { authNotice: null });
+  assert.match(screen.html, /data-screen="reset"/);
 });

@@ -3,8 +3,8 @@ import { isValidPhone, onlyDigits, validateAddress, type AddressInput } from "./
 // "Meu perfil" do trabalhador e da empresa (ADR-0014). Regras puras: validação com as mensagens do cadastro
 // e montagem do payload parcial das RPCs update_worker_profile / update_company_profile.
 
-/** Troca do e-mail de login. Desligada até o responsável confirmar a dupla confirmação no projeto remoto (ADR-0014, C5). */
-export const emailChangeEnabled = false;
+/** Troca do e-mail de login. Liberada pelo responsável em 2026-11-18 (ADR-0024): "deixe o usuário trocar qualquer dado, inclusive email, só não o CPF". */
+export const emailChangeEnabled = true;
 
 /** Texto exibido junto de CPF, CNPJ e razão social, que só a equipe altera (ADR-0014, C1 e C4). */
 export const lockedDocumentNote = "Para alterar, fale com a equipe.";

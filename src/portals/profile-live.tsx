@@ -41,15 +41,15 @@ export function LoginEmail({ current }: { current: string }) {
   setBusy(true); const result = await requestLoginEmailChange(email); setBusy(false);
   if (!result.ok) return showToast('error', result.message);
   setSent(email.trim().toLowerCase()); setEmail('');
-  showToast('success', 'Enviamos um link para o e-mail atual e outro para o novo. A troca vale depois das duas confirmações.');
+  showToast('success', 'Enviamos um link de confirmação. A troca só vale depois de confirmar.');
  }
  return <section className="commercial-panel"><h2>E-mail de acesso</h2>
   <dl className="company-facts"><div><dt>E-mail atual</dt><dd>{current || '—'}</dd></div></dl>
   {!emailChangeEnabled ? <p className="commercial-callout">A troca do e-mail de acesso ainda não está disponível. Se precisar trocar agora, fale com a equipe.</p> :
    <form className="partner-profile-form profile-email-form" onSubmit={submit}>
     <label className="field">Novo e-mail<input type="email" autoComplete="email" value={email} maxLength={254} required onChange={event => setEmail(event.target.value)} /></label>
-    <p className="muted small">Por segurança, a troca só vale depois de você confirmar pelo link enviado ao e-mail atual e pelo link enviado ao novo.</p>
-    {sent && <p className="commercial-callout" role="status">Confirmação pendente para {sent}.</p>}
+    <p className="muted small">Enviamos um link de confirmação. A troca só vale depois de confirmar. Por segurança, o link pode chegar ao e-mail atual e ao novo; se chegar aos dois, confirme nos dois. Até lá, você continua entrando com o e-mail atual.</p>
+    {sent && <p className="commercial-callout" role="status">Confirmação pendente para {sent}. Confira também a caixa de spam.</p>}
     <button className="btn" type="submit" disabled={busy}>{busy ? 'Enviando…' : 'Trocar e-mail'}</button>
    </form>}
  </section>;

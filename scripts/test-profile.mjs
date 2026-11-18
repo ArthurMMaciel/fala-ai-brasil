@@ -67,12 +67,12 @@ test('CPF/CNPJ/razão social aparecem só para leitura, com o caminho para a equ
   assert.match(html, /aria-describedby="([^"]+)"[\s\S]*id="\1"/, 'aviso ligado ao bloco por aria-describedby');
 });
 
-test('troca do e-mail de acesso fica desligada até a confirmação do responsável', () => {
-  assert.equal(profile.emailChangeEnabled, false);
+test('troca do e-mail de acesso liberada (ADR-0024), com aviso neutro sobre a confirmação', () => {
+  assert.equal(profile.emailChangeEnabled, true);
   const html = renderToStaticMarkup(React.createElement(ui.LoginEmail, { current: 'pessoa@example.com' }));
   assert.match(html, /pessoa@example\.com/);
-  assert.match(html, /ainda não está disponível/);
-  assert.doesNotMatch(html, /<form|type="email"/);
+  assert.match(html, /type="email"/);
+  assert.match(html, /A troca só vale depois de confirmar/);
 });
 
 test('endereço tem rótulo em todos os campos e opcionais marcados', () => {
