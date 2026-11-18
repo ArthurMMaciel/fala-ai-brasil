@@ -48,7 +48,7 @@ test('abas da fila de avisos', () => {
 
 test('textos do aviso: em revisão jurídica, com a frase da ADR-0023 e sem link no e-mail', () => {
   assert.equal(notice.noticeTextsInReview, true);
-  assert.ok(notice.noticeTexts.consent.includes('a empresa receberá um aviso de que existe um relato na plataforma, sem o conteúdo, sem o meu nome e sem a data'));
+  assert.ok(notice.noticeTexts.consent.includes('Se a empresa ainda não estiver na plataforma, ela receberá um aviso de que existe um relato, sem o conteúdo, sem o seu nome e sem a data.'));
   assert.doesNotMatch(notice.noticeTexts.emailBody, /https?:\/\/|www\.|\.com\b|\.br\b/i);
   const wizard = readFileSync('src/portals/complaint-wizard.tsx', 'utf8');
   assert.match(wizard, /noticeTextsInReview && <p className="legal-review-banner">Texto em revisão jurídica\.<\/p>/);
@@ -57,11 +57,16 @@ test('textos do aviso: em revisão jurídica, com a frase da ADR-0023 e sem link
   assert.match(ops, /noticeTextsInReview && <p className="legal-review-banner">Texto em revisão jurídica\.<\/p>/);
 });
 
-test('serviço: busca e pré-cadastro tolerantes a RPC e função ausentes; contato só vai com a versão compartilhável', () => {
+test('serviço (contrato final): busca tolerante, sem preregister_*, empresa por company_id ou company_cnpj e contato só com a versão compartilhável', () => {
   const service = readFileSync('src/services/notices.ts', 'utf8');
   assert.match(service, /PGRST202/);
   assert.match(service, /functions\.invoke\('cnpj-lookup'/);
   assert.match(service, /catch \{\s*return \{ kind: 'manual' \};/);
   const data = readFileSync('src/services/data.ts', 'utf8');
   assert.match(data, /share && input\.noticeContact \? \{ notice_contact: input\.noticeContact \}/);
+  const wizard = readFileSync('src/portals/complaint-wizard.tsx', 'utf8');
+  assert.doesNotMatch(service + wizard, /rpc\('preregister_|preregisterCompany/);
+  assert.match(data, /if \(input\.companyId\) return \{ company_id: input\.companyId \};/);
+  assert.match(data, /company_cnpj: normalizeCnpj\(input\.companyCnpj/);
+  assert.match(wizard, /companyManual: pending\?\.source === 'manual'/);
 });

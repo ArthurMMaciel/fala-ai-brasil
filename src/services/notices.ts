@@ -27,14 +27,8 @@ export async function lookupCnpj(cnpj: string): Promise<LookupOutcome> {
   }
 }
 
-export async function preregisterCompany(cnpj: string, manual: { name: string; city: string; state: string } | null): Promise<AuthResult<string>> {
-  const db = supabase();
-  const { data, error } = manual
-    ? await db.rpc('preregister_company_manual', { p_cnpj: normalizeCnpj(cnpj), p_name: manual.name.trim(), p_city: manual.city.trim(), p_state: manual.state.trim().toUpperCase() })
-    : await db.rpc('preregister_company', { p_cnpj: normalizeCnpj(cnpj) });
-  if (!error) return { ok: true, value: String(data) };
-  return { ok: false, message: missingFunction(error) ? 'O cadastro de empresa pelo CNPJ ainda não está ativo. Tente mais tarde.' : rpcError(error, 'Não foi possível registrar a empresa. Tente novamente.') };
-}
+// Contrato final (ADR-0023, "Contrato para o Front"): a tela não chama preregister_*. A empresa fora da base vai no
+// create_complaint (company_cnpj e, sem resposta found da função, company_manual), que a cria na mesma transação.
 
 // Operação: empresas fora do cadastro
 export interface PendingCompany {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createWorkerComplaint, type DirectoryCompany } from '../services/data';
-import { findCompanyByCnpj, lookupCnpj, preregisterCompany } from '../services/notices';
+import { findCompanyByCnpj, lookupCnpj } from '../services/notices';
 import { showToast } from '../app/toast';
 import { brazilianStates, isValidCnpj, isValidPhone, maskCnpj } from '../domain/account-rules';
 import { involvementLabels, noticeContactPayload, noticeTexts, noticeTextsInReview, validateManualCompany, validateNoticeContact, type Involvement, type NoticeContactInput } from '../domain/company-notice';
@@ -46,7 +46,7 @@ function OptionGrid({ label, options, value, onSelect }: { label: string; option
 }
 
 interface ChosenCompany { id: string; name: string; city: string; state: string }
-// Empresa fora da base (ADR-0023): só é gravada no envio da manifestação ("grava quando relatar").
+// Empresa não achada entre as cadastradas (ADR-0023): vai por CNPJ no create_complaint, que a cria no envio ("grava quando relatar").
 interface PendingCompany { cnpj: string; name: string; city: string; state: string; source: 'lookup' | 'manual' }
 type CompanyPhase = 'input' | 'searching' | 'found' | 'lookup' | 'manual' | 'legacy';
 
@@ -87,13 +87,13 @@ function CompanyStep({ companies, onChoose, onPending, onCancel }: { companies: 
  if (phase === 'legacy') body = <LegacyCompanySearch companies={companies} onChoose={onChoose} />;
  else if ((phase === 'found' || phase === 'lookup') && found) body = <><div className="worker-company-list"><article className="worker-company-row"><div><strong>{found.name}</strong><small>{found.city}/{found.state} · CNPJ {maskCnpj(cnpj)}</small></div>
    <button className="btn primary" onClick={() => phase === 'found' ? onChoose(found) : onPending({ cnpj, name: found.name, city: found.city, state: found.state, source: 'lookup' })}>É sobre esta empresa</button></article></div>
-  {phase === 'lookup' && <p className="muted small">Esta empresa ainda não usa a Escuta Aí Brasil. Ela só passa a constar na plataforma quando você enviar a manifestação.</p>}
+  {phase === 'lookup' && <p className="muted small">Os dados desta empresa só são usados quando você enviar a manifestação.</p>}
   <div className="nav-actions"><button className="btn" type="button" onClick={reset}>Buscar outro CNPJ</button></div></>;
  else if (phase === 'manual') body = <><p className="muted">Não encontramos os dados deste CNPJ automaticamente. Preencha o nome e a cidade da empresa; a equipe confere na Receita Federal antes de qualquer aviso.</p>
   <label className="field">Nome da empresa<input value={manual.name} maxLength={160} onChange={event => { setManual({ ...manual, name: event.target.value }); setError(''); }} placeholder="Razão social ou nome conhecido" /></label>
   <div className="grid two"><label className="field">Município<input value={manual.city} maxLength={80} onChange={event => { setManual({ ...manual, city: event.target.value }); setError(''); }} /></label>
    <label className="field">UF<select value={manual.state} onChange={event => { setManual({ ...manual, state: event.target.value }); setError(''); }}><option value="">Selecione</option>{brazilianStates.map(uf => <option key={uf} value={uf}>{uf}</option>)}</select></label></div>
-  <p className="muted small">Esta empresa só passa a constar na plataforma quando você enviar a manifestação.</p>
+  <p className="muted small">Os dados desta empresa só são usados quando você enviar a manifestação.</p>
   {errorLine}<div className="nav-actions"><button className="btn" type="button" onClick={reset}>Buscar outro CNPJ</button><button className="btn primary" type="button" onClick={continueManual}>Continuar</button></div></>;
  else body = <form onSubmit={search} noValidate><label className="field worker-company-search">CNPJ da empresa<input value={cnpj} inputMode="text" maxLength={18} autoFocus placeholder="00.000.000/0000-00" onChange={event => { setCnpj(maskCnpj(event.target.value)); setError(''); }} /></label>
   <p className="muted small">Você encontra o CNPJ no contracheque, no contrato ou no site da empresa.</p>
@@ -107,7 +107,6 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
  const initial = companies.find(item => item.id === initialCompanyId);
  const [chosen, setChosen] = useState<ChosenCompany | null>(initial ? { id: initial.id, name: initial.name, city: initial.city, state: initial.state } : null);
  const [pending, setPending] = useState<PendingCompany | null>(null);
- const [createdCompanyId, setCreatedCompanyId] = useState('');
  const [step, setStep] = useState(0);
  const [answers, setAnswers] = useState<Record<string, Answer>>({});
  const [draft, setDraft] = useState({ category: '', title: '', original: '', incidentPeriod: '', recurrence: '', shared: '', expectedOutcomes: [] as string[] });
@@ -119,7 +118,7 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
 
  if (!chosen && !pending) return <CompanyStep companies={companies} onCancel={onCancel} onChoose={company => { setChosen(company); setStep(0); }} onPending={company => { setPending(company); setStep(0); }} />;
  const companyName = chosen?.name ?? pending?.name ?? '';
- // O aviso só existe para empresa fora da base, achada neste fluxo (a busca não revela se uma existente é pré-cadastrada).
+ // O e-mail do aviso é oferecido para toda empresa não achada entre as cadastradas, inclusive uma pré-cadastrada que já existe.
  const keys = [...contextSteps.map(() => 'context'), 'theme', 'report', ...(pending ? ['notice'] : []), 'expect', 'review'];
  const key = keys[step];
  const titles: Record<string, string> = { theme: 'Tema', report: 'Relato', notice: 'Aviso à empresa', expect: 'O que você espera', review: 'Revisão protegida' };
@@ -143,31 +142,20 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
   if (key === 'expect' && !draft.expectedOutcomes.length) return setError('Escolha pelo menos uma expectativa.');
   go(step + 1);
  }
- async function companyIdForSubmit(): Promise<string | null> {
-  if (chosen) return chosen.id;
-  if (createdCompanyId) return createdCompanyId;
-  if (!pending) return null;
-  const manual = { name: pending.name, city: pending.city, state: pending.state };
-  let result = await preregisterCompany(pending.cnpj, pending.source === 'manual' ? manual : null);
-  // Cache vencido ou sem o CNPJ: cai no pré-cadastro manual com os dados já mostrados (a equipe confere).
-  if (!result.ok && pending.source === 'lookup') result = await preregisterCompany(pending.cnpj, manual);
-  if (!result.ok) { showToast('error', result.message); return null; }
-  setCreatedCompanyId(result.value);
-  return result.value;
- }
  async function submit(share: boolean) {
   if (share && draft.shared.trim().length < 10) return setError('Revise a versão que a empresa vai ler (pelo menos 10 caracteres).');
   setBusy(true);
-  const companyId = await companyIdForSubmit();
-  if (!companyId) return setBusy(false);
-  const result = await createWorkerComplaint({ companyId, category: draft.category, title: draft.title, original: draft.original, shared: share ? draft.shared : '', incidentPeriod: draft.incidentPeriod.slice(0, 80), recurrence: draft.recurrence.slice(0, 80), expectedOutcomes: draft.expectedOutcomes, noticeContact: pending ? noticeContactPayload(notice) : null }, share);
+  // Contrato final da ADR-0023: cadastrada vai por company_id; fora da base, por CNPJ, e o create_complaint cria a empresa.
+  // company_manual vai sempre que a cnpj-lookup não respondeu found.
+  const company = chosen ? { companyId: chosen.id } : { companyId: '', companyCnpj: pending?.cnpj ?? '', companyManual: pending?.source === 'manual' ? { name: pending.name, city: pending.city, state: pending.state } : null };
+  const result = await createWorkerComplaint({ ...company, category: draft.category, title: draft.title, original: draft.original, shared: share ? draft.shared : '', incidentPeriod: draft.incidentPeriod.slice(0, 80), recurrence: draft.recurrence.slice(0, 80), expectedOutcomes: draft.expectedOutcomes, noticeContact: pending ? noticeContactPayload(notice) : null }, share);
   setBusy(false);
   if (!result.ok) return showToast('error', result.message);
   showToast('success', share ? 'Manifestação registrada. A equipe revisa a versão antes de liberar à empresa.' : 'Manifestação guardada. Você pode solicitar a revisão depois.'); onCreated();
  }
 
  const errorLine = error && <p className="field-error" role="alert">{error}</p>;
- const back = <button className="btn" type="button" onClick={() => { if (step > 0) return go(step - 1); setChosen(null); setPending(null); setCreatedCompanyId(''); }}>Voltar</button>;
+ const back = <button className="btn" type="button" onClick={() => { if (step > 0) return go(step - 1); setChosen(null); setPending(null); }}>Voltar</button>;
  const involved = notice.involvement === 'yes' || notice.involvement === 'unknown';
  let body;
  if (key === 'context') {

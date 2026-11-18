@@ -7,7 +7,7 @@ export const noticeTexts = {
   field: 'E-mail da empresa para o aviso (opcional)',
   help: 'Prefira um canal institucional, como RH, ouvidoria ou o contato do site. Não indique o e-mail pessoal de alguém.',
   question: 'A pessoa que lê esse e-mail pode estar envolvida no que você relata?',
-  consent: 'Concordo que a empresa receberá um aviso de que existe um relato na plataforma, sem o conteúdo, sem o meu nome e sem a data. A equipe da Escuta Aí Brasil confere o e-mail antes e pode decidir não enviar o aviso.',
+  consent: 'Concordo. Se a empresa ainda não estiver na plataforma, ela receberá um aviso de que existe um relato, sem o conteúdo, sem o seu nome e sem a data. A equipe da Escuta Aí Brasil confere o e-mail antes e pode decidir não enviar o aviso.',
   involvedWarning: 'Com essa resposta, o aviso não será enviado a esse e-mail.',
   notSharedWarning: 'O e-mail para o aviso só é guardado quando você solicita a revisão. Ao guardar sem compartilhar, ele não é enviado.',
   // Texto que a equipe copia e envia da conta da plataforma. Sem link clicável (ADR-0023, mitigação do Gmail).

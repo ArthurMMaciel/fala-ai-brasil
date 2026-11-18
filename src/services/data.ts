@@ -1,6 +1,6 @@
 import { isAccountServiceConfigured, supabase, type AuthResult } from "./account";
 import type { VerificationStatus } from "../domain/representatives";
-import { onlyDigits, type CampaignKind, type ContentInput } from "../domain/account-rules";
+import { normalizeCnpj, onlyDigits, type CampaignKind, type ContentInput } from "../domain/account-rules";
 import { partnerMediaBucket } from "./account";
 import { compareTimeline } from "../domain/complaint-status";
 
@@ -56,13 +56,22 @@ export async function loadWorkerComplaintDetail(id: string): Promise<WorkerCompl
 export interface NewComplaintInput {
   companyId: string; category: string; title: string; original: string; shared: string;
   incidentPeriod?: string; recurrence?: string; expectedOutcomes: string[];
-  // ADR-0023: e-mail para o aviso à empresa pré-cadastrada; só vai com a versão compartilhável.
+  // ADR-0023 (contrato final): empresa fora da base vai por CNPJ; company_manual quando a cnpj-lookup não respondeu found.
+  companyCnpj?: string; companyManual?: { name: string; city: string; state: string } | null;
+  // E-mail para o aviso; só vai com a versão compartilhável.
   noticeContact?: { email: string; possibly_involved: boolean; consent: true } | null;
+}
+
+// company_id (cadastrada) OU company_cnpj (+ company_manual), nunca os dois.
+export function complaintCompanyPayload(input: Pick<NewComplaintInput, "companyId" | "companyCnpj" | "companyManual">): Record<string, unknown> {
+  if (input.companyId) return { company_id: input.companyId };
+  const manual = input.companyManual ? { company_manual: { name: input.companyManual.name.trim(), city: input.companyManual.city.trim(), state: input.companyManual.state.trim().toUpperCase() } } : {};
+  return { company_cnpj: normalizeCnpj(input.companyCnpj ?? ""), ...manual };
 }
 
 export async function createWorkerComplaint(input: NewComplaintInput, share: boolean): Promise<AuthResult<string>> {
   const { data, error } = await supabase().rpc("create_complaint", {
-    p: { company_id: input.companyId, category: input.category, title: input.title.trim(), original_content: input.original.trim(), shared_content: share ? input.shared.trim() : null, incident_period: input.incidentPeriod, recurrence: input.recurrence, expected_outcomes: input.expectedOutcomes, ...(share && input.noticeContact ? { notice_contact: input.noticeContact } : {}) },
+    p: { ...complaintCompanyPayload(input), category: input.category, title: input.title.trim(), original_content: input.original.trim(), shared_content: share ? input.shared.trim() : null, incident_period: input.incidentPeriod, recurrence: input.recurrence, expected_outcomes: input.expectedOutcomes, ...(share && input.noticeContact ? { notice_contact: input.noticeContact } : {}) },
     p_share: share,
   });
   return error ? { ok: false, message: rpcError(error, "Não foi possível registrar a manifestação. Tente novamente.") } : { ok: true, value: data as string };
