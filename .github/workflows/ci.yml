@@ -38,6 +38,8 @@ jobs:
   functions-test:
     # Edge Functions (ADR-0017): checagem de tipos no Deno e testes Deno, se houver. Sem deploy, sem token, sem secrets.
     # A lógica da cnpj-lookup também é testada no Node (scripts/test-cnpj-lookup.mjs, dentro do npm test).
+    # --node-modules-dir=none: o package.json da raiz (front) põe o Deno no modo manual, que exige node_modules;
+    # none resolve os npm: da função pelo cache global do Deno, como no Edge Runtime.
     if: github.event_name != 'deployment_status'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -53,12 +55,12 @@ jobs:
           deno-version: v2.x
       - name: Tipos (deno check)
         if: steps.has.outputs.run == 'true'
-        run: deno check supabase/functions/*/index.ts
+        run: deno check --node-modules-dir=none supabase/functions/*/index.ts
       - name: Testes Deno, sem permissão de rede
         if: steps.has.outputs.run == 'true'
         run: |
           if ls supabase/functions/*/*_test.ts supabase/functions/*/*.test.ts >/dev/null 2>&1; then
-            deno test supabase/functions/
+            deno test --node-modules-dir=none supabase/functions/
           else
             echo "sem testes Deno; a lógica é testada no npm test"
           fi

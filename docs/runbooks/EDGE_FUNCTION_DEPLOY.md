@@ -5,6 +5,21 @@
 - O token desta máquina de desenvolvimento é de outra conta. Nenhum token nem segredo vai para a CI.
 - Relacionadas: ADR-0017, TASK-0038, [ENVIRONMENTS](../devops/ENVIRONMENTS.md), [PILOT_SUSPENSION](PILOT_SUSPENSION.md).
 
+## Checklist de publicação (opcional, preparado para quinta, 2026-11-19)
+
+A função é opcional no fluxo 1, porque o preenchimento manual cobre a falta dela. Só publicar se **todos** os itens abaixo estiverem marcados. Se faltar um, não publicar: o site segue pelo manual.
+
+- [ ] **CI verde na `main`**, incluindo o job `functions-test` (`deno check`). Em 2026-11-18, ele falhou no 12a67df; a correção espera push.
+- [ ] **Migrations 20261118120000 e 20261118130000 aplicadas e conferidas em produção.** A função chama `cnpj_quota_take`, `cnpj_cache_get` e `cnpj_cache_put`, que só existem a partir da 120000. Sem elas, toda busca responde "manual". Em 2026-11-18, as duas estavam em `supabase/pending`, fora do lote 2, que tinha só a 130000.
+- [ ] **Front publicado que chama a função** e usa `company_cnpj` no `create_complaint`, sempre caindo no manual se a resposta não for 200. Sem esse front, a função fica publicada sem uso.
+- [ ] **Revisão do DevOps** do commit que vai ser publicado (`git log -1` igual ao SHA aprovado).
+- [ ] **Chaves:** a função lê `SUPABASE_PUBLISHABLE_KEYS` e `SUPABASE_SECRET_KEYS`, com as chaves antigas só como reserva. Nada a configurar.
+- [ ] **CORS:** `ALLOWED_ORIGINS` definido (passo 5).
+
+Depois do deploy, na ordem: o passo 7 (401 sem login), o passo 8 (busca com login e logs sem CNPJ), o passo 10 (`logout`) e, num push liberado, o passo 11 (`CNPJ_LOOKUP_REQUIRED: "true"`). Para desfazer, ver "Rollback". O deploy leva poucos minutos, e o rollback (`functions delete`) é imediato.
+
+Se o deploy pelo servidor (`--use-api`) reclamar de `node_modules` por causa do `package.json` da raiz, como aconteceu no `deno check` da CI, o deploy para. O Back então acrescenta um `deno.json` na pasta da função com `"nodeModulesDir": "none"`. Se isso vai acontecer no empacotamento do servidor é "a confirmar".
+
 ## Fatos da plataforma (plano Free, conferidos em 2026-11-18)
 
 Fontes: [limites](https://supabase.com/docs/guides/functions/limits) e [preço](https://supabase.com/docs/guides/functions/pricing).
