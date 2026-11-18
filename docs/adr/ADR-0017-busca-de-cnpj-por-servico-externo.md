@@ -1,6 +1,6 @@
 # ADR-0017 — Busca de CNPJ por serviço externo, via Edge Function
 
-- Estado: **Proposta**, aguardando aprovação do responsável. Nenhuma migration nem função foi criada.
+- Estado: **Aceita**, pelo responsável em 2026-11-17, junto com a ADR-0023 (repassado pelo Gestor): "Aprovo a ADR-0023 com as recomendações, menos com a parte da busca de CNPJ, basta aceitarmos somente CNPJs nesse primeiro momento e bater numa API que busca as empresas pelo CNPJ (caso esse CNPJ não seja encontrado no nosso banco), ai trazemos os dados pra dentro de casa...Se virar manifestação é show porque a empresa recebe o email que existe uma manifestação, ve mais e vira cliente, aí quando buscar o CNPJ novamente ele já existe no nosso banco." Pendente à parte: decisão 1 (provedores sem termos de uso). Ajustes da aceitação na seção "Aceitação de 2026-11-17". Nenhuma migration nem função foi criada.
 - Data: 2026-11-09
 - Tarefa: [TASK-0038](../tasks/TASK-0038-busca-de-cnpj-por-servico-externo.md)
 - Relacionadas: ADR-0012 (D9 a D11: empresa pré-cadastrada), ADR-0006 (ViaCEP), ADR-0014 (validação de CNPJ), TASK-0007 (base legal e retenção), TASK-0011 (representante verificado), parecer de plataforma do DevOps (Revisão 4, seção R4.1; Revisão 2, seção R2.5)
@@ -166,6 +166,18 @@ Desligar a função: o front passa ao preenchimento manual, que já é o caminho
 - **Base própria da Receita**, completa ou filtrada (parecer, R2.5, opções A e B): não cabe no Free, exige carga mensal e traz dados de pessoas físicas sem finalidade.
 - **CNPJ.ws:** limite de 3 por minuto, restrição de uso e CPF de sócio sem máscara.
 - **Front enviando os dados da empresa** a `preregister_company(p jsonb)`: permite forjar razão social e origem (Problema 3).
+
+## Aceitação de 2026-11-17
+
+- **Busca só por CNPJ, primeiro na base própria.** Ordem: `companies`, depois o cache, depois o provedor. A busca por nome não existe.
+- **"Trazemos os dados pra dentro de casa".** Isso muda a D6: o cache deixa de ser apagado aos 30 dias e passa a ser a base própria de dados públicos de pessoa jurídica. Depois de 30 dias, o registro é renovado na próxima consulta, e não apagado. Valem a lista branca da D4 e a regra da D5 (pessoa física fica só com a marca, sem nome). Interpretação do Back: a empresa entra em `companies` (pré-cadastrada) quando o trabalhador a escolhe para a manifestação, e não a cada consulta. Assim, uma busca não cria empresa, e a base de empresas não vira lista do que foi pesquisado. Se o responsável quiser criar em `companies` já na busca, é uma troca simples, a registrar aqui.
+- **Preenchimento manual (D8, `pending_check`) é o plano B** para quando a API falha, não encontra o CNPJ ou o CNPJ é de pessoa física. A manifestação é aceita; no caso de pessoa física ou MEI, o aviso à empresa é recusado (ADR-0023).
+- **Decisões abaixo:**
+  - 2 decidida como acima;
+  - 3 e 4 seguem a recomendação técnica até que o responsável diga o contrário: limites de 10 por minuto e 50 por dia, e cadastro de empresa sem a busca;
+  - 5 fica com a ordem da ADR-0023;
+  - 1 continua aberta: a frase aprova usar uma API de CNPJ, mas não diz qual nem trata da falta de termos de uso.
+- **Finalidade comercial.** A frase cita a conversão da empresa em cliente. A base legal e o aviso de privacidade (D4 e "Transparência") precisam cobrir esse uso. Fica com o advogado (TASK-0007).
 
 ## Decisões que dependem do responsável
 
