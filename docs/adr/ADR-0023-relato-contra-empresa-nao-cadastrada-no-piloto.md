@@ -260,4 +260,6 @@ Formato igual ao do lote atual: scripts `aplicar` e `conferir` para o SQL Editor
 6. **Risco residual aceito** (o aviso pode chegar à pessoa envolvida).
 7. **Remetente (2026-11-18): "mesma caixa, mesma conta".** O aviso manual sai da conta Gmail do SMTP do Auth. Risco aceito: limite e bloqueio compartilhados com o cadastro (ver "Remetente no piloto").
 
-Em aberto: os provedores sem termos de uso (ADR-0017, decisão 1) e a finalidade comercial do aviso ("vira cliente"), que o advogado precisa cobrir na base legal e no texto.
+8. **Provedores e gravação (2026-11-18): "Aceito as duas, e grava quando relatar."** Minha Receita, com a BrasilAPI de reserva, fica aceita sem termos de uso. A empresa entra em `companies` só quando o trabalhador a escolhe para relatar (`preregister_company`), e não a cada busca; a busca grava só no cache.
+
+Em aberto: a finalidade comercial do aviso ("vira cliente"), que o advogado precisa cobrir na base legal e no texto.
