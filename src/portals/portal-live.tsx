@@ -193,13 +193,15 @@ function PartnerProfileEditor({ partnerId, profile, onSaved }: { partnerId: stri
  const [form, setForm] = useState({ displayName: profile.displayName, specialty: profile.specialty, description: profile.description ?? '', contactEmail: profile.contactEmail ?? '', contactPhone: profile.contactPhone ? formatPhone(profile.contactPhone) : '' });
  const [photo, setPhoto] = useState<string | null | undefined>(undefined);
  const [busy, setBusy] = useState(false);
+ // Contato só aparece quando o banco já tem as colunas (migration 20261118150000); senão, o perfil segue como antes.
+ const hasContact = partnerContactEnabled && profile.contactEmail !== undefined;
  useEffect(() => { let active = true; loadPartnerPhoto(partnerId).then(value => { if (active) setPhoto(value.url); }); return () => { active = false; }; }, [partnerId]);
  async function save(event: React.FormEvent) {
   event.preventDefault(); setBusy(true);
-  const result = await updatePartnerProfile(partnerId, form); setBusy(false);
+  const result = await updatePartnerProfile(partnerId, hasContact ? form : { displayName: form.displayName, specialty: form.specialty, description: form.description }); setBusy(false);
   if (!result.ok) return showToast('error', result.message);
   showToast('success', 'Perfil atualizado. Empresas já veem a nova versão.');
-  onSaved({ ...profile, displayName: form.displayName.trim(), specialty: form.specialty.trim(), description: form.description.trim() || null, ...(partnerContactEnabled ? { contactEmail: form.contactEmail.trim().toLowerCase(), contactPhone: form.contactPhone } : {}) });
+  onSaved({ ...profile, displayName: form.displayName.trim(), specialty: form.specialty.trim(), description: form.description.trim() || null, ...(hasContact ? { contactEmail: form.contactEmail.trim().toLowerCase(), contactPhone: form.contactPhone } : {}) });
  }
  async function upload(file: File | undefined) {
   if (!file) return;
@@ -212,9 +214,9 @@ function PartnerProfileEditor({ partnerId, profile, onSaved }: { partnerId: stri
    <label className="field">Nome profissional<input value={form.displayName} maxLength={160} required onChange={event => setForm({ ...form, displayName: event.target.value })} /></label>
    <label className="field">Especialidade<input value={form.specialty} maxLength={120} required onChange={event => setForm({ ...form, specialty: event.target.value })} /></label>
    <label className="field">Descrição<textarea rows={6} maxLength={2000} value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} /><small className="muted">{form.description.length}/2000</small></label>
-   {partnerContactEnabled && <div className="grid two"><label className="field">E-mail de contato<input type="email" autoComplete="email" value={form.contactEmail} maxLength={254} required onChange={event => setForm({ ...form, contactEmail: event.target.value })} /></label>
+   {hasContact && <div className="grid two"><label className="field">E-mail de contato<input type="email" autoComplete="email" value={form.contactEmail} maxLength={254} required onChange={event => setForm({ ...form, contactEmail: event.target.value })} /></label>
     <label className="field">Telefone de contato<input type="tel" inputMode="tel" autoComplete="tel-national" placeholder="(00) 00000-0000" value={form.contactPhone} maxLength={15} required onChange={event => setForm({ ...form, contactPhone: maskPhone(event.target.value) })} /></label></div>}
-   <p className="muted small">Cidade: {profile.city}/{profile.state}. Endereço e documento não aparecem para empresas.{partnerContactEnabled ? ' O e-mail e o telefone de contato aparecem para as empresas que pedirem contato e para as que você marcar como cliente.' : ''}</p>
+   <p className="muted small">Cidade: {profile.city}/{profile.state}. Endereço e documento não aparecem para empresas.{hasContact ? ' O e-mail e o telefone de contato aparecem para as empresas que pedirem contato e para as que você marcar como cliente.' : ''}</p>
    <button className="btn primary" type="submit" disabled={busy}>{busy ? 'Salvando…' : 'Salvar alterações'}</button>
   </form></section>
   <section className="commercial-panel"><h2>Foto de perfil</h2><PartnerPhoto url={photo} name={form.displayName} large />

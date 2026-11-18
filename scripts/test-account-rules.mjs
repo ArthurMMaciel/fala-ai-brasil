@@ -48,8 +48,10 @@ test('cada tipo exige seus próprios documentos', () => {
   const company = { ...worker, type: 'company', cnpj: '11.222.333/0001-81', planId: 'company-essential', subscriptionMode: 'trial' };
   assert.equal(rules.validateRegistration(company), null);
   assert.match(rules.validateRegistration({ ...company, cnpj: '123' }), /CNPJ/);
-  const partner = { ...worker, type: 'partner', documentType: 'cnpj', document: '11.222.333/0001-81', specialty: 'Mediação', planId: 'partner-presence', subscriptionMode: 'monthly' };
+  const partner = { ...worker, type: 'partner', documentType: 'cnpj', document: '11.222.333/0001-81', specialty: 'Mediação', contactEmail: 'contato@example.com', contactPhone: '(11) 91234-5678', planId: 'partner-presence', subscriptionMode: 'monthly' };
   assert.equal(rules.validateRegistration(partner), null);
+  assert.match(rules.validateRegistration({ ...partner, contactEmail: '' }), /e-mail de contato/);
+  assert.match(rules.validateRegistration({ ...partner, contactPhone: '' }), /telefone de contato/);
   assert.match(rules.validateRegistration({ ...partner, documentType: 'cpf' }), /CPF ou CNPJ/);
   assert.match(rules.validateRegistration({ ...partner, specialty: ' ' }), /especialidade/);
   assert.match(rules.validateRegistration({ ...company, type: 'sponsor', cnpj: '' }), /CNPJ/);
@@ -72,8 +74,9 @@ test('logradouro do ViaCEP é separado em tipo e nome', () => {
 });
 
 test('payload usa nomes de banco em inglês e só os campos do tipo', () => {
-  const payload = rules.buildProfilePayload({ ...worker, type: 'partner', documentType: 'cpf', document: '529.982.247-25', specialty: ' Mediação ', planId: 'partner-presence', subscriptionMode: 'trial' });
-  assert.deepEqual(Object.keys(payload).sort(), ['address', 'description', 'display_name', 'document', 'document_type', 'plan_id', 'specialty', 'subscription_mode'].sort());
+  const payload = rules.buildProfilePayload({ ...worker, type: 'partner', documentType: 'cpf', document: '529.982.247-25', specialty: ' Mediação ', contactEmail: 'Contato@Example.com', contactPhone: '(11) 91234-5678', planId: 'partner-presence', subscriptionMode: 'trial' });
+  assert.deepEqual(Object.keys(payload).sort(), ['address', 'contact_email', 'contact_phone', 'description', 'display_name', 'document', 'document_type', 'plan_id', 'specialty', 'subscription_mode'].sort());
+  assert.equal(payload.contact_email, 'contato@example.com');
   assert.equal(payload.document, '52998224725');
   assert.equal(payload.specialty, 'Mediação');
   assert.deepEqual(payload.address, { zip_code: '01310100', street_type: 'avenue', street_name: 'Paulista', number: '1000', complement: undefined, neighborhood: undefined, city: 'São Paulo', state: 'SP' });

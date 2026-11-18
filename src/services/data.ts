@@ -143,31 +143,45 @@ export async function setPartnerConnection(companyId: string, stage: Exclude<Con
 
 export interface PartnerProfileData { displayName: string; specialty: string; description: string | null; city: string; state: string; contactEmail?: string; contactPhone?: string }
 
-// Contato público do parceiro: só entra no select e no update quando partnerContactEnabled (contrato do Back pendente).
+// Contato público do parceiro (contrato final do Back, 96bf1c3): lido da própria linha em partners e gravado só pela
+// RPC update_partner_contact (as duas obrigatórias). Sem a migration 20261118150000, as colunas e a RPC não existem:
+// o perfil carrega sem o contato e os campos não aparecem (contactEmail fica undefined).
+const missingColumn = (error: { code?: string; message?: string }) => error.code === "42703" || error.code === "PGRST204" || /column .* does not exist/i.test(error.message ?? "");
+
 export async function updatePartnerProfile(partnerId: string, input: { displayName: string; specialty: string; description: string; contactEmail?: string; contactPhone?: string }): Promise<AuthResult<null>> {
   const displayName = input.displayName.trim(), specialty = input.specialty.trim(), description = input.description.trim();
   if (!displayName || displayName.length > 160) return { ok: false, message: "Informe o nome profissional (até 160 caracteres)." };
   if (!specialty || specialty.length > 120) return { ok: false, message: "Informe a especialidade (até 120 caracteres)." };
   if (description.length > 2000) return { ok: false, message: "A descrição pode ter até 2.000 caracteres." };
-  let contact: Record<string, string> = {};
-  if (partnerContactEnabled) {
+  const withContact = partnerContactEnabled && input.contactEmail !== undefined;
+  if (withContact) {
     const problem = validatePartnerContact(input.contactEmail ?? "", input.contactPhone ?? "");
     if (problem) return { ok: false, message: problem };
-    contact = partnerContactPayload(input.contactEmail ?? "", input.contactPhone ?? "");
   }
-  const { error } = await supabase().from("partners").update({ display_name: displayName, specialty, description: description || null, ...contact }).eq("id", partnerId);
-  return error ? { ok: false, message: "Não foi possível salvar o perfil. Tente novamente." } : { ok: true, value: null };
+  const db = supabase();
+  const { error } = await db.from("partners").update({ display_name: displayName, specialty, description: description || null }).eq("id", partnerId);
+  if (error) return { ok: false, message: "Não foi possível salvar o perfil. Tente novamente." };
+  if (!withContact) return { ok: true, value: null };
+  const contact = partnerContactPayload(input.contactEmail ?? "", input.contactPhone ?? "");
+  const { error: contactError } = await db.rpc("update_partner_contact", { p_contact_email: contact[partnerContactKeys.email], p_contact_phone: contact[partnerContactKeys.phone] });
+  if (!contactError) return { ok: true, value: null };
+  if (contactError.code === "PGRST202" || contactError.code === "42883") return { ok: false, message: "Os dados públicos foram salvos. O contato ainda não pode ser alterado; tente mais tarde." };
+  return { ok: false, message: rpcError(contactError, "Os dados públicos foram salvos, mas não foi possível salvar o contato. Tente novamente.") };
 }
 
 export async function loadPartnerProfile(partnerId: string): Promise<PartnerProfileData | null> {
-  const contactColumns = partnerContactEnabled ? `, ${partnerContactKeys.email}, ${partnerContactKeys.phone}` : "";
-  const { data } = await supabase().from("partners").select(`display_name, specialty, description${contactColumns}, address:address_id (city, state)`).eq("id", partnerId).maybeSingle();
-  if (!data) return null;
-  const row = data as unknown as Record<string, unknown> & { display_name: string; specialty: string; description: string | null; address: unknown };
+  const db = supabase();
+  const base = "display_name, specialty, description, address:address_id (city, state)";
+  const contactColumns = `${partnerContactKeys.email}, ${partnerContactKeys.phone}, `;
+  let result = await db.from("partners").select(partnerContactEnabled ? contactColumns + base : base).eq("id", partnerId).maybeSingle();
+  let hasContact = partnerContactEnabled;
+  if (result.error && hasContact && missingColumn(result.error)) { hasContact = false; result = await db.from("partners").select(base).eq("id", partnerId).maybeSingle(); }
+  if (!result.data) return null;
+  const row = result.data as unknown as Record<string, unknown> & { display_name: string; specialty: string; description: string | null; address: unknown };
   const address = (Array.isArray(row.address) ? row.address[0] : row.address) as { city?: string; state?: string } | null;
   return {
     displayName: row.display_name, specialty: row.specialty, description: row.description, city: address?.city ?? "", state: address?.state ?? "",
-    ...(partnerContactEnabled ? { contactEmail: String(row[partnerContactKeys.email] ?? ""), contactPhone: String(row[partnerContactKeys.phone] ?? "") } : {}),
+    ...(hasContact ? { contactEmail: String(row[partnerContactKeys.email] ?? ""), contactPhone: String(row[partnerContactKeys.phone] ?? "") } : {}),
   };
 }
 

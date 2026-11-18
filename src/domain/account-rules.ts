@@ -195,9 +195,9 @@ export function validateAddress(address: AddressInput): string | null {
 }
 
 // Contato público do parceiro (e-mail e telefone), obrigatório no cadastro e editável no Meu perfil.
-// Desligado até o Back mandar o contrato (create_profile e perfil): sem ele, os campos não aparecem nem são enviados.
-// Ao ligar, conferir os nomes em partnerContactKeys.
-export const partnerContactEnabled = false;
+// Contrato final do Back (96bf1c3, migration 20261118150000): contact_email e contact_phone obrigatórios no signup de parceiro.
+// Antes da migration, o create_profile antigo ignora as duas chaves; no perfil, a tela esconde os campos sem as colunas.
+export const partnerContactEnabled = true;
 export const partnerContactKeys = { email: "contact_email", phone: "contact_phone" } as const;
 
 export function validatePartnerContact(email: string, phone: string): string | null {
