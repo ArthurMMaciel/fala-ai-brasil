@@ -323,6 +323,23 @@ export interface DirectoryPartner {
 }
 
 // Diretório para empresas: sem documento nem endereço completo (list_partner_directory).
+// Aba "Contratados" da empresa (fluxo 2; migration 20261118150000, em supabase/pending). Sem a função: missing = true.
+export interface ContractedPartner { partnerId: string; companyId: string; name: string; specialty: string; description: string | null; avatarUrl: string | null; city: string; state: string; since: string }
+
+export async function listMyContractedPartners(): Promise<{ missing: true } | { missing: false; rows: ContractedPartner[] }> {
+  const db = supabase();
+  const { data, error } = await db.rpc("list_my_contracted_partners");
+  if (error) {
+    if (error.code === "PGRST202" || error.code === "42883") return { missing: true };
+    throw new Error("Não foi possível carregar os parceiros contratados.");
+  }
+  return { missing: false, rows: (data ?? []).map((row: { partner_id: string; company_id: string; display_name: string; specialty: string; description: string | null; avatar_path: string | null; city: string; state: string; since: string }) => ({
+    partnerId: row.partner_id, companyId: row.company_id, name: row.display_name, specialty: row.specialty, description: row.description,
+    avatarUrl: row.avatar_path ? db.storage.from(partnerMediaBucket).getPublicUrl(row.avatar_path).data.publicUrl : null,
+    city: row.city, state: row.state, since: row.since,
+  })) };
+}
+
 export async function listPartnerDirectory(): Promise<DirectoryPartner[]> {
   const db = supabase();
   const { data, error } = await db.rpc("list_partner_directory");

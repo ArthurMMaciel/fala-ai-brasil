@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { listPartnerDirectory, loadCompanyContext, loadPartnerPhoto, uploadPartnerPhoto, type CompanyContext, type DirectoryPartner } from '../services/account';
+import { listMyContractedPartners, listPartnerDirectory, loadCompanyContext, loadPartnerPhoto, uploadPartnerPhoto, type CompanyContext, type ContractedPartner, type DirectoryPartner } from '../services/account';
 import { listCompanyComplaints, listPartnerCompanies, listCompanyResponsiveness, loadMyCompanyResponsiveness, loadMyCompanySatisfaction, loadMyVerificationStatus, loadCompanyTimeline, loadPartnerProfile, requestPartner, respondCompanyComplaint, setPartnerConnection, updatePartnerProfile, loadPartnerPlan, listMyContents, listPartnerContents, createPartnerContent, deletePartnerContent, type PartnerContent, type CompanySatisfaction, type CompanyComplaint, type ComplaintStatusDb, type PartnerCompany, type PartnerProfileData, type MyResponsiveness, type ResponsivenessRow, type TimelineItem } from '../services/data';
 import { showToast } from '../app/toast';
 import { Icon, QuickActions, initials, type IconName } from './ui';
@@ -13,7 +13,7 @@ import { statusLabel } from '../domain/complaint-status';
 import { companyAccessPending, type VerificationStatus } from '../domain/representatives';
 
 // Portais de empresa e parceiro com dados reais (modelo v3). A empresa lê apenas versões compartilhadas, sem identidade.
-type CompanyView = 'dashboard' | 'complaints' | 'ranking' | 'partners' | 'profile';
+type CompanyView = 'dashboard' | 'complaints' | 'ranking' | 'partners' | 'contracted' | 'profile';
 type PartnerView = 'dashboard' | 'profile' | 'content' | 'companies' | 'leads' | 'clients';
 
 const companyStatus: Record<ComplaintStatusDb, string> = { received: 'Recebida', in_review: 'Em revisão', adjustment_requested: 'Em revisão', held: 'Em revisão', shared: 'Aguardando resposta', answer_in_review: 'Resposta em revisão pela equipe', answered: 'Respondida', closed: 'Finalizada', canceled: 'Cancelada' };
@@ -135,6 +135,20 @@ function PartnerDirectoryLive() {
   {selected && <div className="commercial-modal-backdrop" onMouseDown={event => event.target === event.currentTarget && setSelected(null)}><section className="commercial-modal partner-modal" role="dialog" aria-modal="true" aria-labelledby="partner-title"><button className="commercial-modal-close" onClick={() => setSelected(null)} aria-label="Fechar">×</button>{avatar(selected, true)}<span className="editorial-eyebrow">Perfil profissional</span><h2 id="partner-title">{selected.name}</h2><p>{selected.specialty} · {selected.city} / {selected.state}</p>{selected.description && <p>{selected.description}</p>}{contents.length > 0 && <><h3>Conteúdos</h3><ContentGallery contents={contents} /></>}<div className="commercial-callout">A plataforma não intermedia o serviço. O parceiro recebe o interesse da sua empresa e retorna diretamente.</div>{selected.requested ? <p className="commercial-feedback" role="status">Interesse já enviado a este parceiro.</p> : <button className="btn primary" onClick={() => contact(selected)}>Entrar em contato</button>}</section></div>}</>;
 }
 
+// Fluxo 2: parceiros que marcaram esta empresa como cliente (list_my_contracted_partners, migration 20261118150000).
+function ContractedPartners({ companyId }: { companyId: string }) {
+ const [rows, setRows] = useState<ContractedPartner[] | null>(null);
+ const [missing, setMissing] = useState(false);
+ const [failure, setFailure] = useState('');
+ useEffect(() => { let active = true; listMyContractedPartners().then(result => { if (!active) return; setMissing(result.missing); setRows(result.missing ? [] : result.rows.filter(row => row.companyId === companyId)); }).catch(error => { if (active) setFailure(error instanceof Error ? error.message : 'Não foi possível carregar os parceiros contratados.'); }); return () => { active = false; }; }, [companyId]);
+ const since = (value: string) => new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value));
+ return <><div className="commercial-page-head"><div><span className="editorial-eyebrow">Rede de apoio</span><h1>Contratados</h1><p>Parceiros que registraram sua empresa como cliente pela plataforma. O contato segue diretamente com cada parceiro.</p></div></div>
+  {missing ? <section className="commercial-panel"><p>A lista de parceiros contratados ainda não está ativa no banco. Ela aparece aqui assim que a atualização for aplicada.</p></section> :
+   failure ? <section className="commercial-panel"><p>{failure}</p></section> : rows === null ? <p className="muted">Carregando…</p> :
+   !rows.length ? <section className="commercial-panel"><h2>Nenhum parceiro contratado ainda</h2><p>Quando um parceiro marcar sua empresa como cliente, ele aparece aqui. Para começar, peça contato a um parceiro na aba Parceiros.</p></section> :
+   <div className="partner-grid">{rows.map(row => <article className="partner-card" key={row.partnerId}><PartnerPhoto url={row.avatarUrl} name={row.name} /><span className="commercial-badge">Cliente desde {since(row.since)}</span><h2>{row.name}</h2><p>{row.specialty}</p><small>{row.city} / {row.state}</small></article>)}</div>}</>;
+}
+
 // ADR-0012: fora de "verified", nada de casos nem números; perfil e parceiros seguem abertos.
 const verificationCopy: Record<Exclude<VerificationStatus, 'verified'>, [string, string]> = {
  pending: ['Aguardando verificação', 'Antes de mostrar manifestações e indicadores, a equipe Escuta Aí Brasil confirma que você representa a empresa. Para isso, entramos em contato pelo telefone público da empresa ou pedimos um documento, sempre fora da plataforma. Quando a verificação terminar, esta área passa a mostrar os casos.'],
@@ -163,13 +177,14 @@ export function CompanyPortalLive({ companyId }: { companyId: string }) {
  useEffect(() => { let active = true; Promise.all([listCompanyComplaints(), listCompanyResponsiveness(), loadMyCompanyResponsiveness()]).then(([rows, rank, own]) => { if (active) { setComplaints(rows); setRanking(rank); setMyStats(own); } }); loadMyCompanySatisfaction().then(rows => { if (active) setSatisfaction(rows); }).catch(() => undefined); return () => { active = false; }; }, [companyId, version]);
  const mine = useMemo(() => myStats?.find(row => row.companyId === companyId), [myStats, companyId]);
  const open = (id: string | null) => { setOpenId(id); setView('complaints'); };
- const items: [CompanyView, string][] = [['dashboard', 'Dashboard'], ['complaints', 'Manifestações'], ['ranking', 'Responsividade'], ['partners', 'Parceiros'], ['profile', 'Meu perfil']];
+ const items: [CompanyView, string][] = [['dashboard', 'Dashboard'], ['complaints', 'Manifestações'], ['ranking', 'Responsividade'], ['partners', 'Parceiros'], ['contracted', 'Contratados'], ['profile', 'Meu perfil']];
  return <main className="commercial-portal-content"><Sidebar eyebrow="Área da empresa" name={company?.name ?? 'Carregando…'} items={items} view={view} onView={next => { setView(next); setOpenId(null); }} /><section className="commercial-portal-main">
   {company === undefined || complaints === null || verification === undefined ? <p className="muted">Carregando dados da empresa…</p> : company === null ? <section className="commercial-panel"><h2>Não foi possível carregar sua empresa</h2><p>Saia e entre novamente. Se continuar, fale com o suporte.</p></section> :
    companyAccessPending(verification) && view !== 'partners' && view !== 'profile' ? <VerificationPending status={verification as VerificationStatus} companyName={company.name} onView={setView} /> :
    view === 'dashboard' ? <CompanyDashboard company={company} complaints={complaints} mine={mine} onOpen={open} onView={setView} /> :
    view === 'complaints' ? <CompanyComplaints complaints={complaints} openId={openId} onOpen={setOpenId} onChanged={() => setVersion(value => value + 1)} companyName={company.name} /> :
    view === 'ranking' ? <CompanyResponsiveness rows={ranking} mine={mine} satisfaction={satisfaction.find(row => row.companyId === companyId)} /> :
+   view === 'contracted' ? <ContractedPartners companyId={companyId} /> :
    view === 'profile' ? <CompanyProfile companyId={companyId} onSaved={() => setContextVersion(value => value + 1)} /> : <PartnerDirectoryLive />}
  </section></main>;
 }
