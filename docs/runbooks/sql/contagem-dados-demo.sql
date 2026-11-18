@@ -6,6 +6,9 @@
 -- Esperado se o seed rodou inteiro: 20 contas do seed mais as contas *.teste, 19 relatos, 10 respostas,
 -- 9 conexões e 6 campanhas aprovadas (ver TASK-0010, "Dados de demonstração em produção").
 -- Valores 0 em tudo indicam que o seed nunca rodou em produção.
+-- Exclusões usam "not exists" para não perder linhas com chave nula caso o schema mude.
+-- Hoje complaints.worker_id é not null e partner_connections.company_id está na chave primária.
+-- list_public_sponsors() é "stable security definer" e só faz SELECT (migration 20261027024534).
 
 with demo_users as (
   select id from auth.users where lower(email) like '%@example.com'
@@ -32,11 +35,11 @@ select metrica, total from (values
   (7,  'patrocinadores_demo',               (select count(*) from demo_sponsors)),
   (8,  'relatos_total',                     (select count(*) from public.complaints)),
   (9,  'relatos_demo_trab_e_empresa_demo',  (select count(*) from public.complaints c where c.worker_id in (select id from demo_workers) and c.company_id in (select id from demo_companies))),
-  (10, 'relatos_trab_real_empresa_demo',    (select count(*) from public.complaints c where c.worker_id not in (select id from demo_workers) and c.company_id in (select id from demo_companies))),
-  (11, 'relatos_trab_demo_empresa_real',    (select count(*) from public.complaints c where c.worker_id in (select id from demo_workers) and c.company_id not in (select id from demo_companies))),
+  (10, 'relatos_trab_real_empresa_demo',    (select count(*) from public.complaints c where not exists (select 1 from demo_workers d where d.id = c.worker_id) and c.company_id in (select id from demo_companies))),
+  (11, 'relatos_trab_demo_empresa_real',    (select count(*) from public.complaints c where c.worker_id in (select id from demo_workers) and not exists (select 1 from demo_companies d where d.id = c.company_id))),
   (12, 'respostas_em_relato_demo',          (select count(*) from public.company_responses r join public.complaints c on c.id = r.complaint_id where c.worker_id in (select id from demo_workers))),
   (13, 'conexoes_parceiro_demo',            (select count(*) from public.partner_connections pc where pc.partner_id in (select id from demo_partners))),
-  (14, 'conexoes_parceiro_demo_empresa_real', (select count(*) from public.partner_connections pc where pc.partner_id in (select id from demo_partners) and pc.company_id not in (select id from demo_companies))),
+  (14, 'conexoes_parceiro_demo_empresa_real', (select count(*) from public.partner_connections pc where pc.partner_id in (select id from demo_partners) and not exists (select 1 from demo_companies d where d.id = pc.company_id))),
   (15, 'campanhas_de_patrocinador_demo',    (select count(*) from public.campaigns c where c.sponsor_id in (select id from demo_sponsors))),
   (16, 'patrocinadores_na_landing_total',   (select count(*) from public.list_public_sponsors())),
   (17, 'patrocinadores_demo_na_landing',    (select count(*) from public.list_public_sponsors() l where l.id in (select id from demo_sponsors)))
