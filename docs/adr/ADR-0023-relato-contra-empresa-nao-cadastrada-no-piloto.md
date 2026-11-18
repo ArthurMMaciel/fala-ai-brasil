@@ -79,7 +79,17 @@ O que fere:
 - **(a2) e (b), automáticas:** a Edge Function precisaria da senha de app SMTP da conta pessoal nos Secrets. A ADR-0020 D1 desaconselha isso: a senha de app dá acesso SMTP à caixa inteira, e um vazamento da função expõe o e-mail pessoal do responsável. Se a escolha for automática, o caminho é abrir antes a conta da empresa e só então ligar o envio.
 - **Em qualquer variante:**
   - O destinatário vê o nome e o e-mail pessoal do responsável, e as respostas da empresa caem na caixa pessoal dele, possivelmente com dado do caso ou de terceiros. Essas mensagens precisam de tratamento e retenção definidos (TASK-0007).
-  - Se o Auth usar a mesma conta, o limite de 500 envios por dia e o risco de bloqueio são compartilhados. O DevOps confirma qual conta o Auth usa hoje.
+  - **Decisão do responsável (2026-11-18): "mesma caixa, mesma conta".** O aviso manual sai da mesma conta Gmail do SMTP do Auth. **Risco aceito:**
+    - o limite de 500 envios por dia é compartilhado;
+    - se denúncias de spam ou o bloqueio por excesso derrubarem a conta, a confirmação de cadastro e a recuperação de senha param junto com os avisos;
+    - as respostas das empresas e as mensagens do Auth ficam na mesma caixa.
+
+    Mitigações:
+    - volume baixo e manual;
+    - no máximo 1 aviso por empresa a cada 30 dias;
+    - texto sem link clicável.
+
+    O DevOps registra a decisão também na ADR-0009.
   - Quando a conta da empresa existir, os avisos passam a sair dela. O texto não muda.
 
 ## 3. Modelo (aprovado em 2026-11-17)
@@ -243,5 +253,6 @@ Formato igual ao do lote atual: scripts `aplicar` e `conferir` para o SQL Editor
 4. **Pessoa física ou MEI:** o relato é aceito e o aviso é recusado.
 5. **30 dias** entre avisos à mesma empresa; **90 dias** de retenção do contato.
 6. **Risco residual aceito** (o aviso pode chegar à pessoa envolvida).
+7. **Remetente (2026-11-18): "mesma caixa, mesma conta".** O aviso manual sai da conta Gmail do SMTP do Auth. Risco aceito: limite e bloqueio compartilhados com o cadastro (ver "Remetente no piloto").
 
 Em aberto: os provedores sem termos de uso (ADR-0017, decisão 1) e a finalidade comercial do aviso ("vira cliente"), que o advogado precisa cobrir na base legal e no texto.
