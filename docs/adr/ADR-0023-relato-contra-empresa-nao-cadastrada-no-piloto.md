@@ -192,13 +192,14 @@ O trabalho do Back, com a função:
 
 O que torna isso seguro é que o **plano B já está aprovado**: o pré-cadastro manual não depende da função. Por isso, o go/no-go não precisa esperar a função.
 
-**O que sai, nesta ordem, se atrasar (sem perder o go/no-go):**
+**O que sai, nesta ordem, se atrasar (sem perder o go/no-go). Revisto em 2026-11-18 pelo Gestor: a reivindicação (D11) não pode ser cortada, porque a empresa avisada precisa conseguir se cadastrar:**
 
 1. **(a2) botão de envio:** já está fora; o envio é manual.
 2. **Provedor reserva (BrasilAPI):** fica só a Minha Receita e, se falhar, o manual.
-3. **Situação do aviso para o trabalhador (`my_notice_status`):** o trabalhador vê só o consentimento dado. Economiza Front.
-4. **Reivindicação automática no cadastro (D11, migration 3):** vira uma função `ops_link_company_user` usada pela equipe. A empresa avisada que tentar se cadastrar recebe "CNPJ já existe; fale com a equipe". Isso tira do caminho a mudança no cadastro de todas as contas de empresa.
-5. **A própria Edge Function:** o piloto abre com o plano B (pré-cadastro manual com conferência da equipe na Receita), e a função entra depois de 30/11, sem migration nova, porque cache e cota já estarão criados na migration 1.
+3. **Situação do aviso para o trabalhador (`my_notice_status`):** já ficou fora da migration 2.
+4. **A própria Edge Function:** o piloto abre com o plano B (pré-cadastro manual com conferência da equipe na Receita), e a função entra depois, sem migration nova.
+
+**Não sai:** a migration 3 (reivindicação no cadastro, `20261118140000`).
 
 **Nada sai das travas do aviso (variante a)** nem da troca do gate (130000).
 
