@@ -13,9 +13,12 @@ insert into private.platform_admins (user_id) values (u_op);
 -- Trabalhador pré-cadastra e relata; equipe libera.
 execute 'set local role authenticated';
 perform set_config('request.jwt.claims', json_build_object('sub', u_w, 'role', 'authenticated')::text, true);
-co := public.preregister_company_manual(cnpj_pre, 'Tx Nome Digitado Pelo Trabalhador', 'Santos', 'SP');
-cp := public.create_complaint(jsonb_build_object('company_id', co, 'category', 'Carga de trabalho', 'title', 'Tx caso reivindicação',
-  'original_content', 'Tx relato original.', 'shared_content', 'Tx versao compartilhavel.'), true);
+cp := public.create_complaint(jsonb_build_object('company_cnpj', cnpj_pre, 'category', 'Carga de trabalho', 'title', 'Tx caso reivindicação',
+  'original_content', 'Tx relato original.', 'shared_content', 'Tx versao compartilhavel.',
+  'company_manual', jsonb_build_object('name', 'Tx Nome Digitado Pelo Trabalhador', 'city', 'Santos', 'state', 'SP')), true);
+execute 'reset role';
+select company_id into co from public.complaints where id = cp;
+execute 'set local role authenticated';
 perform set_config('request.jwt.claims', json_build_object('sub', u_op, 'role', 'authenticated')::text, true);
 perform public.ops_decide_complaint(cp, 'released', null);
 execute 'reset role';

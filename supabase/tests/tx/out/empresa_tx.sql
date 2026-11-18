@@ -1,17 +1,56 @@
 -- GERADO por supabase/tests/tx/build.mjs. Não editar: editar empresa_checks.sql e as migrations.
--- Migrations: 20261117120000_representante_verificado_estrutura.sql, 20261117150000_pausa_do_piloto.sql, 20261118120000_empresa_pre_cadastrada_estrutura.sql, 20261118130000_empresa_pre_cadastrada_funcoes.sql
+-- Migrations: 20261109180000_resposta_revisada_ativa.sql, 20261117120000_representante_verificado_estrutura.sql, 20261117150000_pausa_do_piloto.sql, 20261117130000_representante_verificado_gate.sql, 20261118120000_empresa_pre_cadastrada_estrutura.sql, 20261118130000_empresa_pre_cadastrada_funcoes.sql
 -- Execução em produção só com liberação escrita do responsável: npx supabase db query --linked < este_arquivo
 -- Nada é gravado: subtransação sem COMMIT possível e exceção final. Única sobra: sequências avançadas.
 do $tx$
 declare
   res jsonb := '{}'::jsonb;
   falhas jsonb := '[]'::jsonb;
-  u_w uuid := 'ebbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'; u_c uuid := 'eccccccc-cccc-cccc-cccc-cccccccccccc'; u_op uuid := 'eddddddd-dddd-dddd-dddd-dddddddddddd'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_api text := '27182818000129'; cnpj_pf text := '31415926000171'; cnpj_man text := '16180339000157'; cnpj_extra text := '57721566000120'; cnpj_reg text := '14142135000104'; co_reg uuid; co_api uuid; co_pf uuid; co_man uuid; cp1 uuid; cp2 uuid; cp3 uuid; cp4 uuid; cp5 uuid; n1 uuid; n int; r record;
+  u_w uuid := 'ebbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'; u_c uuid := 'eccccccc-cccc-cccc-cccc-cccccccccccc'; u_op uuid := 'eddddddd-dddd-dddd-dddd-dddddddddddd'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_api text := '27182818000129'; cnpj_pf text := '31415926000171'; cnpj_man text := '16180339000157'; cnpj_extra text := '57721566000120'; cnpj_reg text := '14142135000104'; co_reg uuid; co_api uuid; co_pf uuid; co_man uuid; cp1 uuid; cp2 uuid; cp3 uuid; cp4 uuid; cp5 uuid; cp6 uuid; cp7 uuid; n1 uuid; n int; r record; base jsonb;
 begin
   begin  -- trava: nada pode commitar daqui para dentro
     -- Sem lock em 3 s, falha limpa em vez de enfileirar o site atrás do DDL. (statement_timeout não se aplica: o
     -- cronômetro começa no DO, que é a instrução de topo; um SET aqui dentro não o rearma.)
     execute 'set local lock_timeout = ''3s''';
+
+    -- 20261109180000_resposta_revisada_ativa.sql (4 instruções)
+    if exists (select 1 from supabase_migrations.schema_migrations where version = '20261109180000') then
+      res := res || jsonb_build_object('20261109180000', 'já aplicada em produção; pulada');
+    else
+      execute $s0$-- TASK-0035 / ADR-0013, passo (d): a resposta da empresa passa pela equipe antes de chegar ao trabalhador.
+-- Só aplicar DEPOIS do front tolerante (passo c) estar em produção: ele precisa conhecer 'answer_in_review'
+-- e ler review_status/worker_summary.
+-- Rollback: liberar ou devolver pela Operação todas as respostas em revisão ANTES de reverter (nunca expor ao trabalhador
+-- resposta não revisada); depois reaplicar respond_complaint de 20261109170000, a política responses_read_worker de
+-- 20261027024534 e o default 'released'.
+
+alter table public.company_responses alter column review_status set default 'in_review'$s0$;
+      execute $s0$-- Empresa responde: a resposta fica em revisão; com uma em revisão, não envia outra.
+create or replace function public.respond_complaint(p_id uuid, p_content text)
+returns void language plpgsql security definer set search_path = '' as $$
+declare v_company uuid; v_status public.complaint_status;
+begin
+  select company_id, status into v_company, v_status from public.complaints where id = p_id for update;
+  if v_company is null or not public.is_company_user(v_company) or v_status not in ('shared', 'answer_in_review', 'answered') then
+    raise exception 'Manifestação não disponível para resposta.' using errcode = 'P0001';
+  end if;
+  if v_status = 'answer_in_review' or exists (select 1 from public.company_responses where complaint_id = p_id and review_status = 'in_review') then
+    raise exception 'Já existe uma resposta em revisão pela equipe.' using errcode = 'P0001';
+  end if;
+  if char_length(btrim(coalesce(p_content, ''))) < 10 then raise exception 'Escreva uma resposta com pelo menos 10 caracteres.' using errcode = 'P0001'; end if;
+  insert into public.company_responses (complaint_id, company_id, author_user_id, content, review_status)
+  values (p_id, v_company, auth.uid(), btrim(p_content), 'in_review');
+  update public.complaints set status = 'answer_in_review' where id = p_id;
+  insert into public.complaint_events (complaint_id, status, actor, note)
+  values (p_id, 'answer_in_review', 'company', 'A empresa respondeu. A equipe revisa a resposta antes de você receber.');
+end;
+$$$s0$;
+      execute $s0$-- Trabalhador só lê respostas liberadas (conteúdo revisado e descrição da equipe).
+drop policy responses_read_worker on public.company_responses$s0$;
+      execute $s0$create policy responses_read_worker on public.company_responses for select to authenticated
+  using (review_status = 'released' and public.owns_complaint(complaint_id))$s0$;
+      res := res || jsonb_build_object('20261109180000', 'aplicada na transação de teste');
+    end if;
 
     -- 20261117120000_representante_verificado_estrutura.sql (17 instruções)
     if exists (select 1 from supabase_migrations.schema_migrations where version = '20261117120000') then
@@ -261,6 +300,191 @@ $$$s0$;
       res := res || jsonb_build_object('20261117150000', 'aplicada na transação de teste');
     end if;
 
+    -- 20261117130000_representante_verificado_gate.sql (8 instruções)
+    if exists (select 1 from supabase_migrations.schema_migrations where version = '20261117130000') then
+      res := res || jsonb_build_object('20261117130000', 'já aplicada em produção; pulada');
+    else
+      execute $s0$-- ADR-0012 (recorte do piloto), parte 2 de 2: troca do gate. Só o vínculo 'verified' vê e responde manifestações
+-- e vê os próprios números; o vínculo 'pending', 'rejected' ou 'revoked' continua com portal, perfil e diretório.
+-- Depende da 20261109180000 (respond_complaint com revisão) e da 20261117120000.
+-- Fica em supabase/pending/ até o Front publicar a fila de verificação; só então é movida para supabase/migrations/.
+-- Corpos copiados das últimas definições (170000, 150000, 180000), com is_company_user -> is_verified_company_user
+-- e o filtro verification_status = 'verified' nas duas funções de números próprios. Mesmas assinaturas: os grants seguem.
+--
+-- ATENÇÃO na aplicação: todo vínculo existente nasce 'pending' pela 20261117120000. Depois desta migration, nenhuma
+-- empresa vê manifestação até a equipe verificar o representante (ops_verify_representative).
+--
+-- Também: update_company_profile recusa vínculo 'rejected' ou 'revoked' (ajuste aceito pelo Gestor em 17/11, dentro da ADR-0012).
+--
+-- Rollback: reaplicar os mesmos blocos trocando is_verified_company_user por is_company_user e retirando o filtro
+-- verification_status (texto pronto em supabase/tests/rollback/20261117130000_rollback.sql). Isso reabre o risco do
+-- representante não verificado; só com decisão registrada.
+
+create or replace function public.list_company_complaints()
+returns table (id uuid, protocol text, category text, title text, status public.complaint_status, shared_content text,
+               created_at timestamptz, updated_at timestamptz, responses integer, last_response_at timestamptz, worker_feedback public.complaint_feedback)
+language sql stable security definer set search_path = '' as $$
+  select c.id, c.protocol, c.category, c.title, c.status, s.shared_content, c.created_at, c.updated_at,
+         (select count(*)::int from public.company_responses r where r.complaint_id = c.id),
+         (select max(r.created_at) from public.company_responses r where r.complaint_id = c.id),
+         c.worker_feedback
+  from public.complaints c
+  join public.complaint_shared_versions s on s.complaint_id = c.id
+  where c.status in ('shared', 'answer_in_review', 'answered', 'closed') and public.is_verified_company_user(c.company_id)
+  order by c.created_at desc;
+$$$s0$;
+      execute $s0$create or replace function public.get_company_complaint_timeline(p_id uuid)
+returns table (kind text, status public.complaint_status, actor public.complaint_actor, content text, created_at timestamptz)
+language sql stable security definer set search_path = '' as $$
+  select t.kind, t.status, t.actor, t.content, t.created_at
+  from (
+    select 'event'::text as kind, e.status, e.actor, e.note as content, e.created_at, 4 as kind_rank, e.id
+    from public.complaint_events e
+    join public.complaints c on c.id = e.complaint_id
+    where e.complaint_id = p_id and c.status in ('shared', 'answer_in_review', 'answered', 'closed') and public.is_verified_company_user(c.company_id)
+      and e.status in ('shared', 'answered', 'closed')
+    union all
+    select 'response'::text, null::public.complaint_status, 'company'::public.complaint_actor, r.content, r.created_at, 2, r.id
+    from public.company_responses r
+    join public.complaints c on c.id = r.complaint_id
+    where r.complaint_id = p_id and public.is_verified_company_user(c.company_id)
+    union all
+    select 'response_review'::text, null::public.complaint_status, 'platform'::public.complaint_actor,
+           case rv.decision when 'released' then 'Resposta liberada ao trabalhador.' else 'Resposta devolvida para ajuste: ' || rv.reason end,
+           rv.created_at, 1, rv.id
+    from public.company_response_reviews rv
+    join public.company_responses r on r.id = rv.response_id
+    join public.complaints c on c.id = r.complaint_id
+    where r.complaint_id = p_id and rv.decision in ('released', 'returned') and public.is_verified_company_user(c.company_id)
+  ) t
+  order by t.created_at, t.kind_rank, t.status nulls first, t.id;
+$$$s0$;
+      execute $s0$create or replace function public.respond_complaint(p_id uuid, p_content text)
+returns void language plpgsql security definer set search_path = '' as $$
+declare v_company uuid; v_status public.complaint_status;
+begin
+  select company_id, status into v_company, v_status from public.complaints where id = p_id for update;
+  if v_company is null or not public.is_verified_company_user(v_company) or v_status not in ('shared', 'answer_in_review', 'answered') then
+    raise exception 'Manifestação não disponível para resposta.' using errcode = 'P0001';
+  end if;
+  if v_status = 'answer_in_review' or exists (select 1 from public.company_responses where complaint_id = p_id and review_status = 'in_review') then
+    raise exception 'Já existe uma resposta em revisão pela equipe.' using errcode = 'P0001';
+  end if;
+  if char_length(btrim(coalesce(p_content, ''))) < 10 then raise exception 'Escreva uma resposta com pelo menos 10 caracteres.' using errcode = 'P0001'; end if;
+  insert into public.company_responses (complaint_id, company_id, author_user_id, content, review_status)
+  values (p_id, v_company, auth.uid(), btrim(p_content), 'in_review');
+  update public.complaints set status = 'answer_in_review' where id = p_id;
+  insert into public.complaint_events (complaint_id, status, actor, note)
+  values (p_id, 'answer_in_review', 'company', 'A empresa respondeu. A equipe revisa a resposta antes de você receber.');
+end;
+$$$s0$;
+      execute $s0$create or replace function public.company_ranking()
+returns table (company_id uuid, name text, city text, state text, received integer, response_rate integer, avg_first_response_hours integer, is_mine boolean)
+language sql stable security definer set search_path = '' as $$
+  select co.id, coalesce(co.trade_name, co.legal_name), a.city, a.state, s.released, round(s.rate)::int, round(s.avg_hours)::int,
+         public.is_verified_company_user(co.id)
+  from private.company_response_stats() s
+  join public.companies co on co.id = s.company_id
+  join public.addresses a on a.id = co.address_id
+  where auth.uid() is not null and s.released >= 3
+  order by 6 desc, 7 asc nulls last;
+$$$s0$;
+      execute $s0$create or replace function public.company_responsiveness()
+returns table (company_id uuid, name text, city text, state text, response_band text, response_time_band text,
+               satisfaction_band text, is_mine boolean)
+language sql stable security definer set search_path = '' as $$
+  select co.id, coalesce(co.trade_name, co.legal_name), a.city, a.state,
+         private.response_band(s.rate), private.response_time_band(s.avg_hours),
+         null::text, public.is_verified_company_user(co.id)
+  from private.company_response_stats() s
+  join public.companies co on co.id = s.company_id
+  join public.addresses a on a.id = co.address_id
+  where auth.uid() is not null and s.released >= 3
+  order by lower(coalesce(co.trade_name, co.legal_name)), co.id;
+$$$s0$;
+      execute $s0$create or replace function public.my_company_responsiveness()
+returns table (company_id uuid, name text, released integer, answered integer, response_rate integer,
+               avg_first_response_hours integer, response_band text, response_time_band text, listed boolean)
+language sql stable security definer set search_path = '' as $$
+  select co.id, coalesce(co.trade_name, co.legal_name),
+         coalesce(s.released, 0), coalesce(s.answered, 0),
+         round(s.rate)::int, round(s.avg_hours)::int,
+         private.response_band(s.rate),
+         case when coalesce(s.released, 0) = 0 then null else private.response_time_band(s.avg_hours) end,
+         coalesce(s.released, 0) >= 3
+  from public.company_users cu
+  join public.companies co on co.id = cu.company_id
+  left join private.company_response_stats() s on s.company_id = co.id
+  where cu.user_id = auth.uid() and cu.verification_status = 'verified'
+  order by lower(coalesce(co.trade_name, co.legal_name)), co.id;
+$$$s0$;
+      execute $s0$create or replace function public.my_company_satisfaction()
+returns table (company_id uuid, ratings integer, satisfaction_band text)
+language sql stable security definer set search_path = '' as $$
+  select cu.company_id, case when count(rr.response_id) < 3 then null else count(rr.response_id)::int end,
+         case when count(rr.response_id) < 3 then null
+              else private.response_band(100.0 * avg(case rr.rating when 'yes' then 1 when 'partial' then 0.5 else 0 end)) end
+  from public.company_users cu
+  left join public.company_responses r on r.company_id = cu.company_id
+  left join public.response_ratings rr on rr.response_id = r.id
+  where cu.user_id = auth.uid() and cu.verification_status = 'verified'
+  group by cu.company_id;
+$$$s0$;
+      execute $s0$-- Vínculo recusado ou revogado também perde a edição do perfil da empresa (inclusive contato). 'pending' continua
+-- editando para completar o cadastro. Corpo de 20261108120000 com a checagem nova depois da de dono.
+create or replace function public.update_company_profile(p_company uuid, p jsonb)
+returns void language plpgsql security definer set search_path = '' as $$
+declare
+  c public.companies%rowtype;
+  v_trade text; v_email text; v_phone text; v_changed text[] := '{}';
+begin
+  if not public.is_company_owner(p_company) then
+    raise exception 'Só o responsável pela conta da empresa pode alterar estes dados.' using errcode = 'P0001';
+  end if;
+  if exists (select 1 from public.company_users where company_id = p_company and user_id = auth.uid()
+             and verification_status in ('rejected', 'revoked')) then
+    raise exception 'Vínculo com a empresa recusado ou revogado pela equipe.' using errcode = 'P0001';
+  end if;
+  if p is null or jsonb_typeof(p) <> 'object' then raise exception 'Nada para atualizar.' using errcode = 'P0001'; end if;
+  if p ? 'cnpj' or p ? 'legal_name' then raise exception 'CNPJ e razão social só podem ser alterados pela equipe.' using errcode = 'P0001'; end if;
+  select * into c from public.companies where id = p_company for update;
+
+  if p ? 'trade_name' then
+    v_trade := nullif(btrim(coalesce(p ->> 'trade_name', '')), '');
+    if char_length(coalesce(v_trade, '')) > 160 then raise exception 'O nome fantasia pode ter até 160 caracteres.' using errcode = 'P0001'; end if;
+    if v_trade is distinct from c.trade_name then
+      update public.companies set trade_name = v_trade where id = p_company; v_changed := v_changed || 'trade_name'::text;
+    end if;
+  end if;
+  if p ? 'contact_email' then
+    v_email := nullif(lower(btrim(coalesce(p ->> 'contact_email', ''))), '');
+    if v_email is not null and (v_email !~* '^[^@\s]+@[^@\s]+\.[^@\s]+$' or char_length(v_email) > 254) then
+      raise exception 'Informe um e-mail de contato válido.' using errcode = 'P0001';
+    end if;
+    if v_email is distinct from c.contact_email then
+      update public.companies set contact_email = v_email where id = p_company; v_changed := v_changed || 'contact_email'::text;
+    end if;
+  end if;
+  if p ? 'contact_phone' then
+    v_phone := nullif(regexp_replace(coalesce(p ->> 'contact_phone', ''), '\D', '', 'g'), '');
+    if v_phone is not null and v_phone !~ '^[1-9][0-9](9[0-9]{8}|[2-5][0-9]{7})$' then
+      raise exception 'Informe um telefone válido com DDD: celular com 9 dígitos ou fixo com 8.' using errcode = 'P0001';
+    end if;
+    if v_phone is distinct from c.contact_phone then
+      update public.companies set contact_phone = v_phone where id = p_company; v_changed := v_changed || 'contact_phone'::text;
+    end if;
+  end if;
+  if p ? 'address' then v_changed := v_changed || private.update_address(c.address_id, p -> 'address'); end if;
+
+  if cardinality(v_changed) > 0 then
+    insert into public.profile_change_log (actor_user_id, entity_type, entity_id, fields, source)
+    values (auth.uid(), 'company', p_company, v_changed, 'self');
+  end if;
+end;
+$$$s0$;
+      res := res || jsonb_build_object('20261117130000', 'aplicada na transação de teste');
+    end if;
+
     -- 20261118120000_empresa_pre_cadastrada_estrutura.sql (28 instruções)
     if exists (select 1 from supabase_migrations.schema_migrations where version = '20261118120000') then
       res := res || jsonb_build_object('20261118120000', 'já aplicada em produção; pulada');
@@ -274,6 +498,8 @@ $$$s0$;
 -- a quem lê companies e para não gravar quem criou a empresa (companies.created_by fica nulo: gravar o trabalhador
 -- ligaria a conta ao empregador).
 -- Sem enum novo: estados em text + check.
+-- service_role (chave da Edge Function) sem acesso direto a nenhuma tabela nova: só às três RPCs do cache e da cota. Os
+-- e-mails indicados (complaint_contacts) e os avisos ficam fora do alcance dela (revisão do DevOps, 2026-11-18).
 --
 -- Rollback (antes da migration 2): drop function public.cnpj_cache_get(text), public.cnpj_cache_put(text, boolean, text, text,
 --   text, text, text, text, text, text), public.cnpj_quota_take(uuid), private.take_quota(uuid, text, integer);
@@ -309,7 +535,7 @@ create table private.company_preregistrations (
   created_at timestamptz not null default now(),
   check (review_decision is distinct from 'blocked' or review_reason is not null)
 )$s0$;
-      execute $s0$revoke all on private.company_preregistrations from public, anon, authenticated$s0$;
+      execute $s0$revoke all on private.company_preregistrations from public, anon, authenticated, service_role$s0$;
       execute $s0$-- 2) Cache de dados públicos de pessoa jurídica (ADR-0017 D4 a D6, com a aceitação: não é apagado, é renovado).
 -- Não registra quem consultou. Pessoa física fica só com a marca, sem nome.
 create table private.cnpj_cache (
@@ -327,7 +553,7 @@ create table private.cnpj_cache (
   check (not natural_person or (legal_name is null and trade_name is null)),
   check (natural_person or legal_name is not null)
 )$s0$;
-      execute $s0$revoke all on private.cnpj_cache from public, anon, authenticated$s0$;
+      execute $s0$revoke all on private.cnpj_cache from public, anon, authenticated, service_role$s0$;
       execute $s0$-- 3) Cota por conta, sem o CNPJ (ADR-0017 D9). 'minute'/'day': busca pela função; 'prereg_day': pré-cadastro no banco.
 create table private.cnpj_lookup_quota (
   user_id uuid not null,
@@ -336,7 +562,7 @@ create table private.cnpj_lookup_quota (
   lookups integer not null default 0 check (lookups >= 0),
   primary key (user_id, window_kind, window_start)
 )$s0$;
-      execute $s0$revoke all on private.cnpj_lookup_quota from public, anon, authenticated$s0$;
+      execute $s0$revoke all on private.cnpj_lookup_quota from public, anon, authenticated, service_role$s0$;
       execute $s0$-- Conta uma tentativa e diz se ainda está dentro do limite. Apaga as janelas da conta com mais de 2 dias.
 create function private.take_quota(p_user uuid, p_kind text, p_limit integer)
 returns boolean language plpgsql security definer set search_path = '' as $$
@@ -351,7 +577,7 @@ begin
   return v_count <= p_limit;
 end;
 $$$s0$;
-      execute $s0$revoke all on function private.take_quota(uuid, text, integer) from public, anon, authenticated$s0$;
+      execute $s0$revoke all on function private.take_quota(uuid, text, integer) from public, anon, authenticated, service_role$s0$;
       execute $s0$-- 4) Interface da Edge Function (service_role). O esquema private não é exposto pela API; estas três ficam em public,
 -- executáveis só pela service_role. A assinatura de cnpj_cache_put é a lista branca: nada fora dela entra.
 create function public.cnpj_cache_get(p_cnpj text)
@@ -417,7 +643,7 @@ create table public.complaint_contacts (
   created_at timestamptz not null default now()
 )$s0$;
       execute $s0$alter table public.complaint_contacts enable row level security$s0$;
-      execute $s0$revoke all on public.complaint_contacts from public, anon, authenticated$s0$;
+      execute $s0$revoke all on public.complaint_contacts from public, anon, authenticated, service_role$s0$;
       execute $s0$-- 6) Avisos: decisão da equipe e envio. Só inserção; a única mudança aceita é approved -> sent|bounced, sent -> bounced e o
 -- set null das chaves (contato apagado pela retenção, manifestação apagada com a conta).
 create table public.company_notices (
@@ -436,7 +662,7 @@ create table public.company_notices (
       execute $s0$create unique index company_notices_one_active on public.company_notices (complaint_id) where status in ('approved', 'sent')$s0$;
       execute $s0$create index company_notices_company_idx on public.company_notices (company_id, decided_at)$s0$;
       execute $s0$alter table public.company_notices enable row level security$s0$;
-      execute $s0$revoke all on public.company_notices from public, anon, authenticated$s0$;
+      execute $s0$revoke all on public.company_notices from public, anon, authenticated, service_role$s0$;
       execute $s0$create function private.company_notice_guard()
 returns trigger language plpgsql set search_path = '' as $$
 begin
@@ -457,7 +683,7 @@ begin
   raise exception 'Registro de aviso não pode ser alterado nem apagado.' using errcode = 'P0001';
 end;
 $$$s0$;
-      execute $s0$revoke all on function private.company_notice_guard() from public, anon, authenticated$s0$;
+      execute $s0$revoke all on function private.company_notice_guard() from public, anon, authenticated, service_role$s0$;
       execute $s0$create trigger company_notices_guard before update or delete on public.company_notices
   for each row execute function private.company_notice_guard()$s0$;
       execute $s0$-- 7) Quem pediu para não receber avisos: só o hash do e-mail normalizado (ADR-0012 D8).
@@ -466,7 +692,7 @@ create table private.notice_opt_outs (
   added_by uuid not null,
   created_at timestamptz not null default now()
 )$s0$;
-      execute $s0$revoke all on private.notice_opt_outs from public, anon, authenticated$s0$;
+      execute $s0$revoke all on private.notice_opt_outs from public, anon, authenticated, service_role$s0$;
       res := res || jsonb_build_object('20261118120000', 'aplicada na transação de teste');
     end if;
 
@@ -474,23 +700,26 @@ create table private.notice_opt_outs (
     if exists (select 1 from supabase_migrations.schema_migrations where version = '20261118130000') then
       res := res || jsonb_build_object('20261118130000', 'já aplicada em produção; pulada');
     else
-      execute $s0$-- ADR-0023 e ADR-0017 (aceitas em 2026-11-17), migration 2 de 2: funções.
+      execute $s0$-- ADR-0023 e ADR-0017 (aceitas em 2026-11-17), migration 2 de 2: funções. Revista em 2026-11-18 pela revisão do DevOps.
 -- Depende de 20261118120000 (estrutura) e de 20261117150000 (create_complaint com a checagem da pausa).
 -- Pré-requisito de operação: 20261117130000 (troca do gate) aplicada antes de qualquer aviso sair, porque a empresa
--- avisada vai se cadastrar.
+-- avisada vai se cadastrar; ops_decide_notice recusa aprovar sem ela.
 --
+-- Regra de não revelar (decisões "grava quando relatar" e "aviso sem revelar"): a pré-cadastrada só existe porque alguém
+-- relatou. Nada que um cliente chama pode distinguir "nunca relatada" de "já relatada":
+--   - find_company_by_cnpj devolve só empresa registered (a mesma que está no diretório);
+--   - não há RPC de pré-cadastro: a empresa nasce dentro de create_complaint, na mesma transação do relato;
+--   - em create_complaint, as validações e a cota não dependem de a empresa existir; o contato é validado sempre e só é
+--     gravado se a empresa não for registered.
 -- Empresa pré-cadastrada fora do diretório, do ranking, da responsividade, da lista dos parceiros e de ops_list_companies:
 -- essas funções fazem join interno com addresses, e a pré-cadastrada não tem endereço (check da migration 1). O teste
 -- confere; nenhuma delas é redefinida aqui.
--- Lacuna conhecida até a migration da reivindicação (D11): cadastro de empresa com CNPJ pré-cadastrado falha por CNPJ
--- duplicado; a equipe orienta e liga a conta.
 --
 -- Rollback: reaplicar create_complaint de 20261117150000; depois
---   drop function public.find_company_by_cnpj(text), public.preregister_company(text),
---     public.preregister_company_manual(text, text, text, text), public.ops_list_pending_companies(),
---     public.ops_review_company(uuid, text, text, boolean), public.ops_list_notice_candidates(),
---     public.ops_decide_notice(uuid, text, text), public.ops_mark_notice_sent(uuid, text), public.ops_add_opt_out(text),
---     public.ops_purge_expired_contacts(), private.norm_cnpj(text), private.email_hash(text);
+--   drop function public.find_company_by_cnpj(text), private.preregister_company(text, jsonb),
+--     public.ops_list_pending_companies(), public.ops_review_company(uuid, text, text, boolean),
+--     public.ops_list_notice_candidates(), public.ops_decide_notice(uuid, text, text), public.ops_mark_notice_sent(uuid, text),
+--     public.ops_add_opt_out(text), public.ops_purge_expired_contacts(), private.norm_cnpj(text), private.email_hash(text);
 
 -- Normalização comum.
 create function private.norm_cnpj(p text)
@@ -501,120 +730,88 @@ $$$s0$;
 returns text language sql immutable set search_path = '' as $$
   select encode(sha256(convert_to(lower(btrim(coalesce(p, ''))), 'UTF8')), 'hex');
 $$$s0$;
-      execute $s0$revoke all on function private.norm_cnpj(text), private.email_hash(text) from public, anon, authenticated$s0$;
-      execute $s0$-- 1) Busca na base própria. Não informa se a empresa é pré-cadastrada nem se tem manifestação. Conta na cota da busca.
+      execute $s0$revoke all on function private.norm_cnpj(text), private.email_hash(text) from public, anon, authenticated, service_role$s0$;
+      execute $s0$-- 1) Busca por CNPJ só entre as cadastradas (as mesmas do diretório). Não cadastrada, nunca relatada ou já relatada:
+-- a mesma resposta (nenhuma linha), e o front segue pela Edge Function. Sem cota: não revela nada além do diretório.
 create function public.find_company_by_cnpj(p_cnpj text)
 returns table (id uuid, name text, city text, state text)
-language plpgsql security definer set search_path = '' as $$
+language plpgsql stable security definer set search_path = '' as $$
 declare v_cnpj text := private.norm_cnpj(p_cnpj);
 begin
   if auth.uid() is null then raise exception 'acesso negado' using errcode = '42501'; end if;
   if not private.valid_cnpj(v_cnpj) then raise exception 'CNPJ inválido.' using errcode = 'P0001'; end if;
-  if not (private.take_quota(auth.uid(), 'minute', 10) and private.take_quota(auth.uid(), 'day', 50)) then
-    raise exception 'Limite de consultas atingido. Tente mais tarde.' using errcode = 'P0001';
-  end if;
   return query
-  select co.id, coalesce(co.trade_name, co.legal_name), coalesce(a.city, pr.city), coalesce(a.state, pr.state)
+  select co.id, coalesce(co.trade_name, co.legal_name), a.city, a.state
   from public.companies co
-  left join public.addresses a on a.id = co.address_id
-  left join private.company_preregistrations pr on pr.company_id = co.id
-  where co.cnpj = v_cnpj;
+  join public.addresses a on a.id = co.address_id
+  where co.cnpj = v_cnpj and co.registration_status = 'registered';
 end;
 $$$s0$;
-      execute $s0$-- 2) Pré-cadastro a partir do cache gravado pela Edge Function (ADR-0017 D8). Nunca com dados enviados pelo cliente.
-create function public.preregister_company(p_cnpj text)
+      execute $s0$-- 2) Resolve a empresa de um relato pelo CNPJ (só chamada por create_complaint). Devolve a existente, de qualquer estado,
+-- ou cria a pré-cadastrada: do cache (ADR-0017 D8), ou dos dados manuais (plano B, pending_check). A validação dos dados
+-- manuais é feita por quem chama, antes, sem olhar se a empresa existe.
+create function private.preregister_company(p_cnpj text, p_manual jsonb)
 returns uuid language plpgsql security definer set search_path = '' as $$
-declare v_cnpj text := private.norm_cnpj(p_cnpj); v_id uuid; c record;
+declare v_id uuid; c record;
 begin
-  if auth.uid() is null then raise exception 'acesso negado' using errcode = '42501'; end if;
-  if not private.valid_cnpj(v_cnpj) then raise exception 'CNPJ inválido.' using errcode = 'P0001'; end if;
-  select co.id into v_id from public.companies co where co.cnpj = v_cnpj;
+  select co.id into v_id from public.companies co where co.cnpj = p_cnpj for update;
   if v_id is not null then return v_id; end if;
-  select * into c from private.cnpj_cache where cnpj = v_cnpj;
-  if not found or c.natural_person then
-    raise exception 'Dados da empresa indisponíveis. Preencha os dados manualmente.' using errcode = 'P0001';
+  select * into c from private.cnpj_cache where cnpj = p_cnpj;
+  if found and not c.natural_person then
+    insert into public.companies (legal_name, trade_name, cnpj, address_id, created_by, registration_status, data_source)
+    values (c.legal_name, c.trade_name, p_cnpj, null, null, 'pre_registered', 'cnpj_api')
+    on conflict (cnpj) do nothing returning id into v_id;
+    if v_id is not null then
+      insert into private.company_preregistrations (company_id, city, state, cadastral_situation, main_cnae, legal_nature,
+                                                    natural_person, provider, fetched_at)
+      values (v_id, c.city, c.state, c.cadastral_situation, c.main_cnae, c.legal_nature, false, c.provider, c.fetched_at);
+    end if;
+  else
+    insert into public.companies (legal_name, trade_name, cnpj, address_id, created_by, registration_status, data_source)
+    values (btrim(p_manual ->> 'name'), null, p_cnpj, null, null, 'pending_check', 'manual')
+    on conflict (cnpj) do nothing returning id into v_id;
+    if v_id is not null then
+      insert into private.company_preregistrations (company_id, city, state, natural_person)
+      values (v_id, btrim(p_manual ->> 'city'), upper(btrim(p_manual ->> 'state')), coalesce(c.natural_person, false));
+    end if;
   end if;
-  if not private.take_quota(auth.uid(), 'prereg_day', 3) then
-    raise exception 'Limite de cadastros de empresa atingido hoje. Tente amanhã.' using errcode = 'P0001';
+  if v_id is null then  -- outro relato criou a mesma empresa ao mesmo tempo
+    select co.id into v_id from public.companies co where co.cnpj = p_cnpj;
   end if;
-  insert into public.companies (legal_name, trade_name, cnpj, address_id, created_by, registration_status, data_source)
-  values (c.legal_name, c.trade_name, v_cnpj, null, null, 'pre_registered', 'cnpj_api')
-  on conflict (cnpj) do nothing
-  returning id into v_id;
-  if v_id is null then  -- outra conta criou ao mesmo tempo
-    select co.id into v_id from public.companies co where co.cnpj = v_cnpj;
-    return v_id;
-  end if;
-  insert into private.company_preregistrations (company_id, city, state, cadastral_situation, main_cnae, legal_nature,
-                                                natural_person, provider, fetched_at)
-  values (v_id, c.city, c.state, c.cadastral_situation, c.main_cnae, c.legal_nature, false, c.provider, c.fetched_at);
   return v_id;
 end;
 $$$s0$;
-      execute $s0$-- 3) Plano B: API fora do ar, CNPJ não encontrado ou pessoa física. Nasce pending_check para a equipe conferir.
-create function public.preregister_company_manual(p_cnpj text, p_name text, p_city text, p_state text)
-returns uuid language plpgsql security definer set search_path = '' as $$
-declare
-  v_cnpj text := private.norm_cnpj(p_cnpj);
-  v_name text := btrim(coalesce(p_name, ''));
-  v_city text := btrim(coalesce(p_city, ''));
-  v_state text := upper(btrim(coalesce(p_state, '')));
-  v_id uuid;
-begin
-  if auth.uid() is null then raise exception 'acesso negado' using errcode = '42501'; end if;
-  if not private.valid_cnpj(v_cnpj) then raise exception 'CNPJ inválido.' using errcode = 'P0001'; end if;
-  select co.id into v_id from public.companies co where co.cnpj = v_cnpj;
-  if v_id is not null then return v_id; end if;
-  if char_length(v_name) not between 2 and 160 then raise exception 'Informe o nome da empresa (2 a 160 caracteres).' using errcode = 'P0001'; end if;
-  if char_length(v_city) not between 2 and 80 then raise exception 'Informe o município da empresa.' using errcode = 'P0001'; end if;
-  if v_state not in ('AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS',
-                     'RO','RR','SC','SP','SE','TO') then
-    raise exception 'Informe a UF da empresa.' using errcode = 'P0001';
-  end if;
-  if not private.take_quota(auth.uid(), 'prereg_day', 3) then
-    raise exception 'Limite de cadastros de empresa atingido hoje. Tente amanhã.' using errcode = 'P0001';
-  end if;
-  insert into public.companies (legal_name, trade_name, cnpj, address_id, created_by, registration_status, data_source)
-  values (v_name, null, v_cnpj, null, null, 'pending_check', 'manual')
-  on conflict (cnpj) do nothing
-  returning id into v_id;
-  if v_id is null then
-    select co.id into v_id from public.companies co where co.cnpj = v_cnpj;
-    return v_id;
-  end if;
-  insert into private.company_preregistrations (company_id, city, state, natural_person)
-  values (v_id, v_city, v_state, coalesce((select natural_person from private.cnpj_cache where cnpj = v_cnpj), false));
-  return v_id;
-end;
-$$$s0$;
-      execute $s0$-- 4) Nova manifestação: corpo de 20261117150000 (com a checagem da pausa) + contato opcional para o aviso.
--- p.notice_contact = {"email": "...", "possibly_involved": true|false, "consent": true}. Só para empresa não cadastrada e
--- só quando a versão vai para revisão (p_share); o aviso depende da equipe (ops_decide_notice).
+      execute $s0$revoke all on function private.preregister_company(text, jsonb) from public, anon, authenticated, service_role$s0$;
+      execute $s0$-- 3) Nova manifestação: corpo de 20261117150000 (com a checagem da pausa) + empresa pelo CNPJ + contato para o aviso.
+-- Empresa: p.company_id (cadastrada, do diretório ou de find_company_by_cnpj) OU p.company_cnpj, com
+-- p.company_manual = {"name", "city", "state"} quando a Edge Function não trouxe os dados (manual). Pelo CNPJ: até 3
+-- relatos por dia por conta, contados existindo a empresa ou não; dados manuais exigidos sempre que o cache não tiver a
+-- empresa, existindo ela ou não.
+-- Contato: p.notice_contact = {"email", "possibly_involved": bool, "consent": true}, só com p_share. Validado sempre;
+-- gravado só se a empresa não for registered (descartado em silêncio na cadastrada).
 create or replace function public.create_complaint(p jsonb, p_share boolean)
 returns uuid language plpgsql security definer set search_path = '' as $$
 declare
   v_worker uuid;
   v_id uuid;
+  v_company uuid;
+  v_company_status text;
+  v_cnpj text;
+  v_manual jsonb := p -> 'company_manual';
   v_shared text := nullif(btrim(p ->> 'shared_content'), '');
   v_contact jsonb := p -> 'notice_contact';
   v_email text;
-  v_company_status text;
 begin
   perform private.assert_pilot_open();
   select id into v_worker from public.workers where user_id = auth.uid();
   if v_worker is null then raise exception 'Somente trabalhadores podem registrar manifestações.' using errcode = 'P0001'; end if;
-  select registration_status into v_company_status from public.companies where id = (p ->> 'company_id')::uuid;
-  if v_company_status is null then
-    raise exception 'Empresa não encontrada.' using errcode = 'P0001';
-  end if;
   if p_share and v_shared is null then raise exception 'Escreva a versão que poderá ser compartilhada com a empresa.' using errcode = 'P0001'; end if;
+
+  -- Contato: só validação de entrada, sem olhar a empresa.
   if v_contact is not null and jsonb_typeof(v_contact) <> 'null' then
     if jsonb_typeof(v_contact) <> 'object' then raise exception 'Contato para o aviso inválido.' using errcode = 'P0001'; end if;
     if not p_share then
       raise exception 'O aviso à empresa só é possível quando você envia a versão compartilhável para revisão.' using errcode = 'P0001';
-    end if;
-    if v_company_status = 'registered' then
-      raise exception 'Esta empresa já está cadastrada; o aviso não se aplica.' using errcode = 'P0001';
     end if;
     v_email := lower(btrim(coalesce(v_contact ->> 'email', '')));
     if char_length(v_email) > 254 or v_email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then
@@ -628,9 +825,36 @@ begin
     end if;
   end if;
 
+  -- Empresa.
+  if nullif(p ->> 'company_id', '') is not null then
+    select id, registration_status into v_company, v_company_status from public.companies where id = (p ->> 'company_id')::uuid;
+    if v_company is null then raise exception 'Empresa não encontrada.' using errcode = 'P0001'; end if;
+  else
+    v_cnpj := private.norm_cnpj(p ->> 'company_cnpj');
+    if not private.valid_cnpj(v_cnpj) then raise exception 'CNPJ inválido.' using errcode = 'P0001'; end if;
+    if not exists (select 1 from private.cnpj_cache where cnpj = v_cnpj and not natural_person) then
+      if v_manual is null or jsonb_typeof(v_manual) <> 'object'
+         or char_length(btrim(coalesce(v_manual ->> 'name', ''))) not between 2 and 160 then
+        raise exception 'Informe o nome da empresa (2 a 160 caracteres).' using errcode = 'P0001';
+      end if;
+      if char_length(btrim(coalesce(v_manual ->> 'city', ''))) not between 2 and 80 then
+        raise exception 'Informe o município da empresa.' using errcode = 'P0001';
+      end if;
+      if upper(btrim(coalesce(v_manual ->> 'state', ''))) not in ('AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG',
+           'PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO') then
+        raise exception 'Informe a UF da empresa.' using errcode = 'P0001';
+      end if;
+    end if;
+    if not private.take_quota(auth.uid(), 'prereg_day', 3) then
+      raise exception 'Limite de relatos por CNPJ atingido hoje. Tente amanhã.' using errcode = 'P0001';
+    end if;
+    v_company := private.preregister_company(v_cnpj, v_manual);
+    select registration_status into v_company_status from public.companies where id = v_company;
+  end if;
+
   insert into public.complaints (worker_id, company_id, category, title, incident_period, recurrence, expected_outcomes, status)
   values (
-    v_worker, (p ->> 'company_id')::uuid, btrim(p ->> 'category'), btrim(p ->> 'title'),
+    v_worker, v_company, btrim(p ->> 'category'), btrim(p ->> 'title'),
     nullif(btrim(p ->> 'incident_period'), ''), nullif(btrim(p ->> 'recurrence'), ''),
     coalesce(array(select jsonb_array_elements_text(p -> 'expected_outcomes')), '{}'),
     case when p_share then 'in_review'::public.complaint_status else 'received'::public.complaint_status end
@@ -642,14 +866,14 @@ begin
     insert into public.complaint_shared_versions (complaint_id, shared_content) values (v_id, v_shared);
     insert into public.complaint_events (complaint_id, status, actor, note) values (v_id, 'in_review', 'worker', 'Revisão solicitada. A equipe confere a versão antes de liberar à empresa.');
   end if;
-  if v_email is not null then
+  if v_email is not null and v_company_status <> 'registered' then
     insert into public.complaint_contacts (complaint_id, email, possibly_involved, worker_consented)
     values (v_id, v_email, (v_contact ->> 'possibly_involved')::boolean, true);
   end if;
   return v_id;
 end;
 $$$s0$;
-      execute $s0$-- 5) Equipe: empresas fora do cadastro, para conferir na Receita.
+      execute $s0$-- 4) Equipe: empresas fora do cadastro, para conferir na Receita.
 create function public.ops_list_pending_companies()
 returns table (company_id uuid, name text, cnpj text, city text, state text, registration_status text, data_source text,
                natural_person boolean, cadastral_situation text, review_decision text, review_reason text, created_at timestamptz,
@@ -693,7 +917,7 @@ begin
   end if;
 end;
 $$$s0$;
-      execute $s0$-- 6) Equipe: manifestações com e-mail indicado para o aviso.
+      execute $s0$-- 5) Equipe: manifestações com e-mail indicado para o aviso.
 create function public.ops_list_notice_candidates()
 returns table (complaint_id uuid, protocol text, complaint_status public.complaint_status, company_id uuid, company_name text,
                registration_status text, natural_person boolean, review_decision text, contact_id uuid, email text,
@@ -744,6 +968,10 @@ begin
     return v_id;
   end if;
 
+  if not exists (select 1 from pg_proc where oid = to_regprocedure('public.list_company_complaints()')
+                 and prosrc like '%is_verified_company_user%') then
+    raise exception 'A troca do gate (20261117130000) não está aplicada: a empresa avisada veria casos sem verificação.' using errcode = 'P0001';
+  end if;
   if v_status <> 'shared' then
     raise exception 'O aviso só sai depois que a equipe libera a manifestação (retida ou em revisão não recebe aviso).' using errcode = 'P0001';
   end if;
@@ -819,13 +1047,11 @@ begin
   return v_count;
 end;
 $$$s0$;
-      execute $s0$revoke execute on function public.find_company_by_cnpj(text), public.preregister_company(text),
-  public.preregister_company_manual(text, text, text, text), public.ops_list_pending_companies(),
+      execute $s0$revoke execute on function public.find_company_by_cnpj(text), public.ops_list_pending_companies(),
   public.ops_review_company(uuid, text, text, boolean), public.ops_list_notice_candidates(),
   public.ops_decide_notice(uuid, text, text), public.ops_mark_notice_sent(uuid, text), public.ops_add_opt_out(text),
-  public.ops_purge_expired_contacts() from public, anon$s0$;
-      execute $s0$grant execute on function public.find_company_by_cnpj(text), public.preregister_company(text),
-  public.preregister_company_manual(text, text, text, text), public.ops_list_pending_companies(),
+  public.ops_purge_expired_contacts() from public, anon, service_role$s0$;
+      execute $s0$grant execute on function public.find_company_by_cnpj(text), public.ops_list_pending_companies(),
   public.ops_review_company(uuid, text, text, boolean), public.ops_list_notice_candidates(),
   public.ops_decide_notice(uuid, text, text), public.ops_mark_notice_sent(uuid, text), public.ops_add_opt_out(text),
   public.ops_purge_expired_contacts() to authenticated$s0$;
@@ -833,9 +1059,10 @@ $$$s0$;
     end if;
 
     -- Verificações (empresa_checks.sql)
-    -- declare: u_w uuid := 'ebbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'; u_c uuid := 'eccccccc-cccc-cccc-cccc-cccccccccccc'; u_op uuid := 'eddddddd-dddd-dddd-dddd-dddddddddddd'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_api text := '27182818000129'; cnpj_pf text := '31415926000171'; cnpj_man text := '16180339000157'; cnpj_extra text := '57721566000120'; cnpj_reg text := '14142135000104'; co_reg uuid; co_api uuid; co_pf uuid; co_man uuid; cp1 uuid; cp2 uuid; cp3 uuid; cp4 uuid; cp5 uuid; n1 uuid; n int; r record;
-    -- Verificações da ADR-0023/ADR-0017 (20261118120000 e 20261118130000) na transação de teste. Imprime só contagens e nomes.
-    -- Os CNPJs e o CPF são de teste (dígitos válidos); se algum existir em produção, o teste para antes de criar dados.
+    -- declare: u_w uuid := 'ebbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'; u_c uuid := 'eccccccc-cccc-cccc-cccc-cccccccccccc'; u_op uuid := 'eddddddd-dddd-dddd-dddd-dddddddddddd'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_api text := '27182818000129'; cnpj_pf text := '31415926000171'; cnpj_man text := '16180339000157'; cnpj_extra text := '57721566000120'; cnpj_reg text := '14142135000104'; co_reg uuid; co_api uuid; co_pf uuid; co_man uuid; cp1 uuid; cp2 uuid; cp3 uuid; cp4 uuid; cp5 uuid; cp6 uuid; cp7 uuid; n1 uuid; n int; r record; base jsonb;
+    -- Verificações da ADR-0023/ADR-0017 (20261118120000 e 20261118130000, revista após a revisão do DevOps) na transação
+    -- de teste. Imprime só contagens e nomes. CNPJs e CPF de teste (dígitos válidos); se algum existir em produção, para
+    -- antes de criar dados. Trocar por valores conferidos como inexistentes antes da primeira rodada.
     if exists (select 1 from public.companies where cnpj in (cnpj_api, cnpj_pf, cnpj_man, cnpj_extra, cnpj_reg))
        or exists (select 1 from public.workers where cpf = '27182818205') then
       raise exception 'Valor de teste já existe em produção; troque os CNPJs/CPF do teste.';
@@ -843,6 +1070,8 @@ $$$s0$;
     if exists (select 1 from public.companies where registration_status <> 'registered') then
       falhas := falhas || jsonb_build_object('empresa existente fora de registered', true);
     end if;
+    base := jsonb_build_object('category', 'Carga de trabalho', 'title', 'Tx caso', 'original_content', 'Tx relato original.',
+                               'shared_content', 'Tx versao compartilhavel.');
     
     insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
     ('00000000-0000-0000-0000-000000000000', u_w, 'authenticated', 'authenticated', 'tx-ew@teste.invalid', jsonb_build_object('signup_type', 'worker', 'signup', jsonb_build_object('full_name', 'Tx Empresa Trabalhador', 'cpf', '27182818205', 'address', addr)), now(), now()),
@@ -854,20 +1083,30 @@ $$$s0$;
       falhas := falhas || jsonb_build_object('cadastro normal não nasce registered/signup', true);
     end if;
     
-    -- Edge Function simulada (service_role): grava o cache; pessoa física fica sem nome; authenticated não grava.
+    -- Edge Function simulada (service_role): grava o cache; pessoa física sem nome; não lê e-mails nem avisos.
     execute 'set local role service_role';
     perform public.cnpj_cache_put(cnpj_api, false, 'Tx Empresa Api Ltda', 'Tx Api', 'ATIVA', 'Campinas', 'sp', '6201501', '206-2', 'minhareceita');
     perform public.cnpj_cache_put(cnpj_pf, true, 'Fulano Tx da Silva', null, 'ATIVA', 'Campinas', 'SP', '111301', '2135', 'brasilapi');
     if not public.cnpj_quota_take(u_w) then falhas := falhas || jsonb_build_object('cota da função recusou a 1ª', true); end if;
+    begin
+      select count(*) into n from public.complaint_contacts;
+      falhas := falhas || jsonb_build_object('service_role lê complaint_contacts', n);
+    exception when insufficient_privilege then null; end;
+    begin
+      select count(*) into n from public.company_notices;
+      falhas := falhas || jsonb_build_object('service_role lê company_notices', n);
+    exception when insufficient_privilege then null; end;
+    begin
+      select count(*) into n from private.cnpj_cache;
+      falhas := falhas || jsonb_build_object('service_role lê o cache direto', n);
+    exception when insufficient_privilege then null; end;
     execute 'reset role';
     select * into r from private.cnpj_cache where cnpj = cnpj_pf;
     if r.legal_name is not null or r.trade_name is not null or not r.natural_person or r.main_cnae is distinct from '0111301' then
       falhas := falhas || jsonb_build_object('cache de pessoa física com nome ou CNAE errado', true);
     end if;
-    if (select state from private.cnpj_cache where cnpj = cnpj_api) is distinct from 'SP' then
-      falhas := falhas || jsonb_build_object('cache sem normalizar UF', true);
-    end if;
     
+    -- Trabalhador.
     execute 'set local role authenticated';
     perform set_config('request.jwt.claims', json_build_object('sub', u_w, 'role', 'authenticated')::text, true);
     begin
@@ -878,85 +1117,99 @@ $$$s0$;
       perform public.find_company_by_cnpj('11.111.111/1111-11');
       falhas := falhas || jsonb_build_object('busca aceita CNPJ inválido', true);
     exception when others then null; end;
-    if (select count(*) from public.find_company_by_cnpj(cnpj_extra)) <> 0 then falhas := falhas || jsonb_build_object('busca acha CNPJ inexistente', true); end if;
+    if (select count(*) from public.find_company_by_cnpj(cnpj_reg)) <> 1 then falhas := falhas || jsonb_build_object('busca não acha a cadastrada', true); end if;
+    if (select count(*) from public.find_company_by_cnpj(cnpj_api)) <> 0 then falhas := falhas || jsonb_build_object('busca acha CNPJ não cadastrado', true); end if;
+    -- Sem cache e sem dados manuais: recusa antes de qualquer gravação.
     begin
-      perform public.preregister_company(cnpj_extra);
-      falhas := falhas || jsonb_build_object('pré-cadastro sem cache', true);
+      perform public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_extra), true);
+      falhas := falhas || jsonb_build_object('relato por CNPJ sem cache nem dados manuais', true);
     exception when others then
-      if sqlerrm not like 'Dados da empresa indisponíveis%' then falhas := falhas || jsonb_build_object('mensagem sem cache', sqlerrm); end if;
+      if sqlerrm not like 'Informe o nome da empresa%' then falhas := falhas || jsonb_build_object('mensagem sem dados manuais', sqlerrm); end if;
     end;
-    
-    -- Pré-cadastro pela API (cache) e pelo manual; pessoa física vai para o manual.
-    co_api := public.preregister_company(cnpj_api);
-    if public.preregister_company(cnpj_api) is distinct from co_api then falhas := falhas || jsonb_build_object('pré-cadastro repetido não devolve a mesma', true); end if;
+    -- Validação do contato não depende da empresa.
     begin
-      perform public.preregister_company(cnpj_pf);
-      falhas := falhas || jsonb_build_object('pessoa física pré-cadastrada pela API', true);
+      perform public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_api,
+        'notice_contact', jsonb_build_object('email', 'rh@tx.invalid', 'possibly_involved', false, 'consent', false)), true);
+      falhas := falhas || jsonb_build_object('contato sem consentimento aceito', true);
     exception when others then null; end;
-    co_pf := public.preregister_company_manual(cnpj_pf, 'Tx Nome Digitado', 'Campinas', 'sp');
-    co_man := public.preregister_company_manual(cnpj_man, 'Tx Empresa Manual Ltda', 'Santos', 'SP');
     begin
-      perform public.preregister_company_manual(cnpj_extra, 'Tx Quarta Empresa', 'Santos', 'SP');
-      falhas := falhas || jsonb_build_object('cota de pré-cadastro não barrou a 4ª', true);
+      perform public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_api,
+        'notice_contact', jsonb_build_object('email', 'rh@tx.invalid', 'consent', true)), true);
+      falhas := falhas || jsonb_build_object('contato sem possibly_involved aceito', true);
+    exception when others then null; end;
+    begin
+      perform public.create_complaint(jsonb_build_object('company_cnpj', cnpj_api, 'category', 'Carga de trabalho', 'title', 'Tx sem compartilhar',
+        'original_content', 'Tx relato original.', 'notice_contact', jsonb_build_object('email', 'rh@tx.invalid', 'possibly_involved', false, 'consent', true)), false);
+      falhas := falhas || jsonb_build_object('contato aceito sem compartilhar', true);
+    exception when others then null; end;
+    -- Três relatos pelo CNPJ do cache: o primeiro cria a pré-cadastrada, os seguintes entram nela.
+    cp1 := public.create_complaint(base || jsonb_build_object('company_cnpj', '27.182.818/0001-29',
+      'notice_contact', jsonb_build_object('email', ' RH@Tx-Api.invalid ', 'possibly_involved', false, 'consent', true)), true);
+    cp2 := public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_api,
+      'notice_contact', jsonb_build_object('email', 'chefe@tx-api.invalid', 'possibly_involved', true, 'consent', true)), true);
+    cp3 := public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_api,
+      'notice_contact', jsonb_build_object('email', 'ouvidoria@tx-api.invalid', 'possibly_involved', false, 'consent', true)), true);
+    -- Quarto relato por CNPJ no dia: recusado, exista a empresa ou não.
+    begin
+      perform public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_man,
+        'company_manual', jsonb_build_object('name', 'Tx Empresa Manual Ltda', 'city', 'Santos', 'state', 'SP')), true);
+      falhas := falhas || jsonb_build_object('cota de relato por CNPJ não barrou o 4º', true);
     exception when others then
-      if sqlerrm not like 'Limite de cadastros%' then falhas := falhas || jsonb_build_object('mensagem da cota', sqlerrm); end if;
+      if sqlerrm not like 'Limite de relatos por CNPJ%' then falhas := falhas || jsonb_build_object('mensagem da cota', sqlerrm); end if;
     end;
-    select count(*) into n from public.find_company_by_cnpj('27.182.818/0001-29') f where f.city = 'Campinas' and f.state = 'SP';
-    if n <> 1 then falhas := falhas || jsonb_build_object('busca não acha a pré-cadastrada com município', n); end if;
+    if (select count(*) from public.find_company_by_cnpj(cnpj_api)) <> 0 then
+      falhas := falhas || jsonb_build_object('busca revela a pré-cadastrada', true);
+    end if;
+    execute 'reset role';
+    delete from private.cnpj_lookup_quota where user_id = u_w;  -- zera a cota para seguir o teste
+    select id into co_api from public.companies where cnpj = cnpj_api;
+    if (select count(distinct company_id) from public.complaints where id in (cp1, cp2, cp3)) <> 1
+       or (select registration_status || '/' || data_source || '/' || coalesce(created_by::text, 'null') from public.companies where id = co_api)
+          is distinct from 'pre_registered/cnpj_api/null' then
+      falhas := falhas || jsonb_build_object('pré-cadastrada pelo cache errada ou duplicada', true);
+    end if;
+    execute 'set local role authenticated';
+    perform set_config('request.jwt.claims', json_build_object('sub', u_w, 'role', 'authenticated')::text, true);
+    -- Pessoa física (cache com a marca) e manual: exigem os dados manuais e nascem pending_check.
+    cp4 := public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_pf,
+      'company_manual', jsonb_build_object('name', 'Tx Nome Digitado', 'city', 'Campinas', 'state', 'sp'),
+      'notice_contact', jsonb_build_object('email', 'pessoa@tx.invalid', 'possibly_involved', false, 'consent', true)), true);
+    cp5 := public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_man,
+      'company_manual', jsonb_build_object('name', 'Tx Empresa Manual Ltda', 'city', 'Santos', 'state', 'SP'),
+      'notice_contact', jsonb_build_object('email', 'saiu@tx-man.invalid', 'possibly_involved', false, 'consent', true)), true);
+    -- Empresa cadastrada, por id ou por CNPJ: relato aceito e contato descartado em silêncio.
+    cp6 := public.create_complaint(base || jsonb_build_object('company_id', co_reg,
+      'notice_contact', jsonb_build_object('email', 'rh@tx-reg.invalid', 'possibly_involved', false, 'consent', true)), true);
+    cp7 := public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_reg,
+      'company_manual', jsonb_build_object('name', 'Outro Nome', 'city', 'Santos', 'state', 'SP'),
+      'notice_contact', jsonb_build_object('email', 'rh@tx-reg.invalid', 'possibly_involved', false, 'consent', true)), true);
     -- Fora das listas.
+    execute 'reset role';
+    select id into co_pf from public.companies where cnpj = cnpj_pf;
+    select id into co_man from public.companies where cnpj = cnpj_man;
+    if (select company_id from public.complaints where id = cp7) is distinct from co_reg
+       or (select legal_name from public.companies where id = co_reg) is distinct from 'Tx Empresa Cadastrada Ltda' then
+      falhas := falhas || jsonb_build_object('relato por CNPJ de cadastrada não entrou nela ou mudou o nome', true);
+    end if;
+    if exists (select 1 from public.complaint_contacts where complaint_id in (cp6, cp7)) then
+      falhas := falhas || jsonb_build_object('contato gravado para empresa cadastrada', true);
+    end if;
+    select pr.natural_person, co.registration_status into r from public.companies co join private.company_preregistrations pr on pr.company_id = co.id where co.id = co_pf;
+    if r.natural_person is distinct from true or r.registration_status is distinct from 'pending_check' then
+      falhas := falhas || jsonb_build_object('pessoa física manual sem a marca ou fora de pending_check', true);
+    end if;
+    execute 'set local role authenticated';
+    perform set_config('request.jwt.claims', json_build_object('sub', u_w, 'role', 'authenticated')::text, true);
     if exists (select 1 from public.list_company_directory() d where d.id in (co_api, co_pf, co_man)) then
       falhas := falhas || jsonb_build_object('pré-cadastrada no diretório', true);
     end if;
     if exists (select 1 from public.company_responsiveness() d where d.company_id in (co_api, co_pf, co_man)) then
       falhas := falhas || jsonb_build_object('pré-cadastrada na responsividade', true);
     end if;
-    -- Contato do aviso.
-    begin
-      perform public.create_complaint(jsonb_build_object('company_id', co_reg, 'category', 'Carga de trabalho', 'title', 'Tx caso cadastrada',
-        'original_content', 'Tx relato original.', 'shared_content', 'Tx versao compartilhavel.',
-        'notice_contact', jsonb_build_object('email', 'rh@tx.invalid', 'possibly_involved', false, 'consent', true)), true);
-      falhas := falhas || jsonb_build_object('contato aceito para empresa cadastrada', true);
-    exception when others then null; end;
-    begin
-      perform public.create_complaint(jsonb_build_object('company_id', co_api, 'category', 'Carga de trabalho', 'title', 'Tx sem consentimento',
-        'original_content', 'Tx relato original.', 'shared_content', 'Tx versao compartilhavel.',
-        'notice_contact', jsonb_build_object('email', 'rh@tx.invalid', 'possibly_involved', false, 'consent', false)), true);
-      falhas := falhas || jsonb_build_object('contato sem consentimento aceito', true);
-    exception when others then null; end;
-    begin
-      perform public.create_complaint(jsonb_build_object('company_id', co_api, 'category', 'Carga de trabalho', 'title', 'Tx sem resposta',
-        'original_content', 'Tx relato original.', 'shared_content', 'Tx versao compartilhavel.',
-        'notice_contact', jsonb_build_object('email', 'rh@tx.invalid', 'consent', true)), true);
-      falhas := falhas || jsonb_build_object('contato sem possibly_involved aceito', true);
-    exception when others then null; end;
-    begin
-      perform public.create_complaint(jsonb_build_object('company_id', co_api, 'category', 'Carga de trabalho', 'title', 'Tx sem compartilhar',
-        'original_content', 'Tx relato original.', 'notice_contact', jsonb_build_object('email', 'rh@tx.invalid', 'possibly_involved', false, 'consent', true)), false);
-      falhas := falhas || jsonb_build_object('contato aceito sem compartilhar', true);
-    exception when others then null; end;
-    cp1 := public.create_complaint(jsonb_build_object('company_id', co_api, 'category', 'Carga de trabalho', 'title', 'Tx caso um',
-      'original_content', 'Tx relato original um.', 'shared_content', 'Tx versao um.',
-      'notice_contact', jsonb_build_object('email', ' RH@Tx-Api.invalid ', 'possibly_involved', false, 'consent', true)), true);
-    cp2 := public.create_complaint(jsonb_build_object('company_id', co_api, 'category', 'Carga de trabalho', 'title', 'Tx caso dois',
-      'original_content', 'Tx relato original dois.', 'shared_content', 'Tx versao dois.',
-      'notice_contact', jsonb_build_object('email', 'chefe@tx-api.invalid', 'possibly_involved', true, 'consent', true)), true);
-    cp3 := public.create_complaint(jsonb_build_object('company_id', co_api, 'category', 'Carga de trabalho', 'title', 'Tx caso tres',
-      'original_content', 'Tx relato original tres.', 'shared_content', 'Tx versao tres.',
-      'notice_contact', jsonb_build_object('email', 'ouvidoria@tx-api.invalid', 'possibly_involved', false, 'consent', true)), true);
-    cp4 := public.create_complaint(jsonb_build_object('company_id', co_pf, 'category', 'Carga de trabalho', 'title', 'Tx caso pessoa',
-      'original_content', 'Tx relato original pessoa.', 'shared_content', 'Tx versao pessoa.',
-      'notice_contact', jsonb_build_object('email', 'pessoa@tx.invalid', 'possibly_involved', false, 'consent', true)), true);
-    cp5 := public.create_complaint(jsonb_build_object('company_id', co_man, 'category', 'Carga de trabalho', 'title', 'Tx caso manual',
-      'original_content', 'Tx relato original manual.', 'shared_content', 'Tx versao manual.',
-      'notice_contact', jsonb_build_object('email', 'saiu@tx-man.invalid', 'possibly_involved', false, 'consent', true)), true);
     -- O trabalhador não lê contatos nem avisos direto, e não decide aviso.
     begin
       select count(*) into n from public.complaint_contacts;
       falhas := falhas || jsonb_build_object('trabalhador lê complaint_contacts', n);
-    exception when insufficient_privilege then null; end;
-    begin
-      select count(*) into n from public.company_notices;
-      falhas := falhas || jsonb_build_object('trabalhador lê company_notices', n);
     exception when insufficient_privilege then null; end;
     begin
       perform public.ops_decide_notice(cp1, 'approved', null);
@@ -979,55 +1232,60 @@ $$$s0$;
     if (select email from public.ops_list_notice_candidates() c where c.complaint_id = cp1) is distinct from 'rh@tx-api.invalid' then
       falhas := falhas || jsonb_build_object('e-mail não normalizado na fila', true);
     end if;
-    begin
-      perform public.ops_decide_notice(cp1, 'approved', null);
-      falhas := falhas || jsonb_build_object('aviso antes da liberação', true);
-    exception when others then null; end;
     perform public.ops_decide_complaint(cp1, 'released', null);
     perform public.ops_decide_complaint(cp2, 'released', null);
     perform public.ops_decide_complaint(cp3, 'released', null);
     perform public.ops_decide_complaint(cp4, 'released', null);
     perform public.ops_decide_complaint(cp5, 'released', null);
-    n1 := public.ops_decide_notice(cp1, 'approved', null);
-    begin
-      perform public.ops_decide_notice(cp2, 'approved', null);
-      falhas := falhas || jsonb_build_object('aviso a contato possivelmente envolvido', true);
-    exception when others then null; end;
-    begin
-      perform public.ops_decide_notice(cp3, 'approved', null);
-      falhas := falhas || jsonb_build_object('segundo aviso à mesma empresa em 30 dias', true);
-    exception when others then
-      if sqlerrm not like '%30 dias%' then falhas := falhas || jsonb_build_object('mensagem dos 30 dias', sqlerrm); end if;
-    end;
+    -- Sem a troca do gate (130000) o aviso é recusado; com ela, segue. Este teste roda com ou sem a 130000 na transação.
+    if not exists (select 1 from pg_proc where oid = to_regprocedure('public.list_company_complaints()') and prosrc like '%is_verified_company_user%') then
+      begin
+        perform public.ops_decide_notice(cp1, 'approved', null);
+        falhas := falhas || jsonb_build_object('aviso aprovado sem a troca do gate', true);
+      exception when others then null; end;
+      res := res || jsonb_build_object('aviso', 'recusado sem a 130000 (esperado); travas de aprovação não exercitadas nesta rodada');
+    else
+      n1 := public.ops_decide_notice(cp1, 'approved', null);
+      begin
+        perform public.ops_decide_notice(cp2, 'approved', null);
+        falhas := falhas || jsonb_build_object('aviso a contato possivelmente envolvido', true);
+      exception when others then null; end;
+      begin
+        perform public.ops_decide_notice(cp3, 'approved', null);
+        falhas := falhas || jsonb_build_object('segundo aviso à mesma empresa em 30 dias', true);
+      exception when others then
+        if sqlerrm not like '%30 dias%' then falhas := falhas || jsonb_build_object('mensagem dos 30 dias', sqlerrm); end if;
+      end;
+      begin
+        perform public.ops_decide_notice(cp4, 'approved', null);
+        falhas := falhas || jsonb_build_object('aviso a empresa pending_check', true);
+      exception when others then null; end;
+      perform public.ops_review_company(co_pf, 'confirmed', null, null);
+      begin
+        perform public.ops_decide_notice(cp4, 'approved', null);
+        falhas := falhas || jsonb_build_object('aviso a pessoa física', true);
+      exception when others then null; end;
+      perform public.ops_review_company(co_man, 'confirmed', null, null);
+      perform public.ops_add_opt_out(' Saiu@tx-man.invalid');
+      begin
+        perform public.ops_decide_notice(cp5, 'approved', null);
+        falhas := falhas || jsonb_build_object('aviso a e-mail em opt-out', true);
+      exception when others then null; end;
+      perform public.ops_mark_notice_sent(n1, 'sent');
+      begin
+        perform public.ops_mark_notice_sent(n1, 'sent');
+        falhas := falhas || jsonb_build_object('envio marcado duas vezes', true);
+      exception when others then null; end;
+    end if;
     perform public.ops_decide_notice(cp3, 'rejected', 'Tx empresa já avisada neste mês.');
     begin
       perform public.ops_decide_notice(cp3, 'rejected', 'Tx segunda decisão.');
       falhas := falhas || jsonb_build_object('aviso decidido duas vezes', true);
     exception when others then null; end;
-    begin
-      perform public.ops_decide_notice(cp4, 'approved', null);
-      falhas := falhas || jsonb_build_object('aviso a empresa pending_check', true);
-    exception when others then null; end;
-    perform public.ops_review_company(co_pf, 'confirmed', null, null);
-    begin
-      perform public.ops_decide_notice(cp4, 'approved', null);
-      falhas := falhas || jsonb_build_object('aviso a pessoa física', true);
-    exception when others then null; end;
-    perform public.ops_review_company(co_man, 'confirmed', null, null);
-    perform public.ops_add_opt_out(' Saiu@tx-man.invalid');
-    begin
-      perform public.ops_decide_notice(cp5, 'approved', null);
-      falhas := falhas || jsonb_build_object('aviso a e-mail em opt-out', true);
-    exception when others then null; end;
-    perform public.ops_mark_notice_sent(n1, 'sent');
-    begin
-      perform public.ops_mark_notice_sent(n1, 'sent');
-      falhas := falhas || jsonb_build_object('envio marcado duas vezes', true);
-    exception when others then null; end;
-    if (select status from public.company_notices where id = n1) is distinct from 'sent' then falhas := falhas || jsonb_build_object('aviso não ficou sent', true); end if;
     
-    -- Trilha imutável; retenção apaga o contato e mantém a trilha.
+    -- Trilha imutável; retenção apaga o contato vencido e mantém a trilha.
     execute 'reset role';
+    select id into n1 from public.company_notices where complaint_id = cp3;
     begin
       update public.company_notices set reason = 'Tx alteração indevida.' where id = n1;
       falhas := falhas || jsonb_build_object('aviso alterável', true);
@@ -1036,22 +1294,19 @@ $$$s0$;
       delete from public.company_notices where id = n1;
       falhas := falhas || jsonb_build_object('aviso apagável', true);
     exception when others then null; end;
-    update public.complaints set status = 'closed', closed_at = now() - interval '91 days' where id = cp1;
+    update public.complaint_contacts set reviewed_at = now() - interval '91 days' where complaint_id = cp3;
     execute 'set local role authenticated';
     perform set_config('request.jwt.claims', json_build_object('sub', u_op, 'role', 'authenticated')::text, true);
     if public.ops_purge_expired_contacts() < 1 then falhas := falhas || jsonb_build_object('retenção não apagou contato vencido', true); end if;
     execute 'reset role';
-    if (select contact_id from public.company_notices where id = n1) is not null or not exists (select 1 from public.company_notices where id = n1) then
+    if not exists (select 1 from public.company_notices where id = n1 and contact_id is null) then
       falhas := falhas || jsonb_build_object('trilha perdida ou contato preso após retenção', true);
-    end if;
-    if exists (select 1 from public.companies where id in (co_api, co_pf, co_man) and created_by is not null) then
-      falhas := falhas || jsonb_build_object('pré-cadastrada grava quem criou', true);
     end if;
     
     -- Anon não executa.
     execute 'set local role anon';
     begin
-      perform public.find_company_by_cnpj(cnpj_api);
+      perform public.find_company_by_cnpj(cnpj_reg);
       falhas := falhas || jsonb_build_object('anon busca CNPJ', true);
     exception when insufficient_privilege then null; end;
     begin

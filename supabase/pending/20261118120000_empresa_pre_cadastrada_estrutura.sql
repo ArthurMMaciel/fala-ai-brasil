@@ -7,6 +7,8 @@
 -- a quem lê companies e para não gravar quem criou a empresa (companies.created_by fica nulo: gravar o trabalhador
 -- ligaria a conta ao empregador).
 -- Sem enum novo: estados em text + check.
+-- service_role (chave da Edge Function) sem acesso direto a nenhuma tabela nova: só às três RPCs do cache e da cota. Os
+-- e-mails indicados (complaint_contacts) e os avisos ficam fora do alcance dela (revisão do DevOps, 2026-11-18).
 --
 -- Rollback (antes da migration 2): drop function public.cnpj_cache_get(text), public.cnpj_cache_put(text, boolean, text, text,
 --   text, text, text, text, text, text), public.cnpj_quota_take(uuid), private.take_quota(uuid, text, integer);
@@ -44,7 +46,7 @@ create table private.company_preregistrations (
   created_at timestamptz not null default now(),
   check (review_decision is distinct from 'blocked' or review_reason is not null)
 );
-revoke all on private.company_preregistrations from public, anon, authenticated;
+revoke all on private.company_preregistrations from public, anon, authenticated, service_role;
 
 -- 2) Cache de dados públicos de pessoa jurídica (ADR-0017 D4 a D6, com a aceitação: não é apagado, é renovado).
 -- Não registra quem consultou. Pessoa física fica só com a marca, sem nome.
@@ -63,7 +65,7 @@ create table private.cnpj_cache (
   check (not natural_person or (legal_name is null and trade_name is null)),
   check (natural_person or legal_name is not null)
 );
-revoke all on private.cnpj_cache from public, anon, authenticated;
+revoke all on private.cnpj_cache from public, anon, authenticated, service_role;
 
 -- 3) Cota por conta, sem o CNPJ (ADR-0017 D9). 'minute'/'day': busca pela função; 'prereg_day': pré-cadastro no banco.
 create table private.cnpj_lookup_quota (
@@ -73,7 +75,7 @@ create table private.cnpj_lookup_quota (
   lookups integer not null default 0 check (lookups >= 0),
   primary key (user_id, window_kind, window_start)
 );
-revoke all on private.cnpj_lookup_quota from public, anon, authenticated;
+revoke all on private.cnpj_lookup_quota from public, anon, authenticated, service_role;
 
 -- Conta uma tentativa e diz se ainda está dentro do limite. Apaga as janelas da conta com mais de 2 dias.
 create function private.take_quota(p_user uuid, p_kind text, p_limit integer)
@@ -89,7 +91,7 @@ begin
   return v_count <= p_limit;
 end;
 $$;
-revoke all on function private.take_quota(uuid, text, integer) from public, anon, authenticated;
+revoke all on function private.take_quota(uuid, text, integer) from public, anon, authenticated, service_role;
 
 -- 4) Interface da Edge Function (service_role). O esquema private não é exposto pela API; estas três ficam em public,
 -- executáveis só pela service_role. A assinatura de cnpj_cache_put é a lista branca: nada fora dela entra.
@@ -160,7 +162,7 @@ create table public.complaint_contacts (
   created_at timestamptz not null default now()
 );
 alter table public.complaint_contacts enable row level security;
-revoke all on public.complaint_contacts from public, anon, authenticated;
+revoke all on public.complaint_contacts from public, anon, authenticated, service_role;
 
 -- 6) Avisos: decisão da equipe e envio. Só inserção; a única mudança aceita é approved -> sent|bounced, sent -> bounced e o
 -- set null das chaves (contato apagado pela retenção, manifestação apagada com a conta).
@@ -180,7 +182,7 @@ create table public.company_notices (
 create unique index company_notices_one_active on public.company_notices (complaint_id) where status in ('approved', 'sent');
 create index company_notices_company_idx on public.company_notices (company_id, decided_at);
 alter table public.company_notices enable row level security;
-revoke all on public.company_notices from public, anon, authenticated;
+revoke all on public.company_notices from public, anon, authenticated, service_role;
 
 create function private.company_notice_guard()
 returns trigger language plpgsql set search_path = '' as $$
@@ -202,7 +204,7 @@ begin
   raise exception 'Registro de aviso não pode ser alterado nem apagado.' using errcode = 'P0001';
 end;
 $$;
-revoke all on function private.company_notice_guard() from public, anon, authenticated;
+revoke all on function private.company_notice_guard() from public, anon, authenticated, service_role;
 create trigger company_notices_guard before update or delete on public.company_notices
   for each row execute function private.company_notice_guard();
 
@@ -212,4 +214,4 @@ create table private.notice_opt_outs (
   added_by uuid not null,
   created_at timestamptz not null default now()
 );
-revoke all on private.notice_opt_outs from public, anon, authenticated;
+revoke all on private.notice_opt_outs from public, anon, authenticated, service_role;

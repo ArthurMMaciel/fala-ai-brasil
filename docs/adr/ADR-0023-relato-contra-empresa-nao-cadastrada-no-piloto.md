@@ -203,6 +203,38 @@ O que torna isso seguro é que o **plano B já está aprovado**: o pré-cadastro
 
 **Nada sai das travas do aviso (variante a)** nem da troca do gate (130000).
 
+## Revisão do DevOps (2026-11-18) e contrato para o Front
+
+Correções feitas antes de qualquer aplicação, seguindo "grava quando relatar" e "aviso sem revelar":
+
+1. **`find_company_by_cnpj` devolve só empresa `registered`**, a mesma do diretório. A pré-cadastrada só existe porque alguém relatou. Se a busca a devolvesse, quem trabalha na empresa descobriria que há relato, o que numa empresa pequena aponta o trabalhador. Para quem busca, "nunca relatada" e "já relatada" dão a mesma resposta (nenhuma linha), e o front segue pela Edge Function.
+2. **A empresa nasce dentro de `create_complaint`**, na mesma transação do relato; as RPCs `preregister_company*` não existem para clientes.
+   - Validações, cota (3 relatos por CNPJ por dia por conta) e exigência de dados manuais (sempre que o cache não tem a empresa) não dependem de a empresa existir.
+   - Se o CNPJ já existe como pré-cadastrado, o relato entra nela e o contato é aceito. Isso resolve o "segundo trabalhador" apontado pelo Front.
+   - Empresa `registered`, por id ou por CNPJ: o relato é aceito, e o contato é validado igual e descartado em silêncio.
+3. **`service_role` sem acesso a nenhuma tabela nova** (`revoke all`): a chave da Edge Function não lê os e-mails indicados nem os avisos; só executa as três RPCs do cache e da cota.
+
+Pontos não bloqueantes:
+- **`closed_at` em relato cancelado:** é gravado. `close_complaint` (20261106130100) grava `closed_at = now()` no mesmo update que muda o estado para `closed` ou `canceled`. A retenção de 90 dias vale para os dois.
+- **Cota contada duas vezes:** resolvido; a busca no banco não tem cota.
+- **"Aviso exige a 130000":** já está em `ops_decide_notice`, que recusa aprovar se a troca do gate não estiver aplicada. Não depende da migration 3.
+
+Padrões passados pelo Gestor ao Front:
+- "Não sei" na pergunta de envolvimento vira `possibly_involved = true`.
+- A retenção (`ops_purge_expired_contacts`) roda por botão na Operação.
+
+### Contrato para o Front
+
+| Chamada | Quem | Uso |
+|---|---|---|
+| `find_company_by_cnpj(p_cnpj) → (id, name, city, state)` | authenticated | Só cadastradas. Nenhuma linha: chamar a Edge Function. `CNPJ inválido.` para dígito errado |
+| `POST /functions/v1/cnpj-lookup {"cnpj"}` | conta logada | `found` com `company {legal_name, trade_name, cadastral_situation, city, state}`, ou `manual` com `reason` (`natural_person`, `unavailable`, `not_found`, `rate_limited`), ou 400 `invalid` |
+| `create_complaint(p, p_share)` | trabalhador | Empresa: `p.company_id` (cadastrada) **ou** `p.company_cnpj`. Com `company_cnpj`, mandar `p.company_manual {name, city, state}` sempre que a Edge Function não respondeu `found`. Contato opcional: `p.notice_contact {email, possibly_involved: bool, consent: true}`, só com `p_share = true`; pode ser oferecido para qualquer empresa achada pelo CNPJ, porque na cadastrada é descartado em silêncio |
+| `ops_list_pending_companies()`, `ops_review_company(p_company, 'confirmed' or 'blocked', p_reason, p_natural_person)` | equipe | Conferência das pré-cadastradas |
+| `ops_list_notice_candidates()`, `ops_decide_notice(p_complaint, 'approved' or 'rejected', p_reason)`, `ops_mark_notice_sent(p_notice, 'sent' or 'bounced')`, `ops_add_opt_out(p_email)`, `ops_purge_expired_contacts()` | equipe | Fila e envio manual do aviso, opt-out e retenção |
+
+Texto do consentimento, válido para os dois casos: "Se a empresa ainda não estiver na plataforma, ela receberá um aviso de que existe um relato, sem o conteúdo, sem o seu nome e sem a data." Assim, o trabalhador não é enganado quando a empresa já é cadastrada. A versão final passa pelo advogado.
+
 ## Ordem de aplicação
 
 Formato igual ao do lote atual: scripts `aplicar` e `conferir` para o SQL Editor, rollback por passo e teste tx antes de cada um, com liberação escrita.
