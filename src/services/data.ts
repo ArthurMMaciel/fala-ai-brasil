@@ -1,6 +1,6 @@
 import { isAccountServiceConfigured, supabase, type AuthResult } from "./account";
 import type { VerificationStatus } from "../domain/representatives";
-import { normalizeCnpj, onlyDigits, partnerContactEnabled, partnerContactKeys, partnerContactPayload, validatePartnerContact, type CampaignKind, type ContentInput } from "../domain/account-rules";
+import { normalizeCnpj, onlyDigits, partnerContactKeys, partnerContactPayload, validatePartnerContact, type CampaignKind, type ContentInput } from "../domain/account-rules";
 import { partnerMediaBucket } from "./account";
 import { compareTimeline } from "../domain/complaint-status";
 
@@ -153,7 +153,7 @@ export async function updatePartnerProfile(partnerId: string, input: { displayNa
   if (!displayName || displayName.length > 160) return { ok: false, message: "Informe o nome profissional (até 160 caracteres)." };
   if (!specialty || specialty.length > 120) return { ok: false, message: "Informe a especialidade (até 120 caracteres)." };
   if (description.length > 2000) return { ok: false, message: "A descrição pode ter até 2.000 caracteres." };
-  const withContact = partnerContactEnabled && input.contactEmail !== undefined;
+  const withContact = input.contactEmail !== undefined;
   if (withContact) {
     const problem = validatePartnerContact(input.contactEmail ?? "", input.contactPhone ?? "");
     if (problem) return { ok: false, message: problem };
@@ -173,9 +173,9 @@ export async function loadPartnerProfile(partnerId: string): Promise<PartnerProf
   const db = supabase();
   const base = "display_name, specialty, description, address:address_id (city, state)";
   const contactColumns = `${partnerContactKeys.email}, ${partnerContactKeys.phone}, `;
-  let result = await db.from("partners").select(partnerContactEnabled ? contactColumns + base : base).eq("id", partnerId).maybeSingle();
-  let hasContact = partnerContactEnabled;
-  if (result.error && hasContact && missingColumn(result.error)) { hasContact = false; result = await db.from("partners").select(base).eq("id", partnerId).maybeSingle(); }
+  let result = await db.from("partners").select(contactColumns + base).eq("id", partnerId).maybeSingle();
+  let hasContact = true;
+  if (result.error && missingColumn(result.error)) { hasContact = false; result = await db.from("partners").select(base).eq("id", partnerId).maybeSingle(); }
   if (!result.data) return null;
   const row = result.data as unknown as Record<string, unknown> & { display_name: string; specialty: string; description: string | null; address: unknown };
   const address = (Array.isArray(row.address) ? row.address[0] : row.address) as { city?: string; state?: string } | null;

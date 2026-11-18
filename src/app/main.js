@@ -19,7 +19,6 @@ import { legalRouteFromHash } from "../domain/legal-docs";
 import { bindPasswordRecovery, forgotPasswordMarkup, resetPasswordMarkup } from "./password-recovery";
 import { consumeRecoveryArrival } from "../services/account";
 import { recoverySavedMessage } from "../domain/password-recovery";
-import { partnerContactEnabled } from "../domain/account-rules";
 import "./partner-contact";
 import { authEntryFromHash, authEntryState } from "../domain/entry-routes";
 import { showToast } from "./toast";
@@ -124,7 +123,7 @@ function u(e,a){return`<article class="card"><h3>${e}</h3><p class="muted">${a}<
           <div class="auth-actions"><button class="btn primary" type="submit">Entrar</button></div>`:`
           <div class="auth-stepper" aria-live="polite"><div class="auth-stepper-bar" aria-hidden="true"></div><p class="auth-stepper-label"></p></div>
           <fieldset class="auth-step" data-title="${i?"Dados da conta":"Dados pessoais"}">${acctTypeFields()}
-            <div class="field"><label for="auth-email">E-mail</label><input id="auth-email" name="email" type="email" autocomplete="email" required /></div>${o.authAudience==="partner"&&partnerContactEnabled?acctPartnerContactFields():""}</fieldset>
+            <div class="field"><label for="auth-email">E-mail</label><input id="auth-email" name="email" type="email" autocomplete="email" required /></div>${o.authAudience==="partner"?acctPartnerContactFields():""}</fieldset>
           <fieldset class="auth-step" data-title="Endereço">${Pe()}</fieldset>
           ${i?`<fieldset class="auth-step" data-title="Plano">${se(o.authAudience,o.selectedPlanId)}</fieldset>`:""}
           <fieldset class="auth-step" data-title="Senha e termos">${acctPasswordField("auth-password","password","Senha","new-password",minPasswordLength)}

@@ -177,7 +177,7 @@ export interface RegistrationInput {
   document?: string;
   specialty?: string;
   description?: string;
-  // Parceiro: contato público obrigatório (decisão do responsável, 2026-11-18). Ver partnerContactEnabled.
+  // Parceiro: contato público obrigatório (decisão do responsável, 2026-11-18). Ver partnerContactKeys.
   contactEmail?: string;
   contactPhone?: string;
   planId?: string;
@@ -196,8 +196,8 @@ export function validateAddress(address: AddressInput): string | null {
 
 // Contato público do parceiro (e-mail e telefone), obrigatório no cadastro e editável no Meu perfil.
 // Contrato final do Back (96bf1c3, migration 20261118150000): contact_email e contact_phone obrigatórios no signup de parceiro.
-// Antes da migration, o create_profile antigo ignora as duas chaves; no perfil, a tela esconde os campos sem as colunas.
-export const partnerContactEnabled = true;
+// Sempre enviados: antes da migration, o create_profile atual (20261109140000) lê cada campo pelo nome e ignora as duas chaves.
+// No perfil, a tela esconde os campos enquanto as colunas não existirem.
 export const partnerContactKeys = { email: "contact_email", phone: "contact_phone" } as const;
 
 export function validatePartnerContact(email: string, phone: string): string | null {
@@ -224,10 +224,8 @@ export function validateRegistration(input: RegistrationInput): string | null {
     }
     if (!input.specialty?.trim()) return "Informe sua especialidade.";
     if ((input.description ?? "").length > 2000) return "A descrição pode ter até 2.000 caracteres.";
-    if (partnerContactEnabled) {
-      const contact = validatePartnerContact(input.contactEmail ?? "", input.contactPhone ?? "");
-      if (contact) return contact;
-    }
+    const contact = validatePartnerContact(input.contactEmail ?? "", input.contactPhone ?? "");
+    if (contact) return contact;
   }
   const addressError = validateAddress(input.address);
   if (addressError) return addressError;
@@ -265,7 +263,7 @@ export function buildProfilePayload(input: RegistrationInput): Record<string, un
         document: input.documentType === "cnpj" ? normalizeCnpj(input.document ?? "") : onlyDigits(input.document ?? ""),
         specialty: input.specialty?.trim(),
         description: input.description?.trim() || undefined,
-        ...(partnerContactEnabled ? partnerContactPayload(input.contactEmail ?? "", input.contactPhone ?? "") : {}),
+        ...partnerContactPayload(input.contactEmail ?? "", input.contactPhone ?? ""),
         address,
         ...plan,
       };

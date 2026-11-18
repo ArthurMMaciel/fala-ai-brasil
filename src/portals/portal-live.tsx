@@ -3,7 +3,7 @@ import { listMyContractedPartners, listPartnerDirectory, loadCompanyContext, loa
 import { listCompanyComplaints, listPartnerCompanies, listCompanyResponsiveness, loadMyCompanyResponsiveness, loadMyCompanySatisfaction, loadMyVerificationStatus, loadCompanyTimeline, loadPartnerProfile, requestPartner, respondCompanyComplaint, setPartnerConnection, updatePartnerProfile, loadPartnerPlan, listMyContents, listPartnerContents, createPartnerContent, deletePartnerContent, type PartnerContent, type CompanySatisfaction, type CompanyComplaint, type ComplaintStatusDb, type PartnerCompany, type PartnerProfileData, type MyResponsiveness, type ResponsivenessRow, type TimelineItem } from '../services/data';
 import { showToast } from '../app/toast';
 import { Icon, QuickActions, initials, type IconName } from './ui';
-import { formatPhone, maskPhone, partnerContactEnabled, planIncludesContent, validateContent, whatsappLink } from '../domain/account-rules';
+import { formatPhone, maskPhone, planIncludesContent, validateContent, whatsappLink } from '../domain/account-rules';
 import { safeHttpUrl } from '../domain/html-safety';
 import { buildCompanyPrint, printDateTime } from '../domain/print-document';
 import { usePrintDocument } from './print-document';
@@ -194,7 +194,7 @@ function PartnerProfileEditor({ partnerId, profile, onSaved }: { partnerId: stri
  const [photo, setPhoto] = useState<string | null | undefined>(undefined);
  const [busy, setBusy] = useState(false);
  // Contato só aparece quando o banco já tem as colunas (migration 20261118150000); senão, o perfil segue como antes.
- const hasContact = partnerContactEnabled && profile.contactEmail !== undefined;
+ const hasContact = profile.contactEmail !== undefined;
  useEffect(() => { let active = true; loadPartnerPhoto(partnerId).then(value => { if (active) setPhoto(value.url); }); return () => { active = false; }; }, [partnerId]);
  async function save(event: React.FormEvent) {
   event.preventDefault(); setBusy(true);
