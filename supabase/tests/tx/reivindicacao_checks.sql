@@ -36,6 +36,9 @@ if r.role is distinct from 'owner' or r.verification_status is distinct from 'pe
   falhas := falhas || jsonb_build_object('quem reivindica não é owner pending', true);
 end if;
 if (select count(*) from public.companies where cnpj = cnpj_pre) <> 1 then falhas := falhas || jsonb_build_object('empresa duplicada', true); end if;
+if (select original_name from private.company_preregistrations where company_id = co) is distinct from 'Tx Nome Digitado Pelo Trabalhador' then
+  falhas := falhas || jsonb_build_object('razão social original perdida na reivindicação', true);
+end if;
 
 -- Pending não vê o caso liberado (gate 130000).
 execute 'set local role authenticated';
@@ -59,12 +62,15 @@ if (select legal_name from public.companies where id = co) is distinct from 'Tx 
   falhas := falhas || jsonb_build_object('segunda conta trocou os dados da empresa', true);
 end if;
 
--- Empresa de cadastro direto: CNPJ repetido continua recusado.
-begin
-  insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
-  ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', 'tx-rc4@teste.invalid', jsonb_build_object('signup_type', 'company', 'signup', jsonb_build_object('legal_name', 'Tx Repetida', 'cnpj', cnpj_reg, 'plan_id', 'company-essential', 'subscription_mode', 'trial', 'address', addr)), now(), now());
-  falhas := falhas || jsonb_build_object('CNPJ de cadastro direto aceito duas vezes', true);
-exception when others then null; end;
+-- Empresa de cadastro direto: mesmo resultado da reivindicada (membro pending, sem assinatura nova), sem revelar a origem.
+insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
+('00000000-0000-0000-0000-000000000000', 'f5555555-5555-5555-5555-555555555555', 'authenticated', 'authenticated', 'tx-rc4@teste.invalid', jsonb_build_object('signup_type', 'company', 'signup', jsonb_build_object('legal_name', 'Tx Repetida', 'cnpj', cnpj_reg, 'plan_id', 'company-essential', 'subscription_mode', 'trial', 'address', addr)), now(), now());
+select cu.role::text as role, cu.verification_status into r from public.company_users cu
+  join public.companies c on c.id = cu.company_id where c.cnpj = cnpj_reg and cu.user_id = 'f5555555-5555-5555-5555-555555555555';
+if r.role is distinct from 'member' or r.verification_status is distinct from 'pending'
+   or (select count(*) from public.subscriptions s join public.companies c on c.id = s.company_id where c.cnpj = cnpj_reg) <> 1 then
+  falhas := falhas || jsonb_build_object('cadastro direto repetido com resultado diferente da reivindicada', true);
+end if;
 -- Trabalhador continua se cadastrando normalmente (outro ramo da função).
 if not exists (select 1 from public.workers where user_id = u_w) then falhas := falhas || jsonb_build_object('cadastro de trabalhador quebrou', true); end if;
 -- A empresa reivindicada sai da fila de pré-cadastradas.

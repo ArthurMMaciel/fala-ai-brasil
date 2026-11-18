@@ -520,6 +520,7 @@ alter table public.companies
       execute $s0$-- Dados de origem e conferência da equipe. Uma linha por empresa pré-cadastrada; não guarda quem a criou.
 create table private.company_preregistrations (
   company_id uuid primary key references public.companies (id) on delete cascade,
+  original_name text check (original_name is null or char_length(original_name) between 1 and 160),  -- razão social do pré-cadastro, guardada para a verificação depois da reivindicação
   city text check (city is null or char_length(btrim(city)) between 2 and 80),
   state text check (state is null or state ~ '^[A-Z]{2}$'),
   cadastral_situation text check (cadastral_situation is null or char_length(cadastral_situation) <= 40),
@@ -762,17 +763,18 @@ begin
     values (c.legal_name, c.trade_name, p_cnpj, null, null, 'pre_registered', 'cnpj_api')
     on conflict (cnpj) do nothing returning id into v_id;
     if v_id is not null then
-      insert into private.company_preregistrations (company_id, city, state, cadastral_situation, main_cnae, legal_nature,
-                                                    natural_person, provider, fetched_at)
-      values (v_id, c.city, c.state, c.cadastral_situation, c.main_cnae, c.legal_nature, false, c.provider, c.fetched_at);
+      insert into private.company_preregistrations (company_id, original_name, city, state, cadastral_situation, main_cnae,
+                                                    legal_nature, natural_person, provider, fetched_at)
+      values (v_id, c.legal_name, c.city, c.state, c.cadastral_situation, c.main_cnae, c.legal_nature, false, c.provider, c.fetched_at);
     end if;
   else
     insert into public.companies (legal_name, trade_name, cnpj, address_id, created_by, registration_status, data_source)
     values (btrim(p_manual ->> 'name'), null, p_cnpj, null, null, 'pending_check', 'manual')
     on conflict (cnpj) do nothing returning id into v_id;
     if v_id is not null then
-      insert into private.company_preregistrations (company_id, city, state, natural_person)
-      values (v_id, btrim(p_manual ->> 'city'), upper(btrim(p_manual ->> 'state')), coalesce(c.natural_person, false));
+      insert into private.company_preregistrations (company_id, original_name, city, state, natural_person)
+      values (v_id, btrim(p_manual ->> 'name'), btrim(p_manual ->> 'city'), upper(btrim(p_manual ->> 'state')),
+              coalesce(c.natural_person, false));
     end if;
   end if;
   if v_id is null then  -- outro relato criou a mesma empresa ao mesmo tempo

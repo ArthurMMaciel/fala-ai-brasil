@@ -142,4 +142,6 @@ test('index.ts: CNPJ só no corpo, conta conferida e nada de log do pedido', () 
   assert.doesNotMatch(src, /searchParams|url\.search/);
   assert.equal((src.match(/console\./g) ?? []).length, 1);
   assert.doesNotMatch(src, /SERVICE_ROLE_KEY['"]?\)\s*\?\?\s*['"][^'"]+['"]/);
+  assert.match(src, /pickKey\('SUPABASE_SECRET_KEYS', 'SUPABASE_SERVICE_ROLE_KEY'\)/);
+  assert.match(src, /pickKey\('SUPABASE_PUBLISHABLE_KEYS', 'SUPABASE_ANON_KEY'\)/);
 });

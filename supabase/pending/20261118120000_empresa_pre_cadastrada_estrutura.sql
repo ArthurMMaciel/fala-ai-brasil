@@ -31,6 +31,7 @@ alter table public.companies
 -- Dados de origem e conferência da equipe. Uma linha por empresa pré-cadastrada; não guarda quem a criou.
 create table private.company_preregistrations (
   company_id uuid primary key references public.companies (id) on delete cascade,
+  original_name text check (original_name is null or char_length(original_name) between 1 and 160),  -- razão social do pré-cadastro, guardada para a verificação depois da reivindicação
   city text check (city is null or char_length(btrim(city)) between 2 and 80),
   state text check (state is null or state ~ '^[A-Z]{2}$'),
   cadastral_situation text check (cadastral_situation is null or char_length(cadastral_situation) <= 40),

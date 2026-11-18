@@ -4,8 +4,10 @@
 -- Muda private.create_profile (gatilho do signUp e add_profile), só no ramo 'company':
 --   - CNPJ pré-cadastrado (pre_registered ou pending_check): a conta reivindica: dados e endereço do cadastro,
 --     created_by = conta, registration_status = 'registered', vínculo 'owner' com verification_status 'pending'.
---   - CNPJ que veio de pré-cadastro e já foi reivindicado: a conta entra como 'member' 'pending'.
---   - CNPJ de empresa que se cadastrou direto (data_source 'signup'): sem mudança (falha por CNPJ duplicado, como hoje).
+--   - CNPJ de empresa já cadastrada, venha ela de pré-cadastro reivindicado ou de cadastro direto: a conta entra como
+--     'member' 'pending', sem assinatura nova. O mesmo resultado nos dois casos, para o cadastro não revelar a origem da
+--     empresa (pedido do Gestor, 2026-11-18). Muda o cadastro direto: antes falhava por CNPJ duplicado.
+--   A razão social original fica em private.company_preregistrations.original_name (migrations 1 e 2), para a verificação.
 --   - Demais tipos de conta: corpo idêntico ao de 20261109140000.
 -- Pré-requisito: troca do gate (20261117130000) aplicada; sem ela, quem reivindica veria os casos liberados sem
 -- verificação. A trava abaixo recusa a migration se list_company_complaints ainda não usar is_verified_company_user.
@@ -31,7 +33,6 @@ declare
   v_id uuid;
   v_doc text;
   v_reg text;
-  v_src text;
 begin
   if p_user is null then raise exception 'usuário obrigatório' using errcode = '22023'; end if;
   if p is null then raise exception 'dados do cadastro obrigatórios' using errcode = '22023'; end if;
@@ -60,7 +61,7 @@ begin
       raise exception 'Não foi possível concluir o cadastro.' using errcode = '23505';
     end;
   elsif p_type = 'company' then
-    select c.id, c.registration_status, c.data_source into v_id, v_reg, v_src from public.companies c where c.cnpj = v_doc for update;
+    select c.id, c.registration_status into v_id, v_reg from public.companies c where c.cnpj = v_doc for update;
     if v_id is not null and v_reg <> 'registered' then
       -- D11: a primeira conta reivindica a empresa pré-cadastrada. Vira dona com vínculo 'pending' (default da 120000);
       -- o acesso a manifestações depende da verificação da equipe (130000).
@@ -70,9 +71,9 @@ begin
       where id = v_id;
       insert into public.company_users (company_id, user_id, role) values (v_id, p_user, 'owner');
       perform private.create_subscription('company', p, v_id, null, null);
-    elsif v_id is not null and v_src <> 'signup' then
-      -- D11: empresa que veio de pré-cadastro e já foi reivindicada: a conta seguinte entra como membro 'pending', nunca
-      -- como dona. Evita que quem reivindicou primeiro tranque a empresa verdadeira fora da plataforma; a equipe decide.
+    elsif v_id is not null then
+      -- D11: empresa já cadastrada, de qualquer origem: a conta entra como membro 'pending', nunca como dona. Evita que quem
+      -- chegou primeiro tranque a empresa verdadeira fora da plataforma; a equipe decide na verificação.
       -- Sem assinatura nova: a empresa já tem a da conta que reivindicou (subscriptions não tem unique por empresa).
       insert into public.company_users (company_id, user_id, role) values (v_id, p_user, 'member');
     else

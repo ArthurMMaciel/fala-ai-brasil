@@ -2,8 +2,11 @@
 //   POST /functions/v1/cnpj-lookup, corpo {"cnpj": "..."} (nunca na URL), Authorization: Bearer <JWT de uma conta>.
 //   200 {"status":"found","company":{...},"source":...} | 200 {"status":"manual","reason":...} | 400 {"status":"invalid"}
 //   401 sem conta (a chave anon também é um JWT válido, por isso a conta é conferida com auth.getUser).
-// Segredos: só SUPABASE_URL, SUPABASE_ANON_KEY e SUPABASE_SERVICE_ROLE_KEY, que o Supabase injeta. ALLOWED_ORIGINS
-// (lista separada por vírgula) é configuração do DevOps para o CORS do site.
+// Chaves: as novas, que o Supabase injeta como dicionário JSON por nome de chave (SUPABASE_PUBLISHABLE_KEYS e
+// SUPABASE_SECRET_KEYS; usa 'default', ou a primeira, se não houver 'default'). As legadas (SUPABASE_ANON_KEY e
+// SUPABASE_SERVICE_ROLE_KEY, descontinuadas até o fim de 2026) ficam só como reserva. Fonte:
+// https://supabase.com/docs/guides/functions/secrets e https://supabase.com/docs/guides/api/api-keys (2026-11-18).
+// ALLOWED_ORIGINS (lista separada por vírgula) é configuração do DevOps para o CORS do site.
 // Deploy, verify_jwt e monitoramento ficam com o DevOps. A lógica está em lookup.ts.
 import { createClient } from 'npm:@supabase/supabase-js@2.118.0';
 import { lookupCnpj, type CacheEntry, type CacheRow, type Provider, type ProviderResult } from './lookup.ts';
@@ -14,9 +17,20 @@ const URLS: Record<Provider, (cnpj: string) => string> = {
   brasilapi: (cnpj) => `https://brasilapi.com.br/api/cnpj/v1/${cnpj}`,
 };
 
+function pickKey(dictVar: string, legacyVar: string): string {
+  try {
+    const dict = JSON.parse(Deno.env.get(dictVar) ?? '{}') as Record<string, unknown>;
+    const value = typeof dict.default === 'string' ? dict.default : Object.values(dict).find((v) => typeof v === 'string');
+    if (typeof value === 'string' && value) return value;
+  } catch {
+    // dicionário ausente ou inválido: usa a chave legada
+  }
+  return Deno.env.get(legacyVar) ?? '';
+}
+
 const url = Deno.env.get('SUPABASE_URL') ?? '';
-const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const anonKey = pickKey('SUPABASE_PUBLISHABLE_KEYS', 'SUPABASE_ANON_KEY');
+const serviceKey = pickKey('SUPABASE_SECRET_KEYS', 'SUPABASE_SERVICE_ROLE_KEY');
 const allowedOrigins = (Deno.env.get('ALLOWED_ORIGINS') ?? '').split(',').map((o) => o.trim()).filter(Boolean);
 const service = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
 const authClient = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });

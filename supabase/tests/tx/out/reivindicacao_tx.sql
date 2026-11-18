@@ -520,6 +520,7 @@ alter table public.companies
       execute $s0$-- Dados de origem e conferência da equipe. Uma linha por empresa pré-cadastrada; não guarda quem a criou.
 create table private.company_preregistrations (
   company_id uuid primary key references public.companies (id) on delete cascade,
+  original_name text check (original_name is null or char_length(original_name) between 1 and 160),  -- razão social do pré-cadastro, guardada para a verificação depois da reivindicação
   city text check (city is null or char_length(btrim(city)) between 2 and 80),
   state text check (state is null or state ~ '^[A-Z]{2}$'),
   cadastral_situation text check (cadastral_situation is null or char_length(cadastral_situation) <= 40),
@@ -762,17 +763,18 @@ begin
     values (c.legal_name, c.trade_name, p_cnpj, null, null, 'pre_registered', 'cnpj_api')
     on conflict (cnpj) do nothing returning id into v_id;
     if v_id is not null then
-      insert into private.company_preregistrations (company_id, city, state, cadastral_situation, main_cnae, legal_nature,
-                                                    natural_person, provider, fetched_at)
-      values (v_id, c.city, c.state, c.cadastral_situation, c.main_cnae, c.legal_nature, false, c.provider, c.fetched_at);
+      insert into private.company_preregistrations (company_id, original_name, city, state, cadastral_situation, main_cnae,
+                                                    legal_nature, natural_person, provider, fetched_at)
+      values (v_id, c.legal_name, c.city, c.state, c.cadastral_situation, c.main_cnae, c.legal_nature, false, c.provider, c.fetched_at);
     end if;
   else
     insert into public.companies (legal_name, trade_name, cnpj, address_id, created_by, registration_status, data_source)
     values (btrim(p_manual ->> 'name'), null, p_cnpj, null, null, 'pending_check', 'manual')
     on conflict (cnpj) do nothing returning id into v_id;
     if v_id is not null then
-      insert into private.company_preregistrations (company_id, city, state, natural_person)
-      values (v_id, btrim(p_manual ->> 'city'), upper(btrim(p_manual ->> 'state')), coalesce(c.natural_person, false));
+      insert into private.company_preregistrations (company_id, original_name, city, state, natural_person)
+      values (v_id, btrim(p_manual ->> 'name'), btrim(p_manual ->> 'city'), upper(btrim(p_manual ->> 'state')),
+              coalesce(c.natural_person, false));
     end if;
   end if;
   if v_id is null then  -- outro relato criou a mesma empresa ao mesmo tempo
@@ -1068,8 +1070,10 @@ $$$s0$;
 -- Muda private.create_profile (gatilho do signUp e add_profile), só no ramo 'company':
 --   - CNPJ pré-cadastrado (pre_registered ou pending_check): a conta reivindica: dados e endereço do cadastro,
 --     created_by = conta, registration_status = 'registered', vínculo 'owner' com verification_status 'pending'.
---   - CNPJ que veio de pré-cadastro e já foi reivindicado: a conta entra como 'member' 'pending'.
---   - CNPJ de empresa que se cadastrou direto (data_source 'signup'): sem mudança (falha por CNPJ duplicado, como hoje).
+--   - CNPJ de empresa já cadastrada, venha ela de pré-cadastro reivindicado ou de cadastro direto: a conta entra como
+--     'member' 'pending', sem assinatura nova. O mesmo resultado nos dois casos, para o cadastro não revelar a origem da
+--     empresa (pedido do Gestor, 2026-11-18). Muda o cadastro direto: antes falhava por CNPJ duplicado.
+--   A razão social original fica em private.company_preregistrations.original_name (migrations 1 e 2), para a verificação.
 --   - Demais tipos de conta: corpo idêntico ao de 20261109140000.
 -- Pré-requisito: troca do gate (20261117130000) aplicada; sem ela, quem reivindica veria os casos liberados sem
 -- verificação. A trava abaixo recusa a migration se list_company_complaints ainda não usar is_verified_company_user.
@@ -1094,7 +1098,6 @@ declare
   v_id uuid;
   v_doc text;
   v_reg text;
-  v_src text;
 begin
   if p_user is null then raise exception 'usuário obrigatório' using errcode = '22023'; end if;
   if p is null then raise exception 'dados do cadastro obrigatórios' using errcode = '22023'; end if;
@@ -1123,7 +1126,7 @@ begin
       raise exception 'Não foi possível concluir o cadastro.' using errcode = '23505';
     end;
   elsif p_type = 'company' then
-    select c.id, c.registration_status, c.data_source into v_id, v_reg, v_src from public.companies c where c.cnpj = v_doc for update;
+    select c.id, c.registration_status into v_id, v_reg from public.companies c where c.cnpj = v_doc for update;
     if v_id is not null and v_reg <> 'registered' then
       -- D11: a primeira conta reivindica a empresa pré-cadastrada. Vira dona com vínculo 'pending' (default da 120000);
       -- o acesso a manifestações depende da verificação da equipe (130000).
@@ -1133,9 +1136,9 @@ begin
       where id = v_id;
       insert into public.company_users (company_id, user_id, role) values (v_id, p_user, 'owner');
       perform private.create_subscription('company', p, v_id, null, null);
-    elsif v_id is not null and v_src <> 'signup' then
-      -- D11: empresa que veio de pré-cadastro e já foi reivindicada: a conta seguinte entra como membro 'pending', nunca
-      -- como dona. Evita que quem reivindicou primeiro tranque a empresa verdadeira fora da plataforma; a equipe decide.
+    elsif v_id is not null then
+      -- D11: empresa já cadastrada, de qualquer origem: a conta entra como membro 'pending', nunca como dona. Evita que quem
+      -- chegou primeiro tranque a empresa verdadeira fora da plataforma; a equipe decide na verificação.
       -- Sem assinatura nova: a empresa já tem a da conta que reivindicou (subscriptions não tem unique por empresa).
       insert into public.company_users (company_id, user_id, role) values (v_id, p_user, 'member');
     else
@@ -1204,6 +1207,9 @@ $$$s0$;
       falhas := falhas || jsonb_build_object('quem reivindica não é owner pending', true);
     end if;
     if (select count(*) from public.companies where cnpj = cnpj_pre) <> 1 then falhas := falhas || jsonb_build_object('empresa duplicada', true); end if;
+    if (select original_name from private.company_preregistrations where company_id = co) is distinct from 'Tx Nome Digitado Pelo Trabalhador' then
+      falhas := falhas || jsonb_build_object('razão social original perdida na reivindicação', true);
+    end if;
     
     -- Pending não vê o caso liberado (gate 130000).
     execute 'set local role authenticated';
@@ -1227,12 +1233,15 @@ $$$s0$;
       falhas := falhas || jsonb_build_object('segunda conta trocou os dados da empresa', true);
     end if;
     
-    -- Empresa de cadastro direto: CNPJ repetido continua recusado.
-    begin
-      insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
-      ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', 'tx-rc4@teste.invalid', jsonb_build_object('signup_type', 'company', 'signup', jsonb_build_object('legal_name', 'Tx Repetida', 'cnpj', cnpj_reg, 'plan_id', 'company-essential', 'subscription_mode', 'trial', 'address', addr)), now(), now());
-      falhas := falhas || jsonb_build_object('CNPJ de cadastro direto aceito duas vezes', true);
-    exception when others then null; end;
+    -- Empresa de cadastro direto: mesmo resultado da reivindicada (membro pending, sem assinatura nova), sem revelar a origem.
+    insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
+    ('00000000-0000-0000-0000-000000000000', 'f5555555-5555-5555-5555-555555555555', 'authenticated', 'authenticated', 'tx-rc4@teste.invalid', jsonb_build_object('signup_type', 'company', 'signup', jsonb_build_object('legal_name', 'Tx Repetida', 'cnpj', cnpj_reg, 'plan_id', 'company-essential', 'subscription_mode', 'trial', 'address', addr)), now(), now());
+    select cu.role::text as role, cu.verification_status into r from public.company_users cu
+      join public.companies c on c.id = cu.company_id where c.cnpj = cnpj_reg and cu.user_id = 'f5555555-5555-5555-5555-555555555555';
+    if r.role is distinct from 'member' or r.verification_status is distinct from 'pending'
+       or (select count(*) from public.subscriptions s join public.companies c on c.id = s.company_id where c.cnpj = cnpj_reg) <> 1 then
+      falhas := falhas || jsonb_build_object('cadastro direto repetido com resultado diferente da reivindicada', true);
+    end if;
     -- Trabalhador continua se cadastrando normalmente (outro ramo da função).
     if not exists (select 1 from public.workers where user_id = u_w) then falhas := falhas || jsonb_build_object('cadastro de trabalhador quebrou', true); end if;
     -- A empresa reivindicada sai da fila de pré-cadastradas.
