@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { closeWorkerComplaint, listCompanyDirectory, listWorkerComplaints, listCompanyResponsiveness, loadMyResponseRatings, loadWorkerComplaintDetail, shareWorkerComplaint, type ComplaintFeedback, type ComplaintStatusDb, type DirectoryCompany, type ResponseRating, type ResponsivenessRow, type WorkerComplaint, type WorkerComplaintDetail } from '../services/data';
+import { closeWorkerComplaint, listCompanyDirectory, listMyComplaintCompanies, listWorkerComplaints, mergeCompanies, listCompanyResponsiveness, loadMyResponseRatings, loadWorkerComplaintDetail, shareWorkerComplaint, type ComplaintFeedback, type ComplaintStatusDb, type DirectoryCompany, type ResponseRating, type ResponsivenessRow, type WorkerComplaint, type WorkerComplaintDetail } from '../services/data';
 import { showToast } from '../app/toast';
 import { ComplaintWizard } from './complaint-wizard';
 import { QuickActions } from './ui';
@@ -182,8 +182,10 @@ export function WorkerPortalLive({ initialView = 'dashboard', onViewChange }: { 
  const [version, setVersion] = useState(0);
  useEffect(() => { setView(initialView); }, [initialView]);
  useEffect(() => { onViewChange?.(view === 'dashboard' ? 'dashboard' : view === 'profile' ? 'profile' : view === 'companies' || view === 'new' ? 'companies' : 'list'); }, [view, onViewChange]);
- useEffect(() => { let active = true; Promise.all([listWorkerComplaints(), listCompanyDirectory()]).then(([rows, directory]) => { if (active) { setComplaints(rows); setCompanies(directory); } }); return () => { active = false; }; }, [version]);
- const byId = useMemo(() => new Map(companies.map(company => [company.id, company])), [companies]);
+ const [myCompanies, setMyCompanies] = useState<DirectoryCompany[]>([]);
+ useEffect(() => { let active = true; Promise.all([listWorkerComplaints(), listCompanyDirectory(), listMyComplaintCompanies()]).then(([rows, directory, mine]) => { if (active) { setComplaints(rows); setCompanies(directory); setMyCompanies(mine); } }); return () => { active = false; }; }, [version]);
+ // Nome da empresa de cada manifestação: diretório + my_complaint_companies (pré-cadastradas não estão no diretório).
+ const byId = useMemo(() => mergeCompanies(companies, myCompanies), [companies, myCompanies]);
  const selected = complaints?.find(item => item.id === selectedId);
  const reload = () => setVersion(value => value + 1);
  return <main className="worker-portal-content" id="main-content" tabIndex={-1}>

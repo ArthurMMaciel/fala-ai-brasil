@@ -11,3 +11,12 @@ test('Nova manifestação e Relatar uma situação abrem o assistente no passo d
   const wizard = readFileSync('src/portals/complaint-wizard.tsx', 'utf8');
   assert.match(wizard, /if \(!chosen && !pending\) return <CompanyStep/, 'sem empresa inicial, o assistente começa pela busca por CNPJ');
 });
+
+test('nome da empresa nas manifestações: diretório + my_complaint_companies, com fallback quando a função não existe', () => {
+  const data = readFileSync('src/services/data.ts', 'utf8');
+  assert.match(data, /rpc\("my_complaint_companies"\);\r?\n  if \(error\) return \[\];/);
+  assert.match(data, /for \(const company of mine\) map\.set\(company\.id, company\);/);
+  const portal = readFileSync('src/portals/worker-portal-live.tsx', 'utf8');
+  assert.match(portal, /const byId = useMemo\(\(\) => mergeCompanies\(companies, myCompanies\)/);
+  assert.match(portal, /company=\{byId\.get\(selected\.companyId\)\}/, 'o detalhe usa o mesmo mapa');
+});

@@ -20,6 +20,21 @@ export async function listCompanyDirectory(): Promise<DirectoryCompany[]> {
   return (data ?? []) as DirectoryCompany[];
 }
 
+// Empresas das manifestações do próprio trabalhador, inclusive pré-cadastradas, que não estão no diretório
+// (my_complaint_companies, migration 20261118130000). Sem a função, ou com erro, devolve [] e vale só o diretório.
+export async function listMyComplaintCompanies(): Promise<DirectoryCompany[]> {
+  const { data, error } = await supabase().rpc("my_complaint_companies");
+  if (error) return [];
+  return (data ?? []).map((row: { company_id: string; name: string; city: string | null; state: string | null }) => ({ id: row.company_id, name: row.name, city: row.city ?? "", state: row.state ?? "" }));
+}
+
+// Diretório + empresas das próprias manifestações; a da manifestação prevalece (traz o nome que o trabalhador informou).
+export function mergeCompanies(directory: DirectoryCompany[], mine: DirectoryCompany[]): Map<string, DirectoryCompany> {
+  const map = new Map(directory.map(company => [company.id, company]));
+  for (const company of mine) map.set(company.id, company);
+  return map;
+}
+
 export interface WorkerComplaint {
   id: string; protocol: string; companyId: string; category: string; title: string; status: ComplaintStatusDb;
   feedback: ComplaintFeedback | null; createdAt: string; incidentPeriod: string | null; recurrence: string | null; expectedOutcomes: string[];
