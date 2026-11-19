@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { createWorkerComplaint, type DirectoryCompany } from '../services/data';
 import { findCompanyByCnpj, lookupCnpj } from '../services/notices';
 import { showToast } from '../app/toast';
-import { brazilianStates, isValidCnpj, isValidPhone, maskCnpj } from '../domain/account-rules';
-import { involvementLabels, noticeContactPayload, noticeTexts, noticeTextsInReview, validateManualCompany, validateNoticeContact, type Involvement, type NoticeContactInput } from '../domain/company-notice';
+import { brazilianStates, isValidCnpj, isValidPhone, maskCnpj, maskPhone } from '../domain/account-rules';
+import { companyContactPhoneEnabled, involvementLabels, noticeContactPayload, noticeTexts, noticeTextsInReview, registeredContactTexts, validateManualCompany, validateNoticeContact, type Involvement, type NoticeContactInput } from '../domain/company-notice';
 
 // Assistente de nova manifestação em 9 etapas (conteúdo da POC, restaurado em 2026-10-30).
 // Relato, versão compartilhável e expectativas vão ao banco; respostas de contexto e contatos
@@ -119,9 +119,12 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
  if (!chosen && !pending) return <CompanyStep companies={companies} onCancel={onCancel} onChoose={company => { setChosen(company); setStep(0); }} onPending={company => { setPending(company); setStep(0); }} />;
  const companyName = chosen?.name ?? pending?.name ?? '';
  // O e-mail do aviso é oferecido para toda empresa não achada entre as cadastradas, inclusive uma pré-cadastrada que já existe.
- const keys = [...contextSteps.map(() => 'context'), 'theme', 'report', ...(pending ? ['notice'] : []), 'expect', 'review'];
+ // Contato na empresa em toda manifestação (decisão do responsável, 2026-11-19): aviso para a não cadastrada,
+ // segundo canal só da equipe para a cadastrada.
+ const keys = [...contextSteps.map(() => 'context'), 'theme', 'report', 'notice', 'expect', 'review'];
+ const registered = !pending;
  const key = keys[step];
- const titles: Record<string, string> = { theme: 'Tema', report: 'Relato', notice: 'Aviso à empresa', expect: 'O que você espera', review: 'Revisão protegida' };
+ const titles: Record<string, string> = { theme: 'Tema', report: 'Relato', notice: pending ? 'Aviso à empresa' : 'Contato na empresa', expect: 'O que você espera', review: 'Revisão protegida' };
  const total = keys.length;
 
  function select(question: number, option: string) {
@@ -138,7 +141,7 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
   if (key === 'theme' && !draft.category) return setError('Escolha o tema que melhor descreve o que aconteceu.');
   if (key === 'report' && draft.title.trim().length < 3) return setError('Dê um título curto ao relato (pelo menos 3 caracteres).');
   if (key === 'report' && draft.original.trim().length < 10) return setError('Conte o que aconteceu com pelo menos 10 caracteres.');
-  if (key === 'notice') { const problem = validateNoticeContact(notice); if (problem) return setError(problem); }
+  if (key === 'notice') { const problem = validateNoticeContact(notice, registered); if (problem) return setError(problem); }
   if (key === 'expect' && !draft.expectedOutcomes.length) return setError('Escolha pelo menos uma expectativa.');
   go(step + 1);
  }
@@ -148,7 +151,7 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
   // Contrato final da ADR-0023: cadastrada vai por company_id; fora da base, por CNPJ, e o create_complaint cria a empresa.
   // company_manual vai sempre que a cnpj-lookup não respondeu found.
   const company = chosen ? { companyId: chosen.id } : { companyId: '', companyCnpj: pending?.cnpj ?? '', companyManual: pending?.source === 'manual' ? { name: pending.name, city: pending.city, state: pending.state } : null };
-  const result = await createWorkerComplaint({ ...company, category: draft.category, title: draft.title, original: draft.original, shared: share ? draft.shared : '', incidentPeriod: draft.incidentPeriod.slice(0, 80), recurrence: draft.recurrence.slice(0, 80), expectedOutcomes: draft.expectedOutcomes, noticeContact: pending ? noticeContactPayload(notice) : null }, share);
+  const result = await createWorkerComplaint({ ...company, category: draft.category, title: draft.title, original: draft.original, shared: share ? draft.shared : '', incidentPeriod: draft.incidentPeriod.slice(0, 80), recurrence: draft.recurrence.slice(0, 80), expectedOutcomes: draft.expectedOutcomes, noticeContact: noticeContactPayload(notice, registered) }, share);
   setBusy(false);
   if (!result.ok) return showToast('error', result.message);
   showToast('success', share ? 'Manifestação registrada. A equipe revisa a versão antes de liberar à empresa.' : 'Manifestação guardada. Você pode solicitar a revisão depois.'); onCreated();
@@ -176,24 +179,27 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
    {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Continuar</button></div></>;
  } else if (key === 'notice') {
   const update = (next: Partial<NoticeContactInput>) => { setNotice(current => ({ ...current, ...next })); setError(''); };
-  body = <><h2>Aviso à empresa</h2><p className="muted">Esta empresa ainda não usa a Escuta Aí Brasil. Se quiser, indique um e-mail da empresa para ela receber um aviso de que existe um relato. É opcional: sem e-mail, sua manifestação segue normalmente.</p>
+  const filled = Boolean(notice.email.trim() || (companyContactPhoneEnabled && (notice.phone ?? '').replace(/\D/g, '')));
+  body = <><h2>{registered ? 'Contato na empresa' : 'Aviso à empresa'}</h2><p className="muted">{registered ? registeredContactTexts.intro : 'Esta empresa ainda não usa a Escuta Aí Brasil. Se quiser, indique um e-mail da empresa para ela receber um aviso de que existe um relato. É opcional: sem e-mail, sua manifestação segue normalmente.'}</p>
    {noticeTextsInReview && <p className="legal-review-banner">Texto em revisão jurídica.</p>}
-   <div className="field"><label htmlFor="notice-email">{noticeTexts.field}</label><input id="notice-email" type="email" maxLength={254} autoComplete="off" value={notice.email} onChange={event => update({ email: event.target.value })} placeholder="rh@empresa.com.br" aria-describedby="notice-help" /><small id="notice-help" className="muted">{noticeTexts.help}</small></div>
-   {notice.email.trim() && <>
+   <div className="field"><label htmlFor="notice-email">{registered ? registeredContactTexts.email : noticeTexts.field}</label><input id="notice-email" type="email" maxLength={254} autoComplete="off" value={notice.email} onChange={event => update({ email: event.target.value })} placeholder="rh@empresa.com.br" aria-describedby="notice-help" /><small id="notice-help" className="muted">{noticeTexts.help}</small></div>
+   {companyContactPhoneEnabled && <div className="field"><label htmlFor="notice-phone">{registeredContactTexts.phone}</label><input id="notice-phone" type="tel" inputMode="tel" maxLength={15} autoComplete="off" placeholder="(00) 00000-0000" value={notice.phone ?? ''} onChange={event => update({ phone: maskPhone(event.target.value) })} /></div>}
+   {filled && <>
     <fieldset className="response-rating"><legend>{noticeTexts.question}</legend>{(Object.keys(involvementLabels) as Exclude<Involvement, ''>[]).map(value => <label key={value} className="check-row"><input type="radio" name="notice-involvement" value={value} checked={notice.involvement === value} onChange={() => update({ involvement: value })} /> <span>{involvementLabels[value]}</span></label>)}</fieldset>
-    {involved && <div className="notice warn small">{noticeTexts.involvedWarning}</div>}
-    <label className="check-row"><input type="checkbox" checked={notice.consent} onChange={event => update({ consent: event.target.checked })} /> <span>{noticeTexts.consent}</span></label>
+    {involved && <div className="notice warn small">{registered ? 'Com essa resposta, a equipe não usa esse contato.' : noticeTexts.involvedWarning}</div>}
+    <label className="check-row"><input type="checkbox" checked={notice.consent} onChange={event => update({ consent: event.target.checked })} /> <span>{registered ? registeredContactTexts.consent : noticeTexts.consent}</span></label>
    </>}
    {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Continuar</button></div></>;
  } else if (key === 'expect') {
   body = <><h2>O que você espera?</h2><OptionGrid label="O que você espera" options={expectations} value={draft.expectedOutcomes} onSelect={option => { setDraft(current => ({ ...current, expectedOutcomes: current.expectedOutcomes.includes(option) ? current.expectedOutcomes.filter(item => item !== option) : [...current.expectedOutcomes, option] })); setError(''); }} />
    {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Preparar revisão</button></div></>;
  } else {
-  const email = pending && noticeContactPayload(notice);
+  const contact = noticeContactPayload(notice, registered);
+  const contactLabel = contact ? [contact.email, contact.phone].filter(Boolean).join(' · ') : '';
   body = <><h2>Revisão protegida</h2><p className="muted">Seu relato original não será mostrado à empresa. Escreva uma versão separada, sem nomes, locais, datas ou detalhes que possam identificar pessoas.</p>
    <div className="comparison"><div className="text-panel"><h3>Seu relato original</h3><p>{draft.original}</p></div>
     <div className="text-panel"><h3>Versão que será enviada à empresa</h3><textarea rows={8} maxLength={5000} value={draft.shared} onChange={event => { set('shared', event.target.value); setError(''); }} aria-label="Versão que será enviada à empresa" placeholder="Descreva o que a empresa precisa saber para entender e responder, sem dados que identifiquem pessoas." /></div></div>
-   {email ? <p className="muted small">Aviso à empresa: {email.email}. {email.possibly_involved ? noticeTexts.involvedWarning : 'A equipe confere o e-mail antes de decidir pelo envio.'} {noticeTexts.notSharedWarning}</p> : pending ? <p className="muted small">Nenhum e-mail indicado para aviso.</p> : null}
+   {contact ? <p className="muted small">{registered ? 'Contato na empresa (só a equipe vê)' : 'Aviso à empresa'}: {contactLabel}. {contact.possibly_involved ? (registered ? 'Com a sua resposta, a equipe não usa esse contato.' : noticeTexts.involvedWarning) : registered ? '' : 'A equipe confere o e-mail antes de decidir pelo envio.'} {noticeTexts.notSharedWarning.replace('O e-mail para o aviso', 'O contato')}</p> : <p className="muted small">{registered ? 'Nenhum contato na empresa indicado.' : 'Nenhum e-mail indicado para aviso.'}</p>}
    <p className="muted small">As respostas de contexto ficam só nesta tela e não são armazenadas.</p>
    {errorLine}<div className="nav-actions"><button className="btn" type="button" onClick={() => go(keys.indexOf('report'))}>Quero ajustar meu relato</button><button className="btn" type="button" disabled={busy} onClick={() => submit(false)}>Guardar sem compartilhar</button><button className="btn primary" type="button" disabled={busy} onClick={() => submit(true)}>{busy ? 'Enviando…' : 'Solicitar revisão'}</button></div></>;
  }

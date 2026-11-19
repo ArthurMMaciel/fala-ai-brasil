@@ -10,6 +10,8 @@ import { ContactSolicitationsAdmin } from './contact-solicitations-admin';
 import { OpsResponses } from './response-review';
 import { OpsRepresentatives } from './representatives';
 import { OpsNotices, OpsPendingCompanies } from './company-notices';
+import { listNoticeCandidates, type NoticeCandidate } from '../services/notices';
+import { formatPhone } from '../domain/account-rules';
 
 // Área da equipe (ADR-0010): revisão antes da liberação, acesso ao original só com justificativa, números agregados.
 type OpsView = 'overview' | 'queue' | 'responses' | 'representatives' | 'pending-companies' | 'notices' | 'all' | 'companies' | 'contacts';
@@ -66,6 +68,17 @@ function ComplaintList({ rows, onOpen, empty, waiting = false }: { rows: OpsComp
   <tbody>{rows.map(row => <tr key={row.id} tabIndex={0} onClick={() => onOpen(row)} onKeyDown={event => event.key === 'Enter' && onOpen(row)}><td>{row.protocol}</td><td>{row.companyName}</td><td>{row.title}<small>{row.category}</small></td><td><Status status={row.status} /></td><td>{waiting ? <span title={when(row.updatedAt)}>{waitingLabel(row.updatedAt)}</span> : when(row.updatedAt)}</td></tr>)}</tbody></table></div>;
 }
 
+// Contato na empresa indicado pelo trabalhador (só a equipe vê). Hoje vem da fila de avisos; troca para a função
+// dedicada quando o Back mandar o contrato. Sem dado, a seção não aparece.
+function ComplaintContact({ complaintId }: { complaintId: string }) {
+ const [contact, setContact] = useState<NoticeCandidate | null>(null);
+ useEffect(() => { let active = true; listNoticeCandidates().then(result => { if (active && !result.missing) setContact(result.rows.find(row => row.complaintId === complaintId && (row.email || row.phone)) ?? null); }).catch(() => undefined); return () => { active = false; }; }, [complaintId]);
+ if (!contact) return null;
+ return <section className="worker-detail-section"><h3>Contato indicado pelo trabalhador</h3><p className="muted small">Só a equipe vê. A empresa não recebe este contato.</p>
+  <ul className="ops-notice-facts">{contact.email && <li><span className="muted small">E-mail</span><strong>{contact.email}</strong></li>}{contact.phone && <li><span className="muted small">Telefone</span><strong>{formatPhone(contact.phone)}</strong></li>}
+   <li><span className="muted small">Possível envolvimento</span><strong>{contact.possiblyInvolved ? 'Sim ou não sabe: não usar' : 'Não'}</strong></li></ul></section>;
+}
+
 function ComplaintDetail({ complaint, onBack, onChanged }: { complaint: OpsComplaint; onBack: () => void; onChanged: () => void }) {
  const [timeline, setTimeline] = useState<OpsTimelineItem[] | null>(null);
  const [reason, setReason] = useState('');
@@ -105,7 +118,7 @@ function ComplaintDetail({ complaint, onBack, onChanged }: { complaint: OpsCompl
      originalOpen ? <><label className="field">Justificativa do acesso<textarea rows={2} maxLength={500} value={justification} onChange={event => setJustification(event.target.value)} placeholder="Ex.: o texto pode identificar pessoas; pedir ajuste." /></label><div className="ops-decision-actions"><button className="btn primary" disabled={busy} onClick={openOriginal}>Abrir e registrar acesso</button><button className="btn" onClick={() => setOriginalOpen(false)}>Cancelar</button></div></> :
      <><p className="muted small">Fica fechado por padrão. Abrir exige justificativa e fica registrado na trilha de auditoria.</p><button className="btn" onClick={() => setOriginalOpen(true)}>Ver relato original</button></>}
    </section>
-  </div><aside className="worker-detail-aside"><section className="worker-detail-section"><h3>Trilha</h3>
+  </div><aside className="worker-detail-aside"><ComplaintContact complaintId={complaint.id} /><section className="worker-detail-section"><h3>Trilha</h3>
    {timeline === null ? <p className="muted">Carregando…</p> : <ol className="worker-timeline">{timeline.map((item, index) => <li key={index}><strong>{item.kind === 'response' ? 'Resposta da empresa' : item.kind === 'review' ? 'Decisão da equipe' : item.kind === 'response_review' ? 'Revisão da resposta' : item.kind === 'access' ? 'Acesso ao original' : statusLabel(eventLabels, item.status ?? 'received')}</strong><span>{when(item.createdAt)}</span><p>{item.content}</p></li>)}</ol>}
   </section></aside></div></>;
 }

@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { showToast } from '../app/toast';
 import { maskCnpj } from '../domain/account-rules';
 import { dataSourceLabels, noticeStatusLabels, noticeTab, noticeTexts, noticeTextsInReview, registrationLabels, validateOpsReason, type NoticeTab } from '../domain/company-notice';
-import { addNoticeOptOut, decideNotice, listNoticeCandidates, listPendingCompanies, markNoticeSent, purgeExpiredContacts, reviewPendingCompany, type NoticeCandidate, type PendingCompany } from '../services/notices';
+import { addNoticeOptOut, decideNotice, listNoticeCandidates, listPendingCompanies, markNoticeSent, noticeDestination, purgeExpiredContacts, reviewPendingCompany, type NoticeCandidate, type PendingCompany } from '../services/notices';
+
+const registryEmailBadge = 'E-mail da Receita: confira antes (pode ser do contador ou pessoal)';
 
 // ADR-0023 na Operação: conferência das empresas fora do cadastro e aviso sem conteúdo, aprovado e enviado à mão (a1).
 // Sem as migrations 20261118120000/130000 as telas avisam e não quebram.
@@ -82,17 +84,21 @@ function NoticeDetail({ item, onBack, onChanged }: { item: NoticeCandidate; onBa
  const [reason, setReason] = useState('');
  const [busy, setBusy] = useState(false);
  const locks = blockers(item);
+ // Sem contato do trabalhador, o destino é o e-mail da Receita (pode ser do contador ou pessoal): a equipe confere.
+ const destination = noticeDestination(item);
+ const to = destination?.email ?? '';
+ const registryBadge = destination?.fromRegistry ? <span className="commercial-badge">{registryEmailBadge}</span> : null;
  const run = async (action: () => Promise<{ ok: boolean; message?: string }>, done: string) => { setBusy(true); const result = await action(); setBusy(false); if (!result.ok) return showToast('error', result.message ?? 'Não foi possível concluir.'); showToast('success', done); onChanged(); };
  async function decide(event: React.FormEvent) {
   event.preventDefault();
   if (decision === 'rejected') { const problem = validateOpsReason(reason); if (problem) return showToast('error', problem, 'Confira os dados'); }
-  if (!window.confirm(decision === 'approved' ? `Aprovar o aviso para ${item.email}? Depois de aprovado, você envia o texto fixo pela conta da plataforma.` : 'Recusar o aviso? O e-mail não recebe nada.')) return;
+  if (!window.confirm(decision === 'approved' ? `Aprovar o aviso para ${to}?${destination?.fromRegistry ? ' É o e-mail da Receita: confirme que é um canal da empresa.' : ''} Depois de aprovado, você envia o texto fixo pela conta da plataforma.` : 'Recusar o aviso? O e-mail não recebe nada.')) return;
   await run(() => decideNotice(item.complaintId, decision, reason), decision === 'approved' ? 'Aviso aprovado. Envie e marque como enviado.' : 'Aviso recusado.');
  }
  const copy = async () => { try { await navigator.clipboard.writeText(`${noticeTexts.emailSubject}\n\n${noticeTexts.emailBody}`); showToast('success', 'Texto copiado.'); } catch { showToast('error', 'Não foi possível copiar. Selecione o texto e copie manualmente.'); } };
- const optOut = () => { if (window.confirm(`Registrar que ${item.email} pediu para não receber avisos? Nenhum aviso futuro vai para este e-mail.`)) run(() => addNoticeOptOut(item.email), 'Pedido registrado.'); };
+ const optOut = () => { if (to && window.confirm(`Registrar que ${to} pediu para não receber avisos? Nenhum aviso futuro vai para este e-mail.`)) run(() => addNoticeOptOut(to), 'Pedido registrado.'); };
  return <><button className="text-action worker-back" onClick={onBack}>← Voltar</button>
-  <div className="worker-detail-heading"><div><span className="editorial-eyebrow">Aviso à empresa · {item.noticeStatus ? noticeStatusLabels[item.noticeStatus] : 'A decidir'}</span><h2>{item.companyName}</h2><p className="muted">Protocolo {item.protocol} · {item.email} · {registrationLabels[item.registrationStatus] ?? item.registrationStatus}</p></div></div>
+  <div className="worker-detail-heading"><div><span className="editorial-eyebrow">Aviso à empresa · {item.noticeStatus ? noticeStatusLabels[item.noticeStatus] : 'A decidir'}</span><h2>{item.companyName}</h2><p className="muted">Protocolo {item.protocol} · {to || 'sem e-mail de destino'} · {registrationLabels[item.registrationStatus] ?? item.registrationStatus}</p>{registryBadge}</div></div>
   <div className="worker-detail-grid"><div>
    {tab === 'decide' && <form className="worker-detail-section ops-decision" onSubmit={decide} noValidate><h3>Decisão da equipe</h3>
     <p className="muted small">Aprove só e-mail institucional (RH, ouvidoria, contato do site). Recuse e-mail pessoal ou de pessoa nomeada.</p>
@@ -105,7 +111,7 @@ function NoticeDetail({ item, onBack, onChanged }: { item: NoticeCandidate; onBa
    </form>}
    {(tab === 'approved' || item.noticeStatus === 'sent') && <section className="worker-detail-section"><h3>Texto do aviso</h3>
     {noticeTextsInReview && <p className="legal-review-banner">Texto em revisão jurídica.</p>}
-    <p className="muted small">Envie da conta da plataforma para <strong>{item.email}</strong>, sem link e sem nenhuma informação do relato.</p>
+    <p className="muted small">Envie da conta da plataforma para <strong>{to}</strong>{destination?.fromRegistry ? ` (${registryEmailBadge})` : ''}, sem link e sem nenhuma informação do relato.</p>
     <label className="field">Assunto<input readOnly value={noticeTexts.emailSubject} /></label>
     <label className="field">Mensagem<textarea readOnly rows={10} value={noticeTexts.emailBody} /></label>
     <div className="ops-decision-actions"><button className="btn" type="button" onClick={copy}>Copiar texto</button>
@@ -142,7 +148,7 @@ export function OpsNotices() {
    <div className="account-tabs ops-response-tabs" role="tablist" aria-label="Situação do aviso">{noticeTabs.map(([value, label]) => <button key={value} role="tab" aria-selected={tab === value} className={`account-tab${tab === value ? ' active' : ''}`} onClick={() => setTab(value)}>{label}</button>)}</div>
    {failure ? <section className="commercial-panel"><p>{failure}</p></section> : rows === null ? <p className="muted">Carregando…</p> : !listed.length ? <section className="commercial-panel"><p className="muted">{tab === 'decide' ? 'Nenhum aviso aguardando decisão.' : 'Nada por aqui.'}</p></section> :
    <div className="commercial-table-wrap"><table className="commercial-table"><thead><tr><th>Empresa</th><th>E-mail</th><th>Protocolo</th><th>Situação</th></tr></thead>
-    <tbody>{listed.map(row => <tr key={row.complaintId} tabIndex={0} onClick={() => setOpenId(row.complaintId)} onKeyDown={event => event.key === 'Enter' && setOpenId(row.complaintId)}><td>{row.companyName}<small>{registrationLabels[row.registrationStatus] ?? row.registrationStatus}</small></td><td>{row.email}</td><td>{row.protocol}</td><td>{row.noticeStatus ? noticeStatusLabels[row.noticeStatus] : blockers(row).length ? 'Com trava' : 'A decidir'}</td></tr>)}</tbody></table></div>}
+    <tbody>{listed.map(row => <tr key={row.complaintId} tabIndex={0} onClick={() => setOpenId(row.complaintId)} onKeyDown={event => event.key === 'Enter' && setOpenId(row.complaintId)}><td>{row.companyName}<small>{registrationLabels[row.registrationStatus] ?? row.registrationStatus}</small></td><td>{noticeDestination(row)?.email ?? '—'}{noticeDestination(row)?.fromRegistry && <small>{registryEmailBadge}</small>}</td><td>{row.protocol}</td><td>{row.noticeStatus ? noticeStatusLabels[row.noticeStatus] : blockers(row).length ? 'Com trava' : 'A decidir'}</td></tr>)}</tbody></table></div>}
    <section className="commercial-panel"><h2>Retenção</h2><p className="muted">Contatos são apagados 90 dias depois do encerramento da manifestação ou da recusa do aviso. Enquanto não houver rotina automática, rode aqui.</p><button className="btn" type="button" disabled={busy} onClick={purge}>{busy ? 'Apagando…' : 'Apagar contatos vencidos'}</button></section>
   </>}</>;
 }

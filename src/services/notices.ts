@@ -58,6 +58,15 @@ export interface NoticeCandidate {
   complaintId: string; protocol: string; complaintStatus: ComplaintStatusDb; companyId: string; companyName: string; registrationStatus: string;
   naturalPerson: boolean | null; reviewDecision: string | null; contactId: string | null; email: string; possiblyInvolved: boolean; contactStatus: string;
   optedOut: boolean; lastCompanyNoticeAt: string | null; noticeId: string | null; noticeStatus: NoticeStatus | null;
+  // Contrato novo (decisão do responsável, 2026-11-19), nomes provisórios até o Back confirmar: telefone indicado pelo
+  // trabalhador e e-mail da Receita (cnpj-lookup), usado como destino quando o trabalhador não indica contato.
+  phone: string; registryEmail: string;
+}
+
+// Destino do aviso: o contato do trabalhador; sem ele, o e-mail da Receita, que a equipe precisa conferir.
+export function noticeDestination(row: Pick<NoticeCandidate, 'email' | 'registryEmail'>): { email: string; fromRegistry: boolean } | null {
+  if (row.email) return { email: row.email, fromRegistry: false };
+  return row.registryEmail ? { email: row.registryEmail, fromRegistry: true } : null;
 }
 
 export async function listNoticeCandidates(): Promise<{ missing: true } | { missing: false; rows: NoticeCandidate[] }> {
@@ -67,6 +76,7 @@ export async function listNoticeCandidates(): Promise<{ missing: true } | { miss
     complaintId: String(row.complaint_id), protocol: String(row.protocol ?? ''), complaintStatus: row.complaint_status as ComplaintStatusDb, companyId: String(row.company_id),
     companyName: String(row.company_name ?? ''), registrationStatus: String(row.registration_status ?? ''), naturalPerson: (row.natural_person as boolean | null) ?? null,
     reviewDecision: (row.review_decision as string | null) ?? null, contactId: (row.contact_id as string | null) ?? null, email: String(row.email ?? ''),
+    phone: String(row.phone ?? ''), registryEmail: String(row.registry_email ?? ''),
     possiblyInvolved: Boolean(row.possibly_involved), contactStatus: String(row.contact_status ?? 'candidate'), optedOut: Boolean(row.opted_out),
     lastCompanyNoticeAt: (row.last_company_notice_at as string | null) ?? null, noticeId: (row.notice_id as string | null) ?? null, noticeStatus: (row.notice_status as NoticeStatus | null) ?? null,
   })) };

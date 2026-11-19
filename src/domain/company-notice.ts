@@ -28,25 +28,45 @@ export const noticeTexts = {
 export type Involvement = 'yes' | 'no' | 'unknown' | '';
 export const involvementLabels: Record<Exclude<Involvement, ''>, string> = { yes: 'Sim', no: 'Não', unknown: 'Não sei' };
 
-export interface NoticeContactInput { email: string; involvement: Involvement; consent: boolean }
-export interface NoticeContactPayload { email: string; possibly_involved: boolean; consent: true }
+// Contato na empresa em TODA manifestação (decisão do responsável, 2026-11-19): e-mail e telefone opcionais, pelo menos um.
+// Telefone pronto na tela, mas desligado: o create_complaint atual exige e-mail sempre que vem notice_contact.
+// Ligar quando o Back mandar o contrato novo (chave "phone" provisória).
+export const companyContactPhoneEnabled = false;
+
+// Empresa cadastrada: o contato fica só com a equipe, como segundo canal; a empresa não vê.
+export const registeredContactTexts = {
+  intro: 'Se quiser, indique um contato da empresa, como o RH. Esse contato fica só com a equipe da Escuta Aí Brasil, como segundo canal desta manifestação. A empresa não vê o contato que você indicar. É opcional.',
+  email: 'E-mail de contato na empresa (opcional)',
+  phone: 'Telefone de contato na empresa (opcional)',
+  consent: 'Concordo que a equipe da Escuta Aí Brasil guarde este contato como segundo canal desta manifestação. A empresa não vê este contato.',
+  missingConsent: 'Para indicar o contato, confirme que a equipe pode guardá-lo como segundo canal.',
+};
+
+export interface NoticeContactInput { email: string; phone?: string; involvement: Involvement; consent: boolean }
+export interface NoticeContactPayload { email?: string; phone?: string; possibly_involved: boolean; consent: true }
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const phoneDigits = (value: string) => value.replace(/\D/g, '');
+const hasPhone = (input: NoticeContactInput) => companyContactPhoneEnabled && Boolean(phoneDigits(input.phone ?? ''));
 
-// Sem e-mail não há contato (o aviso é opcional). Com e-mail, pergunta e consentimento são obrigatórios.
-export function validateNoticeContact(input: NoticeContactInput): string | null {
+// Sem contato, nada a validar (é opcional). Com e-mail ou telefone, pergunta e consentimento são obrigatórios.
+export function validateNoticeContact(input: NoticeContactInput, registered = false): string | null {
   const email = input.email.trim();
-  if (!email) return null;
-  if (email.length > 254 || !emailPattern.test(email)) return 'Informe um e-mail válido para o aviso ou deixe o campo vazio.';
-  if (!input.involvement) return 'Responda se a pessoa desse e-mail pode estar envolvida no que você relata.';
-  if (!input.consent) return 'Para indicar o e-mail, confirme que a empresa receberá o aviso de que existe um relato.';
+  if (!email && !hasPhone(input)) return null;
+  if (email && (email.length > 254 || !emailPattern.test(email))) return 'Informe um e-mail válido ou deixe o campo vazio.';
+  if (hasPhone(input) && !/^\d{10,11}$/.test(phoneDigits(input.phone ?? ''))) return 'Informe um telefone com DDD (10 ou 11 dígitos) ou deixe o campo vazio.';
+  if (!input.involvement) return 'Responda se a pessoa desse contato pode estar envolvida no que você relata.';
+  if (!input.consent) return registered ? registeredContactTexts.missingConsent : 'Para indicar o e-mail, confirme que a empresa receberá o aviso de que existe um relato.';
   return null;
 }
 
 // "Não sei" conta como possivelmente envolvido (decisão do Gestor em 18/11, coerente com a ADR-0012 D4).
-export function noticeContactPayload(input: NoticeContactInput): NoticeContactPayload | null {
-  if (!input.email.trim() || validateNoticeContact(input)) return null;
-  return { email: input.email.trim().toLowerCase(), possibly_involved: input.involvement !== 'no', consent: true };
+export function noticeContactPayload(input: NoticeContactInput, registered = false): NoticeContactPayload | null {
+  const email = input.email.trim();
+  if ((!email && !hasPhone(input)) || validateNoticeContact(input, registered)) return null;
+  // Contrato atual: notice_contact exige e-mail. Até o contrato novo, contato só com telefone não é enviado.
+  if (!email && !companyContactPhoneEnabled) return null;
+  return { ...(email ? { email: email.toLowerCase() } : {}), ...(hasPhone(input) ? { phone: phoneDigits(input.phone ?? '') } : {}), possibly_involved: input.involvement !== 'no', consent: true };
 }
 
 export function validateManualCompany(name: string, city: string, state: string): string | null {

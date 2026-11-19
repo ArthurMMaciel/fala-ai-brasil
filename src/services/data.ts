@@ -74,7 +74,7 @@ export interface NewComplaintInput {
   // ADR-0023 (contrato final): empresa fora da base vai por CNPJ; company_manual quando a cnpj-lookup não respondeu found.
   companyCnpj?: string; companyManual?: { name: string; city: string; state: string } | null;
   // E-mail para o aviso; só vai com a versão compartilhável.
-  noticeContact?: { email: string; possibly_involved: boolean; consent: true } | null;
+  noticeContact?: { email?: string; phone?: string; possibly_involved: boolean; consent: true } | null;
 }
 
 // company_id (cadastrada) OU company_cnpj (+ company_manual), nunca os dois.
