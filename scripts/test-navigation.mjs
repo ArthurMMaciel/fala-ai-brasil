@@ -21,18 +21,15 @@ const stories = compile('src/editorial/editorial-landing.tsx', '', name => name 
 const accountRules = compile('src/domain/account-rules.ts');
 const htmlSafety = compile('src/domain/html-safety.ts');
 const contactService = compile('src/services/contact-solicitations.ts', '', name => name === './account' ? { isAccountServiceConfigured: () => false } : name === '../domain/account-rules' ? accountRules : require(name));
-const contactForm = compile('src/landing/contact-solicitation-form.tsx', '', name => name === '../services/contact-solicitations' ? contactService : name === '../domain/account-rules' ? accountRules : require(name));
-const showcase = compile('src/landing/persona-showcase.tsx', '', name => name === './contact-solicitation-form' ? contactForm : require(name));
 const tracking = compile('src/editorial/editorial-tracking.tsx', '', name => name === './editorial-ui' ? ui : name === './editorial-model' ? model : require(name));
 const legalDocs = compile('src/domain/legal-docs.ts');
 const rawContent = name => name.endsWith('.md?raw') ? { default: readFileSync(new URL(`../src/content/legal/${name.split('/').pop().replace('?raw', '')}`, import.meta.url), 'utf8') } : null;
 const legalPage = compile('src/editorial/legal-page.tsx', '', name => rawContent(name) ?? (name === '../domain/legal-docs' ? legalDocs : name === './editorial-ui' ? ui : require(name)));
 const experience = compile('src/editorial/editorial-experience.tsx', '', name => name === './editorial-ui' ? ui : name === './editorial-model' ? model : name === './editorial-tracking' ? tracking : name === './legal-page' ? legalPage : require(name));
-const landing = compile('src/landing/landing-react.tsx', '\nexport { Landing };', name => ({ '../domain/commercial': { commercialCatalog: catalog }, '../editorial/editorial-ui': ui, '../editorial/editorial-landing': stories, '../editorial/editorial-experience': experience, './persona-showcase': showcase }[name] ?? require(name)));
 
 // Minimal host for the legacy renderer: checks transitions and bound actions without a browser.
 function app() {
-  let reactMounted = false, props, markup = '', buttons = [];
+  let reactMounted = false, staticOpened = 0, markup = '', buttons = [];
   const main = { focus() {} };
   const element = {
     get innerHTML() { return markup; },
@@ -51,8 +48,8 @@ function app() {
     commercialCatalog: catalog,
     experienceRoutes: experience.experienceRoutes,
     mountExperience() { reactMounted = true; },
-    mountLanding(_, next) { reactMounted = true; props = next; },
     unmountLanding() { reactMounted = false; },
+    openStaticLanding() { staticOpened++; },
     // Cadastro real (ADR-0009) fica desligado no host de teste; contas demo seguem locais.
     isAccountServiceConfigured: () => false, loadAccount: async () => null, readRedirectError: () => null, consumeEmailConfirmation: async () => null, passwordRulesMarkup: () => "",
     registerAccount: async () => ({ ok: false, message: 'indisponível' }), resendConfirmation: async () => ({ ok: true, value: null }),
@@ -66,7 +63,7 @@ function app() {
   });
   const source = readFileSync('src/app/main.js', 'utf8').replace(/^import .*;\r?\n/gm, '');
   vm.runInContext(source + '\nglobalThis.api={state:o,route:m,responses:ve};', context);
-  return { get props() { return props; }, get html() { return markup; }, api: context.api, button(action) { const button = buttons.find(b => b.dataset.action === action || b.dataset.route === action); assert.ok(button, `Botão ${action} encontrado`); return button; } };
+  return { get staticOpened() { return staticOpened; }, get html() { return markup; }, api: context.api, button(action) { const button = buttons.find(b => b.dataset.action === action || b.dataset.route === action); assert.ok(button, `Botão ${action} encontrado`); return button; } };
 }
 
 test('cadastro é dividido em etapas e não mostra o resumo de cobrança', () => {
@@ -90,50 +87,46 @@ test('após o cadastro mostra a tela de confirmar e-mail, e o botão leva ao log
   assert.match(screen.html, /value="pessoa@example.com"/);
 });
 
-test('marca volta à landing repetidamente após login/cadastro e a persona continua navegável', () => {
+const settle = () => new Promise(resolve => setTimeout(resolve, 20));
+
+test('sem conta, a marca nas telas de login e cadastro leva à landing estática (/inicio.html), quantas vezes for', async () => {
   const screen = app();
+  await settle();
+  const before = screen.staticOpened;
   for (let i = 0; i < 3; i++) {
-    screen.props.onOpenAuth(i % 2 ? 'register' : 'login', 'company');
+    screen.api.route(i % 2 ? 'register' : 'login', { authAudience: 'company' });
     assert.match(screen.html, /brand\/escuta-ai-brasil.svg/);
     screen.button('landing').click();
-    assert.equal(screen.api.state.route, 'landing');
-    screen.props.onAudienceChange('partner');
-    assert.equal(screen.props.audience, 'partner');
-    assert.equal(screen.api.state.commercialAudience, 'partner');
+    assert.equal(screen.staticOpened, before + i + 1);
   }
+});
+
+test('logado, a marca leva à própria área, nunca à landing estática', async () => {
+  const screen = app();
+  await settle();
+  const before = screen.staticOpened;
+  screen.api.state.user = { id: 'w1', name: 'TESTE Trabalhador', role: 'worker', profile: { type: 'worker', id: 'w1' } };
+  screen.api.route('landing');
+  assert.equal(screen.api.state.route, 'worker');
+  assert.equal(screen.staticOpened, before);
 });
 
 test('cada plano abre cadastro da persona correta com seleção preservada', () => {
   const screen = app();
   for (const plan of catalog) {
-    screen.props.onAudienceChange(plan.audience);
-    screen.props.onChoosePlan(plan.id, plan.audience);
-    assert.equal(screen.api.state.route, 'register');
+    screen.api.route('register', { authAudience: plan.audience, landingAudience: plan.audience, commercialAudience: plan.audience, selectedPlanId: plan.id });
     assert.equal(screen.api.state.authAudience, plan.audience);
-    assert.equal(screen.api.state.selectedPlanId, plan.id);
     assert.match(screen.html, new RegExp(`value="${plan.id}" selected`));
-    screen.button('landing').click();
   }
 });
 
-test('landing mostra apenas planos do perfil ativo e acesso gratuito para trabalhador', () => {
-  const screen = app();
-  for (const audience of ['worker', 'company', 'partner', 'intelligence', 'sponsor']) {
-    screen.props.onAudienceChange(audience);
-    const html = renderToStaticMarkup(React.createElement(landing.Landing, screen.props));
-    assert.match(html, /id="solucoes-e-planos"/);
-    assert.match(html, /\/media\/escuta-ai-brasil-institucional\.mp4/);
-    assert.doesNotMatch(html, /\/media\/[a-z]+\.webp/);
-    assert.equal((html.match(/class="landing-process"/g) || []).length, 1);
-    assert.doesNotMatch(html, /editorial-hero|editorial-section/);
-    assert.match(html, /brand\/escuta-ai-brasil.svg/);
-    assert.doesNotMatch(html, /brand-mark|Funcionário/);
-    assert.equal((html.match(/class="landing-plan"/g) || []).length, catalog.filter(p => p.audience === audience).length);
-    for (const plan of catalog) assert.equal(html.includes(`aria-label="Escolher plano ${plan.name}"`), plan.audience === audience);
-    if (audience === 'worker') assert.match(html, /Criar conta gratuita/);
-    assert.match(html, /id="saiba-mais"/);
-    assert.match(html, /Solicitar contato/);
-  }
+test('landing React antiga saiu: o app não monta mais a landing nem a busca de patrocinadores públicos', () => {
+  const main = readFileSync('src/app/main.js', 'utf8');
+  assert.doesNotMatch(main, /\bmountLanding\(|acctRestore\(\);acctLoadSponsors\(\)/);
+  assert.match(main, /if\(o\.route==="landing"\)\{unmountLanding\(\);if\(o\.user\)\{acctOpenMyArea\(\);return\}if\(acctRestored\)\{openStaticLanding\(\);return\}/);
+  assert.match(main, /async function acctLogout\(\)\{try\{await signOut\(\)\}catch\{\}acctResetUi\(\)\}/, 'sai da conta antes de ir para a landing');
+  assert.match(main, /if\(t==="ended"\)\{acctResetUi\("login"\);showToast\("info",sessionChangeMessages\.ended\)\}/, 'sessão encerrada fica no login, com o aviso');
+  assert.match(readFileSync('src/app/static-landing.ts', 'utf8'), /export const staticLandingPath = "\/inicio\.html";/);
 });
 
 test('solicitação de contato exige dados mínimos e mantém o perfil da landing', () => {
@@ -170,33 +163,28 @@ test('avaliação e finalização do caso respondem e não duplicam o encerramen
   assert.match(screen.html, /Você continuará acompanhando/);
 });
 
-test('desmontagem descarta a raiz React antes de remontar a landing', () => {
+test('desmontagem descarta a raiz React antes de remontar as telas editoriais', () => {
   let created = 0, unmounted = 0;
-  const lifecycle = compile('src/landing/landing-react.tsx', '', name => name === 'react-dom/client' ? { createRoot() { created++; return { render() {}, unmount() { unmounted++; } }; } } : ({ '../domain/commercial': { commercialCatalog: catalog }, '../editorial/editorial-ui': ui, '../editorial/editorial-landing': stories, '../editorial/editorial-experience': experience, './persona-showcase': showcase }[name] ?? require(name)));
-  lifecycle.mountLanding({}, {});
-  lifecycle.mountLanding({}, {});
+  const lifecycle = compile('src/landing/landing-react.tsx', '', name => name === 'react-dom/client' ? { createRoot() { created++; return { render() {}, unmount() { unmounted++; } }; } } : ({ '../editorial/editorial-experience': experience }[name] ?? require(name)));
+  lifecycle.mountExperience({}, { route: 'terms', onRoute() {} });
+  lifecycle.mountExperience({}, { route: 'privacy', onRoute() {} });
   assert.equal(created, 1);
   lifecycle.unmountLanding();
   assert.equal(unmounted, 1);
-  lifecycle.mountLanding({}, {});
+  lifecycle.mountExperience({}, { route: 'terms', onRoute() {} });
   assert.equal(created, 2);
 });
 
-test('sessão comercial é mantida na landing e plano escolhido segue para a própria conta', () => {
+test('sair da conta leva à landing estática', async () => {
   const screen = app();
+  await settle();
+  const before = screen.staticOpened;
   screen.api.state.user = { id: 'demo-company', name: 'Empresa demo', role: 'admin' };
-  screen.api.state.subscriptions.push({ userId: 'demo-company', audience: 'company', planId: 'company-essential', mode: 'monthly', status: 'pending', nextBillingAt: null, paidCents: 0 });
-  screen.props.onAudienceChange('company');
-  const html = renderToStaticMarkup(React.createElement(landing.Landing, screen.props));
-  assert.match(html, /Minha área/);
-  assert.match(html, />Sair</);
-  assert.doesNotMatch(html, />Entrar</);
-  screen.props.onChoosePlan('company-management', 'company');
-  assert.equal(screen.api.state.route, 'commercial-account');
-  assert.match(screen.html, /value="company-management" selected/);
-  screen.button('landing').click();
-  screen.props.onLogout();
+  screen.api.route('commercial-account');
+  screen.button('logout').click();
+  await settle();
   assert.equal(screen.api.state.user, null);
+  assert.equal(screen.staticOpened, before + 1);
 });
 
 // TASK-0002: dados do usuário ou do banco chegam ao renderer legado (innerHTML) apenas como texto.

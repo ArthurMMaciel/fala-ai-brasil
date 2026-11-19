@@ -25,6 +25,7 @@ test('mesma conta segue; outra conta recarrega', () => {
 test('main.js liga o aviso e o logout não chama signOut duas vezes no reset', () => {
   const main = readFileSync('src/app/main.js', 'utf8');
   assert.match(main, /watchSession\(\(e,a\)=>\{const t=sessionChange\(e,a,o\.user\?\.id\?\?null\)/);
-  assert.match(main, /function acctLogout\(\)\{acctResetUi\(\);signOut\(\)/);
-  assert.doesNotMatch(main.match(/function acctResetUi\(\)\{[^\n]*/)[0], /signOut/);
+  // Sair encerra a sessão antes de levar à landing estática (TASK 17tu7rpfxh3); o reset da tela não chama signOut.
+  assert.match(main, /async function acctLogout\(\)\{try\{await signOut\(\)\}catch\{\}acctResetUi\(\)\}/);
+  assert.doesNotMatch(main.match(/function acctResetUi\(e="landing"\)\{[^\n]*/)[0], /signOut/);
 });

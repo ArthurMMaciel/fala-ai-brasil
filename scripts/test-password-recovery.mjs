@@ -41,7 +41,7 @@ test('serviço: resetPasswordForEmail com redirectTo do site, retorno de recuper
   assert.match(account, /resetPasswordForEmail\(email\.trim\(\)\.toLowerCase\(\), \{ redirectTo: redirectUrl\(\) \}\)/);
   assert.match(account, /auth\.updateUser\(\{ password \}\)/);
   assert.match(account, /\/\[#&\]type=signup\(&\|\$\)\//);
-  const restore = readFileSync('src/app/main.js', 'utf8').match(/async function acctRestore\(\)\{[^\n]*/)[0];
+  const restore = readFileSync('src/app/main.js', 'utf8').match(/async function acctRestoreInner\(\)\{[^\n]*/)[0];
   assert.ok(restore.indexOf('consumeRecoveryArrival') < restore.indexOf('loadAccount'), 'o retorno de recuperação vem antes de entrar na conta');
   const entry = readFileSync('public/landing/entrada.js', 'utf8');
   assert.match(entry, /location\.hash \|\| location\.search/);
