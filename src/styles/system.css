@@ -435,3 +435,13 @@
 
 /* ADR-0024: link Esqueci minha senha no login */
 .auth-forgot { margin: -6px 0 14px; text-align: right; font-size: 14px; }
+
+/* Operação em telas médias (ex.: 1024 px): tabelas cabem na área ao lado do menu, sem esconder a coluna de ação. */
+@media (min-width: 761px) {
+  .commercial-portal-main .commercial-table, .commercial-portal-main .contact-admin-table { min-width: 0; }
+  .commercial-portal-main .contact-admin-table th, .commercial-portal-main .contact-admin-table td { padding: 14px 12px; }
+  .commercial-portal-main .contact-admin-table td:nth-child(2) { min-width: 0; }
+  .commercial-portal-main .contact-admin { padding: 0; }
+  .commercial-portal-main .contact-admin-table .btn { white-space: normal; min-height: 0; }
+  .commercial-portal-main .contact-admin-status { white-space: normal; }
+}

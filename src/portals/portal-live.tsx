@@ -216,7 +216,7 @@ function PartnerProfileEditor({ partnerId, profile, onSaved }: { partnerId: stri
    <label className="field">Descrição<textarea rows={6} maxLength={2000} value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} /><small className="muted">{form.description.length}/2000</small></label>
    {hasContact && <div className="grid two"><label className="field">E-mail de contato<input type="email" autoComplete="email" value={form.contactEmail} maxLength={254} required onChange={event => setForm({ ...form, contactEmail: event.target.value })} /></label>
     <label className="field">Telefone de contato<input type="tel" inputMode="tel" autoComplete="tel-national" placeholder="(00) 00000-0000" value={form.contactPhone} maxLength={15} required onChange={event => setForm({ ...form, contactPhone: maskPhone(event.target.value) })} /></label></div>}
-   <p className="muted small">Cidade: {profile.city}/{profile.state}. Endereço e documento não aparecem para empresas.{hasContact ? ' O e-mail e o telefone de contato aparecem para as empresas que pedirem contato e para as que você marcar como cliente.' : ''}</p>
+   <p className="muted small">Cidade: {profile.city}/{profile.state}. Endereço e documento não aparecem para empresas.{hasContact ? ' O e-mail e o telefone de contato aparecem só para as empresas que você marcar como cliente.' : ''}</p>
    <button className="btn primary" type="submit" disabled={busy}>{busy ? 'Salvando…' : 'Salvar alterações'}</button>
   </form></section>
   <section className="commercial-panel"><h2>Foto de perfil</h2><PartnerPhoto url={photo} name={form.displayName} large />
