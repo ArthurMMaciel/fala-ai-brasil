@@ -84,7 +84,7 @@ export async function listNoticeCandidates(): Promise<{ missing: true } | { miss
     companyName: String(row.company_name ?? ''), registrationStatus: String(row.registration_status ?? ''), naturalPerson: (row.natural_person as boolean | null) ?? null,
     reviewDecision: (row.review_decision as string | null) ?? null, contactId: (row.contact_id as string | null) ?? null, email: String(row.contact_email ?? row.email ?? ''),
     phone: String(row.contact_phone ?? ''), registryEmail: String(row.receita_email ?? ''),
-    workerConsent: typeof row[noticeConsentKey] === 'boolean' ? row[noticeConsentKey] as boolean : null,
+    workerConsent: typeof row.notice_consented === 'boolean' ? row.notice_consented : typeof row[noticeConsentKey] === 'boolean' ? row[noticeConsentKey] as boolean : null,
     destinationEmail: String(row.destination_email ?? ''), destinationSource: row.destination_source === 'worker' || row.destination_source === 'receita' ? row.destination_source : '',
     possiblyInvolved: Boolean(row.possibly_involved), contactStatus: String(row.contact_status ?? 'candidate'), optedOut: Boolean(row.opted_out),
     lastCompanyNoticeAt: (row.last_company_notice_at as string | null) ?? null, noticeId: (row.notice_id as string | null) ?? null, noticeStatus: (row.notice_status as NoticeStatus | null) ?? null,

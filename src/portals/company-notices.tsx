@@ -69,7 +69,7 @@ export function OpsPendingCompanies() {
 function blockers(row: NoticeCandidate): string[] {
  const list: string[] = [];
  if (row.complaintStatus === 'in_review' || row.complaintStatus === 'held' || row.complaintStatus === 'received') list.push('A manifestação ainda não foi liberada pela equipe.');
- if (row.workerConsent === false) list.push('O trabalhador não aceitou que a empresa receba o aviso.');
+ if (row.workerConsent === false) list.push('Trabalhador não autorizou o aviso.');
  if (row.possiblyInvolved) list.push('O trabalhador marcou o contato como possivelmente envolvido (ou respondeu "Não sei").');
  if (row.optedOut) list.push('Este e-mail pediu para não receber avisos.');
  if (row.registrationStatus === 'pending_check') list.push('A empresa ainda não foi conferida.');
@@ -109,7 +109,7 @@ function NoticeDetail({ item, onBack, onChanged }: { item: NoticeCandidate; onBa
    {tab === 'decide' && <form className="worker-detail-section ops-decision" onSubmit={decide} noValidate><h3>Decisão da equipe</h3>
     <p className="muted small">Aprove só e-mail institucional (RH, ouvidoria, contato do site). Recuse e-mail pessoal ou de pessoa nomeada.</p>
     {locks.length > 0 && <div className="notice warn small"><strong>O banco vai recusar a aprovação:</strong><ul>{locks.map(line => <li key={line}>{line}</li>)}</ul></div>}
-    {noConsent && <div className="notice warn small">O trabalhador não aceitou que a empresa receba o aviso. Só é possível recusar.</div>}
+    {noConsent && <div className="notice warn small">Trabalhador não autorizou o aviso. Só é possível recusar.</div>}
     <fieldset className="response-rating"><legend>O que fazer</legend>
      {!noConsent && <label className="check-row"><input type="radio" name="notice-decision" checked={decision === 'approved'} onChange={() => setDecision('approved')} /> <span>Aprovar o aviso</span></label>}
      <label className="check-row"><input type="radio" name="notice-decision" checked={decision === 'rejected'} onChange={() => setDecision('rejected')} /> <span>Recusar o aviso</span></label></fieldset>
@@ -130,7 +130,7 @@ function NoticeDetail({ item, onBack, onChanged }: { item: NoticeCandidate; onBa
    </section>}
    {tab === 'rejected' && <section className="worker-detail-section"><p className="muted">Aviso recusado. Nada foi enviado.</p></section>}
   </div><aside className="worker-detail-aside"><section className="worker-detail-section"><h3>Resumo</h3><ul className="ops-notice-facts">
-   <li><span className="muted small">Trabalhador aceitou o aviso</span><strong>{item.workerConsent === true ? 'Sim' : item.workerConsent === false ? 'Não' : 'Não informado'}</strong></li>
+   <li><span className="muted small">Trabalhador autorizou o aviso</span><strong>{item.workerConsent === true ? 'Sim' : item.workerConsent === false ? 'Não' : 'Não informado'}</strong></li>
    <li><span className="muted small">Possível envolvimento</span><strong>{item.possiblyInvolved ? 'Sim ou não sabe' : 'Não'}</strong></li>
    <li><span className="muted small">Pediu para não receber</span><strong>{item.optedOut ? 'Sim' : 'Não'}</strong></li>
    <li><span className="muted small">Último aviso à empresa</span><strong>{dateLabel(item.lastCompanyNoticeAt)}</strong></li>
@@ -159,7 +159,7 @@ export function OpsNotices() {
    <div className="account-tabs ops-response-tabs" role="tablist" aria-label="Situação do aviso">{noticeTabs.map(([value, label]) => <button key={value} role="tab" aria-selected={tab === value} className={`account-tab${tab === value ? ' active' : ''}`} onClick={() => setTab(value)}>{label}</button>)}</div>
    {failure ? <section className="commercial-panel"><p>{failure}</p></section> : rows === null ? <p className="muted">Carregando…</p> : !listed.length ? <section className="commercial-panel"><p className="muted">{tab === 'decide' ? 'Nenhum aviso aguardando decisão.' : 'Nada por aqui.'}</p></section> :
    <div className="commercial-table-wrap"><table className="commercial-table"><thead><tr><th>Empresa</th><th>E-mail</th><th>Protocolo</th><th>Situação</th></tr></thead>
-    <tbody>{listed.map(row => <tr key={row.complaintId} tabIndex={0} onClick={() => setOpenId(row.complaintId)} onKeyDown={event => event.key === 'Enter' && setOpenId(row.complaintId)}><td>{row.companyName}<small>{registrationLabels[row.registrationStatus] ?? row.registrationStatus}</small></td><td>{noticeDestination(row)?.email ?? '—'}{noticeDestination(row)?.fromRegistry && <small>{registryEmailBadge}</small>}</td><td>{row.protocol}</td><td>{row.noticeStatus ? noticeStatusLabels[row.noticeStatus] : row.workerConsent === false ? 'Sem aceite do trabalhador' : blockers(row).length ? 'Com trava' : 'A decidir'}</td></tr>)}</tbody></table></div>}
+    <tbody>{listed.map(row => <tr key={row.complaintId} tabIndex={0} onClick={() => setOpenId(row.complaintId)} onKeyDown={event => event.key === 'Enter' && setOpenId(row.complaintId)}><td>{row.companyName}<small>{registrationLabels[row.registrationStatus] ?? row.registrationStatus}</small></td><td>{noticeDestination(row)?.email ?? '—'}{noticeDestination(row)?.fromRegistry && <small>{registryEmailBadge}</small>}</td><td>{row.protocol}</td><td>{row.noticeStatus ? noticeStatusLabels[row.noticeStatus] : row.workerConsent === false ? 'Trabalhador não autorizou o aviso' : blockers(row).length ? 'Com trava' : 'A decidir'}</td></tr>)}</tbody></table></div>}
    <section className="commercial-panel"><h2>Retenção</h2><p className="muted">Contatos são apagados 90 dias depois do encerramento da manifestação ou da recusa do aviso. Enquanto não houver rotina automática, rode aqui.</p><button className="btn" type="button" disabled={busy} onClick={purge}>{busy ? 'Apagando…' : 'Apagar contatos vencidos'}</button></section>
   </>}</>;
 }

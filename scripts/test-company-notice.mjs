@@ -48,7 +48,7 @@ test('abas da fila de avisos', () => {
 
 test('textos do aviso: em revisão jurídica, com a frase da ADR-0023 e sem link no e-mail', () => {
   assert.equal(notice.noticeTextsInReview, true);
-  assert.equal(notice.noticeTexts.consent, 'A equipe da Escuta Aí Brasil pode usar este contato como segundo canal com a empresa. Se a empresa ainda não estiver na plataforma, ela receberá por ele um aviso de que existe um relato, sem o conteúdo, sem o seu nome e sem a data.');
+  assert.equal(notice.noticeTexts.consent, 'Concordo que a equipe da Escuta Aí Brasil use este contato como segundo canal com a empresa nesta manifestação. A empresa não vê este contato.');
   assert.equal(notice.registeredContactTexts.consent, notice.noticeTexts.consent, 'consentimento único para qualquer empresa');
   assert.doesNotMatch(notice.noticeTexts.emailBody, /https?:\/\/|www\.|\.com\b|\.br\b|<a\b/i);
   // Endereço do site como texto, vindo de um lugar único (decisão do responsável em 2026-11-19).

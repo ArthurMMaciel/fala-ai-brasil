@@ -10,8 +10,9 @@ export const noticeTexts = {
   field: 'E-mail da empresa para o aviso (opcional)',
   help: 'Prefira um canal institucional, como RH, ouvidoria ou o contato do site. Não indique o e-mail pessoal de alguém.',
   question: 'A pessoa desse contato pode estar envolvida no que você relata?',
-  // Consentimento único para qualquer empresa (contrato do Back e0f43bd, em revisão jurídica).
-  consent: 'A equipe da Escuta Aí Brasil pode usar este contato como segundo canal com a empresa. Se a empresa ainda não estiver na plataforma, ela receberá por ele um aviso de que existe um relato, sem o conteúdo, sem o seu nome e sem a data.',
+  // Consentimento do contato: só o uso como segundo canal (contrato do Back 40417ac, em revisão jurídica).
+  // A autorização do aviso é a pergunta separada (noticeConsentQuestion).
+  consent: 'Concordo que a equipe da Escuta Aí Brasil use este contato como segundo canal com a empresa nesta manifestação. A empresa não vê este contato.',
   involvedWarning: 'Com essa resposta, o aviso não será enviado a esse e-mail.',
   notSharedWarning: 'O e-mail para o aviso só é guardado quando você solicita a revisão. Ao guardar sem compartilhar, ele não é enviado.',
   // Texto que a equipe copia e envia da conta da plataforma. Sem link clicável (ADR-0023, mitigação do Gmail).
@@ -26,12 +27,12 @@ export const noticeTexts = {
   ].join('\n\n'),
 };
 
-// Aceite do aviso (revisão do DevOps, 2026-11-19): para empresa NÃO cadastrada a pergunta aparece sempre, com ou sem
-// contato. Sem "Sim", nenhum aviso sai, nem pelo e-mail da Receita. Chave provisória até o contrato do Back; o
-// create_complaint atual ignora chaves que não conhece.
+// Autorização do aviso (revisão do DevOps; contrato do Back 40417ac): p.notice_consent boolean, separado do contato.
+// Para empresa vinda da busca por CNPJ (não cadastrada) a pergunta aparece sempre; nunca vai para empresa do diretório.
+// Sem "Sim", nenhum aviso sai, nem pelo e-mail da Receita. Na fila da Operação o campo se chama notice_consented.
 export const noticeConsentKey = 'notice_consent';
-export const noticeConsentQuestion = 'Aceito que a empresa receba um aviso de que existe um relato, sem o conteúdo, sem o meu nome e sem a data.';
-export const noticeConsentMissing = 'Responda se aceita que a empresa receba o aviso.';
+export const noticeConsentQuestion = 'Autorizo a equipe a avisar a empresa, se ela ainda não estiver na plataforma, de que existe um relato, sem o conteúdo, sem o meu nome e sem a data.';
+export const noticeConsentMissing = 'Responda se autoriza o aviso à empresa.';
 export type NoticeConsent = 'yes' | 'no' | '';
 
 export type Involvement = 'yes' | 'no' | 'unknown' | '';
