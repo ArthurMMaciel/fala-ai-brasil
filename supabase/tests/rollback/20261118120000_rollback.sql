@@ -32,6 +32,7 @@ drop trigger company_notices_guard on public.company_notices;
 drop function public.cnpj_cache_get(text), public.cnpj_cache_put(text, boolean, text, text, text, text, text, text, text, text, text),
   public.cnpj_quota_take(uuid), private.take_quota(uuid, text, integer);
 drop table public.company_notices;
+drop table private.complaint_notice_consents;
 drop table public.complaint_contacts;
 drop table private.notice_opt_outs, private.company_preregistrations, private.cnpj_lookup_quota, private.cnpj_cache;
 drop function private.company_notice_guard();

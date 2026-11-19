@@ -12,10 +12,13 @@
 -- Revisão de 2026-11-19 (responsável, "Isso, confirmo"): contato do trabalhador vale para qualquer empresa, com e-mail
 -- e/ou telefone; o cache guarda também o e-mail da Receita (só para a equipe, destino alternativo do aviso); o aviso
 -- registra a origem do destino (worker ou receita).
+-- Revisão do DevOps sobre o e0f43bd (2026-11-19): o consentimento ao aviso é do RELATO, não do contato
+-- (private.complaint_notice_consents); sem ele, nenhum aviso é aprovado, por qualquer destino.
 --
 -- Rollback (antes da migration 2): drop function public.cnpj_cache_get(text), public.cnpj_cache_put(text, boolean, text, text,
 --   text, text, text, text, text, text, text), public.cnpj_quota_take(uuid), private.take_quota(uuid, text, integer);
---   drop table private.notice_opt_outs, public.company_notices, public.complaint_contacts, private.company_preregistrations,
+--   drop table private.notice_opt_outs, public.company_notices, private.complaint_notice_consents, public.complaint_contacts,
+--   private.company_preregistrations,
 --   private.cnpj_lookup_quota, private.cnpj_cache; drop function private.company_notice_guard();
 --   alter table public.companies drop constraint companies_address_when_registered, drop column data_source,
 --   drop column registration_status;  -- e só então: alter column address_id set not null (exige nenhuma empresa sem endereço).
@@ -176,6 +179,15 @@ create table public.complaint_contacts (
 );
 alter table public.complaint_contacts enable row level security;
 revoke all on public.complaint_contacts from public, anon, authenticated, service_role;
+
+-- 5b) Consentimento do trabalhador ao aviso à empresa, por relato (com ou sem contato). Só create_complaint grava;
+-- ops_decide_notice só aprova com consented = true. Uma linha por relato; imutável (o relato não é editado).
+create table private.complaint_notice_consents (
+  complaint_id uuid primary key references public.complaints (id) on delete cascade,
+  consented boolean not null,
+  created_at timestamptz not null default now()
+);
+revoke all on private.complaint_notice_consents from public, anon, authenticated, service_role;
 
 -- 6) Avisos: decisão da equipe e envio. Só inserção; a única mudança aceita é approved -> sent|bounced, sent -> bounced e o
 -- set null das chaves (contato apagado pela retenção, manifestação apagada com a conta).

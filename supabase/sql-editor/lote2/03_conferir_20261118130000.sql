@@ -22,8 +22,10 @@ with c(n, verificacao, ok) as (values
       and to_regprocedure('public.my_complaint_companies()') is not null
       and to_regprocedure('public.ops_complaint_contact(uuid)') is not null
       and to_regprocedure('public.my_complaint_contact(uuid)') is not null),
-  (6, 'aviso exige a troca do gate',
-      (select prosrc like '%is_verified_company_user%' from pg_proc where oid = to_regprocedure('public.ops_decide_notice(uuid,text,text,text)'))),
+  (6, 'aviso exige a troca do gate e o consentimento do trabalhador no relato',
+      (select prosrc like '%is_verified_company_user%' and prosrc like '%complaint_notice_consents%'
+       from pg_proc where oid = to_regprocedure('public.ops_decide_notice(uuid,text,text,text)'))
+      and (select prosrc like '%notice_consent%' from pg_proc where oid = to_regprocedure('public.create_complaint(jsonb,boolean)'))),
   (7, 'anon não executa busca nem decisões',
       not coalesce(has_function_privilege('anon', to_regprocedure('public.find_company_by_cnpj(text)'), 'execute'), true)
       and not coalesce(has_function_privilege('anon', to_regprocedure('public.ops_decide_notice(uuid,text,text,text)'), 'execute'), true))

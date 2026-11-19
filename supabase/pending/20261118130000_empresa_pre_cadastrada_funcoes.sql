@@ -11,6 +11,8 @@
 -- Revisão de 2026-11-19 (responsável, "Isso, confirmo"): o contato do trabalhador (e-mail e/ou telefone) é gravado para
 -- qualquer empresa; na não cadastrada é o destino do aviso, e sem ele a equipe pode usar o e-mail da Receita; na
 -- cadastrada é segundo canal para a equipe e não gera aviso.
+-- Revisão do DevOps (2026-11-19): o aviso exige p.notice_consent = true no relato (com ou sem contato); com destino
+-- Receita, recusa se o e-mail da Receita for o do contato marcado como possivelmente envolvido.
 -- Empresa pré-cadastrada fora do diretório, do ranking, da responsividade, da lista dos parceiros e de ops_list_companies:
 -- essas funções fazem join interno com addresses, e a pré-cadastrada não tem endereço (check da migration 1). O teste
 -- confere; nenhuma delas é redefinida aqui.
@@ -93,7 +95,10 @@ revoke all on function private.preregister_company(text, jsonb) from public, ano
 -- relatos por dia por conta, contados existindo a empresa ou não; dados manuais exigidos sempre que o cache não tiver a
 -- empresa, existindo ela ou não.
 -- Contato: p.notice_contact = {"email"?, "phone"?, "possibly_involved": bool, "consent": true}, só com p_share; pelo menos
--- e-mail ou telefone. Gravado para qualquer empresa (revisão de 2026-11-19).
+-- e-mail ou telefone. Gravado para qualquer empresa (revisão de 2026-11-19). O "consent" do contato é o uso dele pela equipe.
+-- Aviso: p.notice_consent (boolean), consentimento do trabalhador ao aviso à empresa não cadastrada, com ou sem contato.
+-- Aceito e guardado para qualquer empresa (só é usado na não cadastrada), para não revelar o estado da empresa; true só
+-- com p_share.
 create or replace function public.create_complaint(p jsonb, p_share boolean)
 returns uuid language plpgsql security definer set search_path = '' as $$
 declare
@@ -108,6 +113,7 @@ declare
   v_email text;
   v_phone text;
   v_has_contact boolean := false;
+  v_notice_consent jsonb := p -> 'notice_consent';
 begin
   perform private.assert_pilot_open();
   select id into v_worker from public.workers where user_id = auth.uid();
@@ -137,6 +143,16 @@ begin
     end if;
     if jsonb_typeof(v_contact -> 'consent') is distinct from 'boolean' or not (v_contact ->> 'consent')::boolean then
       raise exception 'Para indicar um contato, confirme o uso dele pela equipe.' using errcode = 'P0001';
+    end if;
+  end if;
+
+  -- Consentimento ao aviso: só validação de entrada, sem olhar a empresa.
+  if v_notice_consent is not null and jsonb_typeof(v_notice_consent) <> 'null' then
+    if jsonb_typeof(v_notice_consent) <> 'boolean' then
+      raise exception 'Resposta inválida sobre o aviso à empresa.' using errcode = 'P0001';
+    end if;
+    if (v_notice_consent)::text = 'true' and not p_share then
+      raise exception 'O aviso à empresa só é possível quando você envia a versão compartilhável para revisão.' using errcode = 'P0001';
     end if;
   end if;
 
@@ -180,6 +196,9 @@ begin
   if p_share then
     insert into public.complaint_shared_versions (complaint_id, shared_content) values (v_id, v_shared);
     insert into public.complaint_events (complaint_id, status, actor, note) values (v_id, 'in_review', 'worker', 'Revisão solicitada. A equipe confere a versão antes de liberar à empresa.');
+  end if;
+  if v_notice_consent is not null and jsonb_typeof(v_notice_consent) = 'boolean' then
+    insert into private.complaint_notice_consents (complaint_id, consented) values (v_id, (v_notice_consent)::text = 'true');
   end if;
   if v_has_contact then
     insert into public.complaint_contacts (complaint_id, email, phone, possibly_involved, worker_consented)
@@ -255,7 +274,7 @@ $$;
 -- automaticamente: a equipe aprova ou recusa (ops_decide_notice) e envia à mão.
 create function public.ops_list_notice_candidates()
 returns table (complaint_id uuid, protocol text, complaint_status public.complaint_status, company_id uuid, company_name text,
-               registration_status text, natural_person boolean, review_decision text, contact_id uuid,
+               registration_status text, natural_person boolean, review_decision text, notice_consented boolean, contact_id uuid,
                contact_email text, contact_phone text, possibly_involved boolean, receita_email text,
                destination_email text, destination_source text, opted_out boolean, last_company_notice_at timestamptz,
                notice_id uuid, notice_status text)
@@ -264,7 +283,8 @@ begin
   if not public.is_platform_admin() then raise exception 'acesso negado' using errcode = '42501'; end if;
   return query
   select c.id, c.protocol, c.status, co.id, coalesce(co.trade_name, co.legal_name), co.registration_status,
-         coalesce(pr.natural_person, false), pr.review_decision, k.id, k.email, k.phone, k.possibly_involved, cc.email,
+         coalesce(pr.natural_person, false), pr.review_decision, coalesce(nc.consented, false),
+         k.id, k.email, k.phone, k.possibly_involved, cc.email,
          d.email, d.source,
          d.email is not null and exists (select 1 from private.notice_opt_outs o where o.email_hash = private.email_hash(d.email)),
          (select max(n.decided_at) from public.company_notices n where n.company_id = co.id and n.status in ('approved', 'sent')),
@@ -273,6 +293,7 @@ begin
   join public.companies co on co.id = c.company_id
   left join private.company_preregistrations pr on pr.company_id = co.id
   left join public.complaint_contacts k on k.complaint_id = c.id
+  left join private.complaint_notice_consents nc on nc.complaint_id = c.id
   left join private.cnpj_cache cc on cc.cnpj = co.cnpj and not cc.natural_person
   cross join lateral (select case when k.email is not null then k.email else cc.email end as email,
                              case when k.email is not null then 'worker' when cc.email is not null then 'receita' end as source) d
@@ -333,17 +354,15 @@ begin
   if v_status <> 'shared' then
     raise exception 'O aviso só sai depois que a equipe libera a manifestação (retida ou em revisão não recebe aviso).' using errcode = 'P0001';
   end if;
+  if not coalesce((select consented from private.complaint_notice_consents where complaint_id = p_complaint), false) then
+    raise exception 'O trabalhador não autorizou o aviso à empresa nesta manifestação: só é possível recusar.' using errcode = 'P0001';
+  end if;
   if co.registration_status = 'pending_check' then
     raise exception 'Confira os dados da empresa antes do aviso.' using errcode = 'P0001';
   end if;
   if pr.review_decision = 'blocked' or coalesce(pr.natural_person, false) then
     raise exception 'Empresa bloqueada para aviso ou pessoa física/MEI: aviso não permitido.' using errcode = 'P0001';
   end if;
-  if exists (select 1 from public.company_notices n where n.company_id = v_company and n.status in ('approved', 'sent')
-             and n.decided_at > now() - interval '30 days') then
-    raise exception 'A empresa já recebeu aviso nos últimos 30 dias.' using errcode = 'P0001';
-  end if;
-
   v_source := coalesce(p_destination, case when k.email is not null then 'worker' else 'receita' end);
   if v_source = 'worker' then
     if k.email is null then raise exception 'O trabalhador não indicou e-mail para o aviso.' using errcode = 'P0001'; end if;
@@ -353,10 +372,17 @@ begin
     v_email := k.email;
   else
     if v_receita is null then raise exception 'Não há e-mail da Receita para esta empresa.' using errcode = 'P0001'; end if;
+    if k.possibly_involved and k.email is not null and k.email = v_receita then
+      raise exception 'O e-mail da Receita é o do contato marcado como possivelmente envolvido: aviso não permitido.' using errcode = 'P0001';
+    end if;
     v_email := v_receita;
   end if;
   if exists (select 1 from private.notice_opt_outs where email_hash = private.email_hash(v_email)) then
     raise exception 'Este e-mail pediu para não receber avisos.' using errcode = 'P0001';
+  end if;
+  if exists (select 1 from public.company_notices n where n.company_id = v_company and n.status in ('approved', 'sent')
+             and n.decided_at > now() - interval '30 days') then
+    raise exception 'A empresa já recebeu aviso nos últimos 30 dias.' using errcode = 'P0001';
   end if;
 
   insert into public.company_notices (company_id, complaint_id, contact_id, status, destination_source, decided_by)

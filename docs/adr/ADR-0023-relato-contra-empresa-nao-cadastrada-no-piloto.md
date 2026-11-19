@@ -261,6 +261,19 @@ Ela substitui, nas migrations 20261118120000 e 20261118130000, ainda não aplica
    - `ops_complaint_contact(p_complaint)` e `my_complaint_contact(p_complaint)`.
 6. **Risco novo:** o e-mail da Receita pode ser de contador ou de escritório, e não da empresa, ou estar desatualizado. A equipe confere antes de aprovar. O texto do aviso, que não traz conteúdo, continua passando pelo advogado.
 
+### Revisão do DevOps sobre o e0f43bd (2026-11-19): consentimento ao aviso é do relato
+
+Problema bloqueante corrigido antes da aplicação: o consentimento só era exigido quando havia contato, e, sem contato, o aviso podia sair pela Receita sem o trabalhador ter concordado.
+
+- **Consentimento do relato:** `create_complaint` aceita `p.notice_consent` (boolean), com ou sem contato, e o grava em `private.complaint_notice_consents`, uma linha por relato.
+  - É aceito e guardado para qualquer empresa, para não revelar se ela é cadastrada. Só é usado na não cadastrada.
+  - `true` só com `p_share`.
+- **Aprovação do aviso:** `ops_decide_notice` só aprova, por qualquer destino, com o consentimento `true`. Sem ele, só recusa.
+  - A fila (`ops_list_notice_candidates`) mostra `notice_consented`.
+- **Receita igual ao contato envolvido:** com destino Receita, o aviso é recusado se o e-mail da Receita for o do contato marcado como possivelmente envolvido.
+- **Ordem das travas:** a dos 30 dias por empresa passou para o fim, depois da escolha do destino.
+- **O que não muda:** o `consent` do contato continua significando o uso do contato pela equipe, como segundo canal.
+
 ## Ordem de aplicação
 
 Formato igual ao do lote atual: scripts `aplicar` e `conferir` para o SQL Editor, rollback por passo e teste tx antes de cada um, com liberação escrita.

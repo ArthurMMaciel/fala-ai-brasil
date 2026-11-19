@@ -22,7 +22,8 @@ with c(n, verificacao, ok) as (values
   (8, 'contato do trabalhador com e-mail e/ou telefone; cache e aviso com o e-mail da Receita e a origem do destino',
       (select count(*) = 1 from information_schema.columns where table_schema = 'public' and table_name = 'complaint_contacts' and column_name = 'phone')
       and (select count(*) = 1 from information_schema.columns where table_schema = 'private' and table_name = 'cnpj_cache' and column_name = 'email')
-      and (select count(*) = 1 from information_schema.columns where table_schema = 'public' and table_name = 'company_notices' and column_name = 'destination_source')),
+      and (select count(*) = 1 from information_schema.columns where table_schema = 'public' and table_name = 'company_notices' and column_name = 'destination_source')
+      and to_regclass('private.complaint_notice_consents') is not null),
   (7, 'RPCs do cache só para a service_role',
       coalesce(has_function_privilege('service_role', to_regprocedure('public.cnpj_cache_get(text)'), 'execute'), false)
       and not coalesce(has_function_privilege('authenticated', to_regprocedure('public.cnpj_cache_put(text,boolean,text,text,text,text,text,text,text,text,text)'), 'execute'), true)

@@ -1,4 +1,4 @@
--- declare: u_w uuid := 'ebbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'; u_c uuid := 'eccccccc-cccc-cccc-cccc-cccccccccccc'; u_op uuid := 'eddddddd-dddd-dddd-dddd-dddddddddddd'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_api text := '98765001987643'; cnpj_pf text := '98765002987698'; cnpj_man text := '98765003987632'; cnpj_extra text := '98765004987687'; cnpj_reg text := '98765005987621'; co_reg uuid; co_api uuid; co_pf uuid; co_man uuid; cp1 uuid; cp2 uuid; cp3 uuid; cp4 uuid; cp5 uuid; cp6 uuid; cp7 uuid; cp8 uuid; co_extra uuid; n1 uuid; n int; r record; base jsonb;
+-- declare: u_w uuid := 'ebbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'; u_c uuid := 'eccccccc-cccc-cccc-cccc-cccccccccccc'; u_op uuid := 'eddddddd-dddd-dddd-dddd-dddddddddddd'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_api text := '98765001987643'; cnpj_pf text := '98765002987698'; cnpj_man text := '98765003987632'; cnpj_extra text := '98765004987687'; cnpj_reg text := '98765005987621'; co_reg uuid; co_api uuid; co_pf uuid; co_man uuid; cp1 uuid; cp2 uuid; cp3 uuid; cp4 uuid; cp5 uuid; cp6 uuid; cp7 uuid; cp8 uuid; cp9 uuid; co_extra uuid; n1 uuid; n int; r record; base jsonb;
 -- Verificações da ADR-0023/ADR-0017 (20261118120000 e 20261118130000, revista após a revisão do DevOps) na transação
 -- de teste. Imprime só contagens e nomes. CNPJs e CPF de teste (dígitos válidos); se algum existir em produção, para
 -- antes de criar dados. CNPJs conferidos como inexistentes na Minha Receita e na BrasilAPI em 2026-11-18 (só o código HTTP 404).
@@ -99,13 +99,22 @@ begin
     'original_content', 'Tx relato original.', 'notice_contact', jsonb_build_object('email', 'rh@tx.invalid', 'possibly_involved', false, 'consent', true)), false);
   falhas := falhas || jsonb_build_object('contato aceito sem compartilhar', true);
 exception when others then null; end;
+begin
+  perform public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_api, 'notice_consent', 'sim'), true);
+  falhas := falhas || jsonb_build_object('notice_consent não booleano aceito', true);
+exception when others then null; end;
+begin
+  perform public.create_complaint(jsonb_build_object('company_cnpj', cnpj_api, 'category', 'Carga de trabalho', 'title', 'Tx sem compartilhar',
+    'original_content', 'Tx relato original.', 'notice_consent', true), false);
+  falhas := falhas || jsonb_build_object('consentimento ao aviso sem compartilhar', true);
+exception when others then null; end;
 -- Três relatos pelo CNPJ do cache: o primeiro cria a pré-cadastrada, os seguintes entram nela.
 cp1 := public.create_complaint(base || jsonb_build_object('company_cnpj', '98.765.001/9876-43',
-  'notice_contact', jsonb_build_object('email', ' RH@Tx-Api.invalid ', 'possibly_involved', false, 'consent', true)), true);
+  'notice_consent', true, 'notice_contact', jsonb_build_object('email', ' RH@Tx-Api.invalid ', 'possibly_involved', false, 'consent', true)), true);
 cp2 := public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_api,
-  'notice_contact', jsonb_build_object('email', 'chefe@tx-api.invalid', 'possibly_involved', true, 'consent', true)), true);
+  'notice_consent', true, 'notice_contact', jsonb_build_object('email', 'receita@tx-api.invalid', 'possibly_involved', true, 'consent', true)), true);
 cp3 := public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_api,
-  'notice_contact', jsonb_build_object('email', 'ouvidoria@tx-api.invalid', 'possibly_involved', false, 'consent', true)), true);
+  'notice_consent', true, 'notice_contact', jsonb_build_object('email', 'ouvidoria@tx-api.invalid', 'possibly_involved', false, 'consent', true)), true);
 -- Quarto relato por CNPJ no dia: recusado, exista a empresa ou não.
 begin
   perform public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_man,
@@ -130,10 +139,10 @@ perform set_config('request.jwt.claims', json_build_object('sub', u_w, 'role', '
 -- Pessoa física (cache com a marca) e manual: exigem os dados manuais e nascem pending_check.
 cp4 := public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_pf,
   'company_manual', jsonb_build_object('name', 'Tx Nome Digitado', 'city', 'Campinas', 'state', 'sp'),
-  'notice_contact', jsonb_build_object('email', 'pessoa@tx.invalid', 'possibly_involved', false, 'consent', true)), true);
+  'notice_consent', true, 'notice_contact', jsonb_build_object('email', 'pessoa@tx.invalid', 'possibly_involved', false, 'consent', true)), true);
 cp5 := public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_man,
   'company_manual', jsonb_build_object('name', 'Tx Empresa Manual Ltda', 'city', 'Santos', 'state', 'SP'),
-  'notice_contact', jsonb_build_object('email', 'saiu@tx-man.invalid', 'possibly_involved', false, 'consent', true)), true);
+  'notice_consent', true, 'notice_contact', jsonb_build_object('email', 'saiu@tx-man.invalid', 'possibly_involved', false, 'consent', true)), true);
 -- Empresa cadastrada, por id ou por CNPJ: relato aceito e contato gravado (segundo canal para a equipe).
 cp6 := public.create_complaint(base || jsonb_build_object('company_id', co_reg,
   'notice_contact', jsonb_build_object('email', 'rh@tx-reg.invalid', 'possibly_involved', false, 'consent', true)), true);
@@ -157,7 +166,8 @@ end if;
 delete from private.cnpj_lookup_quota where user_id = u_w;
 execute 'set local role authenticated';
 perform set_config('request.jwt.claims', json_build_object('sub', u_w, 'role', 'authenticated')::text, true);
-cp8 := public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_extra), true);
+cp8 := public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_extra), true);  -- sem consentimento ao aviso
+cp9 := public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_extra, 'notice_consent', true), true);
 -- O trabalhador lê o próprio contato; a empresa cadastrada não lê o contato do relato contra ela.
 if (select email from public.my_complaint_contact(cp6)) is distinct from 'rh@tx-reg.invalid' then
   falhas := falhas || jsonb_build_object('trabalhador não lê o próprio contato', true);
@@ -221,8 +231,12 @@ if r.contact_email is distinct from 'rh@tx-api.invalid' or r.destination_source 
   falhas := falhas || jsonb_build_object('fila sem destino do trabalhador e e-mail da Receita', true);
 end if;
 select * into r from public.ops_list_notice_candidates() c where c.complaint_id = cp8;
-if r.destination_email is distinct from 'receita@tx-extra.invalid' or r.destination_source is distinct from 'receita' then
-  falhas := falhas || jsonb_build_object('fila sem o e-mail da Receita como destino alternativo', true);
+if r.destination_email is distinct from 'receita@tx-extra.invalid' or r.destination_source is distinct from 'receita'
+   or r.notice_consented is distinct from false then
+  falhas := falhas || jsonb_build_object('fila sem o e-mail da Receita como destino alternativo ou sem o estado do consentimento', true);
+end if;
+if (select notice_consented from public.ops_list_notice_candidates() c where c.complaint_id = cp9) is distinct from true then
+  falhas := falhas || jsonb_build_object('fila sem o consentimento dado', true);
 end if;
 if exists (select 1 from public.ops_list_notice_candidates() c where c.complaint_id in (cp6, cp7)) then
   falhas := falhas || jsonb_build_object('empresa cadastrada na fila de aviso', true);
@@ -237,6 +251,7 @@ perform public.ops_decide_complaint(cp4, 'released', null);
 perform public.ops_decide_complaint(cp5, 'released', null);
 perform public.ops_decide_complaint(cp6, 'released', null);
 perform public.ops_decide_complaint(cp8, 'released', null);
+perform public.ops_decide_complaint(cp9, 'released', null);
 -- Sem a troca do gate (130000) o aviso é recusado; com ela, segue. Este teste roda com ou sem a 130000 na transação.
 if not exists (select 1 from pg_proc where oid = to_regprocedure('public.list_company_complaints()') and prosrc like '%is_verified_company_user%') then
   begin
@@ -250,6 +265,13 @@ else
     perform public.ops_decide_notice(cp2, 'approved', null);
     falhas := falhas || jsonb_build_object('aviso a contato possivelmente envolvido', true);
   exception when others then null; end;
+  -- Receita igual ao e-mail do contato possivelmente envolvido: recusado (antes da trava dos 30 dias).
+  begin
+    perform public.ops_decide_notice(cp2, 'approved', null, 'receita');
+    falhas := falhas || jsonb_build_object('aviso pela Receita igual ao contato envolvido', true);
+  exception when others then
+    if sqlerrm not like '%possivelmente envolvido%' then falhas := falhas || jsonb_build_object('mensagem Receita = envolvido', sqlerrm); end if;
+  end;
   begin
     perform public.ops_decide_notice(cp3, 'approved', null);
     falhas := falhas || jsonb_build_object('segundo aviso à mesma empresa em 30 dias', true);
@@ -280,8 +302,15 @@ else
     perform public.ops_decide_notice(cp6, 'approved', null);
     falhas := falhas || jsonb_build_object('aviso a empresa cadastrada', true);
   exception when others then null; end;
-  -- Sem contato do trabalhador: destino Receita, aprovado pela equipe.
-  n1 := public.ops_decide_notice(cp8, 'approved', null);
+  -- Sem consentimento ao aviso no relato: só recusa, por qualquer destino.
+  begin
+    perform public.ops_decide_notice(cp8, 'approved', null, 'receita');
+    falhas := falhas || jsonb_build_object('aviso pela Receita sem consentimento do trabalhador', true);
+  exception when others then
+    if sqlerrm not like '%não autorizou%' then falhas := falhas || jsonb_build_object('mensagem sem consentimento', sqlerrm); end if;
+  end;
+  -- Com consentimento e sem contato: destino Receita, aprovado pela equipe.
+  n1 := public.ops_decide_notice(cp9, 'approved', null);
   if (select destination_source from public.company_notices where id = n1) is distinct from 'receita'
      or (select contact_id from public.company_notices where id = n1) is not null then
     falhas := falhas || jsonb_build_object('aviso pela Receita sem a origem registrada', true);
