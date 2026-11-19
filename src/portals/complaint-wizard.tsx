@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { createWorkerComplaint, type DirectoryCompany } from '../services/data';
 import { findCompanyByCnpj, lookupCnpj } from '../services/notices';
 import { showToast } from '../app/toast';
-import { brazilianStates, isValidCnpj, isValidPhone, maskCnpj, maskPhone } from '../domain/account-rules';
+import { brazilianStates, formatPhone, isValidCnpj, isValidPhone, maskCnpj, maskPhone } from '../domain/account-rules';
 import { companyContactPhoneEnabled, involvementLabels, noticeConsentMissing, noticeConsentQuestion, noticeContactPayload, noticeTexts, noticeTextsInReview, registeredContactTexts, validateManualCompany, validateNoticeContact, type Involvement, type NoticeConsent, type NoticeContactInput } from '../domain/company-notice';
 
 // Assistente de nova manifestação em 9 etapas (conteúdo da POC, restaurado em 2026-10-30).
@@ -203,7 +203,7 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
    {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Preparar revisão</button></div></>;
  } else {
   const contact = noticeContactPayload(notice, registered);
-  const contactLabel = contact ? [contact.email, contact.phone].filter(Boolean).join(' · ') : '';
+  const contactLabel = contact ? [contact.email, contact.phone ? formatPhone(contact.phone) : ''].filter(Boolean).join(' · ') : '';
   body = <><h2>Revisão protegida</h2><p className="muted">Seu relato original não será mostrado à empresa. Escreva uma versão separada, sem nomes, locais, datas ou detalhes que possam identificar pessoas.</p>
    <div className="comparison"><div className="text-panel"><h3>Seu relato original</h3><p>{draft.original}</p></div>
     <div className="text-panel"><h3>Versão que será enviada à empresa</h3><textarea rows={8} maxLength={5000} value={draft.shared} onChange={event => { set('shared', event.target.value); setError(''); }} aria-label="Versão que será enviada à empresa" placeholder="Descreva o que a empresa precisa saber para entender e responder, sem dados que identifiquem pessoas." /></div></div>

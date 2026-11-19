@@ -445,3 +445,7 @@
   .commercial-portal-main .contact-admin-table .btn { white-space: normal; min-height: 0; }
   .commercial-portal-main .contact-admin-status { white-space: normal; }
 }
+
+/* Responsividade (ClickUp 17tu7rpfxh4): texto só para leitor de tela (position: absolute) dentro de tabela larga escapava
+   do contêiner com rolagem e esticava a página no celular (375 e 414 px). O contêiner passa a ser o ponto de referência. */
+.worker-table-wrap, .commercial-table-wrap, .contact-admin-table-wrap, .table-wrap { position: relative; }

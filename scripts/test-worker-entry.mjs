@@ -12,6 +12,13 @@ test('Nova manifestação e Relatar uma situação abrem o assistente no passo d
   assert.match(wizard, /if \(!chosen && !pending\) return <CompanyStep/, 'sem empresa inicial, o assistente começa pela busca por CNPJ');
 });
 
+test('responsividade: tabelas com rolagem própria seguram o texto de leitor de tela; telefone formatado no resumo do assistente', () => {
+  const css = readFileSync('src/styles/system.css', 'utf8');
+  assert.match(css, /\.worker-table-wrap, \.commercial-table-wrap, \.contact-admin-table-wrap, \.table-wrap \{ position: relative; \}/);
+  const wizard = readFileSync('src/portals/complaint-wizard.tsx', 'utf8');
+  assert.match(wizard, /contact\.phone \? formatPhone\(contact\.phone\) : ''/);
+});
+
 test('nome da empresa nas manifestações: diretório + my_complaint_companies, com fallback quando a função não existe', () => {
   const data = readFileSync('src/services/data.ts', 'utf8');
   assert.match(data, /rpc\("my_complaint_companies"\);\r?\n  if \(error\) return \[\];/);
