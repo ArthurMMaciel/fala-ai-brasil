@@ -3,7 +3,7 @@ import { createWorkerComplaint, type DirectoryCompany } from '../services/data';
 import { findCompanyByCnpj, lookupCnpj } from '../services/notices';
 import { showToast } from '../app/toast';
 import { brazilianStates, isValidCnpj, isValidPhone, maskCnpj, maskPhone } from '../domain/account-rules';
-import { companyContactPhoneEnabled, involvementLabels, noticeContactPayload, noticeTexts, noticeTextsInReview, registeredContactTexts, validateManualCompany, validateNoticeContact, type Involvement, type NoticeContactInput } from '../domain/company-notice';
+import { companyContactPhoneEnabled, involvementLabels, noticeConsentMissing, noticeConsentQuestion, noticeContactPayload, noticeTexts, noticeTextsInReview, registeredContactTexts, validateManualCompany, validateNoticeContact, type Involvement, type NoticeConsent, type NoticeContactInput } from '../domain/company-notice';
 
 // Assistente de nova manifestação em 9 etapas (conteúdo da POC, restaurado em 2026-10-30).
 // Relato, versão compartilhável e expectativas vão ao banco; respostas de contexto e contatos
@@ -111,6 +111,7 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
  const [answers, setAnswers] = useState<Record<string, Answer>>({});
  const [draft, setDraft] = useState({ category: '', title: '', original: '', incidentPeriod: '', recurrence: '', shared: '', expectedOutcomes: [] as string[] });
  const [notice, setNotice] = useState<NoticeContactInput>({ email: '', involvement: '', consent: false });
+ const [noticeConsent, setNoticeConsent] = useState<NoticeConsent>('');
  const [error, setError] = useState('');
  const [busy, setBusy] = useState(false);
  const set = (key: keyof typeof draft, value: string | string[]) => setDraft(current => ({ ...current, [key]: value }));
@@ -141,7 +142,10 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
   if (key === 'theme' && !draft.category) return setError('Escolha o tema que melhor descreve o que aconteceu.');
   if (key === 'report' && draft.title.trim().length < 3) return setError('Dê um título curto ao relato (pelo menos 3 caracteres).');
   if (key === 'report' && draft.original.trim().length < 10) return setError('Conte o que aconteceu com pelo menos 10 caracteres.');
-  if (key === 'notice') { const problem = validateNoticeContact(notice, registered); if (problem) return setError(problem); }
+  if (key === 'notice') {
+   if (!registered && !noticeConsent) return setError(noticeConsentMissing);
+   const problem = validateNoticeContact(notice, registered); if (problem) return setError(problem);
+  }
   if (key === 'expect' && !draft.expectedOutcomes.length) return setError('Escolha pelo menos uma expectativa.');
   go(step + 1);
  }
@@ -151,7 +155,7 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
   // Contrato final da ADR-0023: cadastrada vai por company_id; fora da base, por CNPJ, e o create_complaint cria a empresa.
   // company_manual vai sempre que a cnpj-lookup não respondeu found.
   const company = chosen ? { companyId: chosen.id } : { companyId: '', companyCnpj: pending?.cnpj ?? '', companyManual: pending?.source === 'manual' ? { name: pending.name, city: pending.city, state: pending.state } : null };
-  const result = await createWorkerComplaint({ ...company, category: draft.category, title: draft.title, original: draft.original, shared: share ? draft.shared : '', incidentPeriod: draft.incidentPeriod.slice(0, 80), recurrence: draft.recurrence.slice(0, 80), expectedOutcomes: draft.expectedOutcomes, noticeContact: noticeContactPayload(notice, registered) }, share);
+  const result = await createWorkerComplaint({ ...company, category: draft.category, title: draft.title, original: draft.original, shared: share ? draft.shared : '', incidentPeriod: draft.incidentPeriod.slice(0, 80), recurrence: draft.recurrence.slice(0, 80), expectedOutcomes: draft.expectedOutcomes, noticeContact: noticeContactPayload(notice, registered), noticeConsent: registered ? null : noticeConsent === 'yes' }, share);
   setBusy(false);
   if (!result.ok) return showToast('error', result.message);
   showToast('success', share ? 'Manifestação registrada. A equipe revisa a versão antes de liberar à empresa.' : 'Manifestação guardada. Você pode solicitar a revisão depois.'); onCreated();
@@ -180,8 +184,12 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
  } else if (key === 'notice') {
   const update = (next: Partial<NoticeContactInput>) => { setNotice(current => ({ ...current, ...next })); setError(''); };
   const filled = Boolean(notice.email.trim() || (companyContactPhoneEnabled && (notice.phone ?? '').replace(/\D/g, '')));
-  body = <><h2>{registered ? 'Contato na empresa' : 'Aviso à empresa'}</h2><p className="muted">{registered ? registeredContactTexts.intro : 'Esta empresa ainda não usa a Escuta Aí Brasil. Se quiser, indique um contato da empresa, como o RH: pelo e-mail, ela pode receber um aviso de que existe um relato. É opcional: sem contato, sua manifestação segue normalmente.'}</p>
+  body = <><h2>{registered ? 'Contato na empresa' : 'Aviso à empresa'}</h2><p className="muted">{registered ? registeredContactTexts.intro : 'Esta empresa ainda não usa a Escuta Aí Brasil. Diga se aceita que ela receba um aviso de que existe um relato. Se quiser, indique também um contato da empresa, como o RH. Sem contato, a equipe pode usar o e-mail público da empresa na Receita Federal, só com o seu aceite.'}</p>
    {noticeTextsInReview && <p className="legal-review-banner">Texto em revisão jurídica.</p>}
+   {!registered && <fieldset className="response-rating"><legend>{noticeConsentQuestion}</legend>
+    <label className="check-row"><input type="radio" name="notice-consent" value="yes" checked={noticeConsent === 'yes'} onChange={() => { setNoticeConsent('yes'); setError(''); }} /> <span>Sim</span></label>
+    <label className="check-row"><input type="radio" name="notice-consent" value="no" checked={noticeConsent === 'no'} onChange={() => { setNoticeConsent('no'); setError(''); }} /> <span>Não</span></label></fieldset>}
+   {!registered && noticeConsent === 'no' && <div className="notice small">Nenhum aviso será enviado à empresa. Um contato que você indicar fica só com a equipe, como segundo canal.</div>}
    <div className="field"><label htmlFor="notice-email">{registered ? registeredContactTexts.email : noticeTexts.field}</label><input id="notice-email" type="email" maxLength={254} autoComplete="off" value={notice.email} onChange={event => update({ email: event.target.value })} placeholder="rh@empresa.com.br" aria-describedby="notice-help" /><small id="notice-help" className="muted">{noticeTexts.help}</small></div>
    {companyContactPhoneEnabled && <div className="field"><label htmlFor="notice-phone">{registeredContactTexts.phone}</label><input id="notice-phone" type="tel" inputMode="tel" maxLength={15} autoComplete="off" placeholder="(00) 00000-0000" value={notice.phone ?? ''} onChange={event => update({ phone: maskPhone(event.target.value) })} /></div>}
    {filled && <>
@@ -199,7 +207,8 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
   body = <><h2>Revisão protegida</h2><p className="muted">Seu relato original não será mostrado à empresa. Escreva uma versão separada, sem nomes, locais, datas ou detalhes que possam identificar pessoas.</p>
    <div className="comparison"><div className="text-panel"><h3>Seu relato original</h3><p>{draft.original}</p></div>
     <div className="text-panel"><h3>Versão que será enviada à empresa</h3><textarea rows={8} maxLength={5000} value={draft.shared} onChange={event => { set('shared', event.target.value); setError(''); }} aria-label="Versão que será enviada à empresa" placeholder="Descreva o que a empresa precisa saber para entender e responder, sem dados que identifiquem pessoas." /></div></div>
-   {contact ? <p className="muted small">{registered ? 'Contato na empresa (só a equipe vê)' : 'Aviso à empresa'}: {contactLabel}. {contact.possibly_involved ? (registered ? 'Com a sua resposta, a equipe não usa esse contato.' : noticeTexts.involvedWarning) : registered ? '' : 'A equipe confere o e-mail antes de decidir pelo envio.'} {noticeTexts.notSharedWarning.replace('O e-mail para o aviso', 'O contato')}</p> : <p className="muted small">{registered ? 'Nenhum contato na empresa indicado.' : 'Nenhum e-mail indicado para aviso.'}</p>}
+   {contact ? <p className="muted small">{registered ? 'Contato na empresa (só a equipe vê)' : 'Aviso à empresa'}: {contactLabel}. {contact.possibly_involved ? (registered ? 'Com a sua resposta, a equipe não usa esse contato.' : noticeTexts.involvedWarning) : registered ? '' : 'A equipe confere o e-mail antes de decidir pelo envio.'} {noticeTexts.notSharedWarning.replace('O e-mail para o aviso', 'O contato')}</p> : <p className="muted small">{registered ? 'Nenhum contato na empresa indicado.' : 'Nenhum contato indicado.'}</p>}
+   {!registered && <p className="muted small">{noticeConsent === 'yes' ? 'Você aceitou que a empresa receba o aviso, depois da revisão da equipe.' : 'Você não aceitou o aviso: nada será enviado à empresa.'} O aceite só é guardado quando você solicita a revisão.</p>}
    <p className="muted small">As respostas de contexto ficam só nesta tela e não são armazenadas.</p>
    {errorLine}<div className="nav-actions"><button className="btn" type="button" onClick={() => go(keys.indexOf('report'))}>Quero ajustar meu relato</button><button className="btn" type="button" disabled={busy} onClick={() => submit(false)}>Guardar sem compartilhar</button><button className="btn primary" type="button" disabled={busy} onClick={() => submit(true)}>{busy ? 'Enviando…' : 'Solicitar revisão'}</button></div></>;
  }

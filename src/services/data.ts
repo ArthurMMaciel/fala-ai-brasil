@@ -3,6 +3,7 @@ import type { VerificationStatus } from "../domain/representatives";
 import { normalizeCnpj, onlyDigits, partnerContactKeys, partnerContactPayload, validatePartnerContact, type CampaignKind, type ContentInput } from "../domain/account-rules";
 import { partnerMediaBucket } from "./account";
 import { compareTimeline } from "../domain/complaint-status";
+import { noticeConsentKey } from "../domain/company-notice";
 
 // Acesso aos dados do modelo v3 (manifestações, Hub, landing). Regras e privacidade ficam no banco (RLS e funções).
 // "shared" = liberada para a empresa após revisão da equipe (ADR-0010).
@@ -75,6 +76,8 @@ export interface NewComplaintInput {
   companyCnpj?: string; companyManual?: { name: string; city: string; state: string } | null;
   // E-mail para o aviso; só vai com a versão compartilhável.
   noticeContact?: { email?: string; phone?: string; possibly_involved: boolean; consent: true } | null;
+  // Aceite do aviso, só para empresa não cadastrada (chave provisória em noticeConsentKey).
+  noticeConsent?: boolean | null;
 }
 
 // company_id (cadastrada) OU company_cnpj (+ company_manual), nunca os dois.
@@ -86,7 +89,7 @@ export function complaintCompanyPayload(input: Pick<NewComplaintInput, "companyI
 
 export async function createWorkerComplaint(input: NewComplaintInput, share: boolean): Promise<AuthResult<string>> {
   const { data, error } = await supabase().rpc("create_complaint", {
-    p: { ...complaintCompanyPayload(input), category: input.category, title: input.title.trim(), original_content: input.original.trim(), shared_content: share ? input.shared.trim() : null, incident_period: input.incidentPeriod, recurrence: input.recurrence, expected_outcomes: input.expectedOutcomes, ...(share && input.noticeContact ? { notice_contact: input.noticeContact } : {}) },
+    p: { ...complaintCompanyPayload(input), category: input.category, title: input.title.trim(), original_content: input.original.trim(), shared_content: share ? input.shared.trim() : null, incident_period: input.incidentPeriod, recurrence: input.recurrence, expected_outcomes: input.expectedOutcomes, ...(share && input.noticeContact ? { notice_contact: input.noticeContact } : {}), ...(share && typeof input.noticeConsent === "boolean" ? { [noticeConsentKey]: input.noticeConsent } : {}) },
     p_share: share,
   });
   return error ? { ok: false, message: rpcError(error, "Não foi possível registrar a manifestação. Tente novamente.") } : { ok: true, value: data as string };

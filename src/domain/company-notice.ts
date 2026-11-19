@@ -26,6 +26,14 @@ export const noticeTexts = {
   ].join('\n\n'),
 };
 
+// Aceite do aviso (revisão do DevOps, 2026-11-19): para empresa NÃO cadastrada a pergunta aparece sempre, com ou sem
+// contato. Sem "Sim", nenhum aviso sai, nem pelo e-mail da Receita. Chave provisória até o contrato do Back; o
+// create_complaint atual ignora chaves que não conhece.
+export const noticeConsentKey = 'notice_consent';
+export const noticeConsentQuestion = 'Aceito que a empresa receba um aviso de que existe um relato, sem o conteúdo, sem o meu nome e sem a data.';
+export const noticeConsentMissing = 'Responda se aceita que a empresa receba o aviso.';
+export type NoticeConsent = 'yes' | 'no' | '';
+
 export type Involvement = 'yes' | 'no' | 'unknown' | '';
 export const involvementLabels: Record<Exclude<Involvement, ''>, string> = { yes: 'Sim', no: 'Não', unknown: 'Não sei' };
 
