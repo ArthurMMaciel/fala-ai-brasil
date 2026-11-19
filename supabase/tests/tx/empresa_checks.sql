@@ -311,10 +311,13 @@ else
   end;
   -- Com consentimento e sem contato: destino Receita, aprovado pela equipe.
   n1 := public.ops_decide_notice(cp9, 'approved', null);
+  -- company_notices não é legível por authenticated: confere como dono da tabela e volta ao papel da equipe.
+  execute 'reset role';
   if (select destination_source from public.company_notices where id = n1) is distinct from 'receita'
      or (select contact_id from public.company_notices where id = n1) is not null then
     falhas := falhas || jsonb_build_object('aviso pela Receita sem a origem registrada', true);
   end if;
+  execute 'set local role authenticated';
 end if;
 perform public.ops_decide_notice(cp3, 'rejected', 'Tx empresa já avisada neste mês.');
 begin
