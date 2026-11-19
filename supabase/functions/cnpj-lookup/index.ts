@@ -80,7 +80,7 @@ const deps = {
     const { error } = await service.rpc('cnpj_cache_put', {
       p_cnpj: cnpj, p_natural_person: e.natural_person, p_legal_name: e.legal_name, p_trade_name: e.trade_name,
       p_cadastral_situation: e.cadastral_situation, p_city: e.city, p_state: e.state, p_main_cnae: e.main_cnae,
-      p_legal_nature: e.legal_nature, p_provider: e.provider,
+      p_legal_nature: e.legal_nature, p_provider: e.provider, p_email: e.email,
     });
     if (error) throw new Error('cache_put');
   },

@@ -27,9 +27,12 @@ end $trava$;
 -- Sem enum novo: estados em text + check.
 -- service_role (chave da Edge Function) sem acesso direto a nenhuma tabela nova: só às três RPCs do cache e da cota. Os
 -- e-mails indicados (complaint_contacts) e os avisos ficam fora do alcance dela (revisão do DevOps, 2026-11-18).
+-- Revisão de 2026-11-19 (responsável, "Isso, confirmo"): contato do trabalhador vale para qualquer empresa, com e-mail
+-- e/ou telefone; o cache guarda também o e-mail da Receita (só para a equipe, destino alternativo do aviso); o aviso
+-- registra a origem do destino (worker ou receita).
 --
 -- Rollback (antes da migration 2): drop function public.cnpj_cache_get(text), public.cnpj_cache_put(text, boolean, text, text,
---   text, text, text, text, text, text), public.cnpj_quota_take(uuid), private.take_quota(uuid, text, integer);
+--   text, text, text, text, text, text, text), public.cnpj_quota_take(uuid), private.take_quota(uuid, text, integer);
 --   drop table private.notice_opt_outs, public.company_notices, public.complaint_contacts, private.company_preregistrations,
 --   private.cnpj_lookup_quota, private.cnpj_cache; drop function private.company_notice_guard();
 --   alter table public.companies drop constraint companies_address_when_registered, drop column data_source,
@@ -68,7 +71,7 @@ create table private.company_preregistrations (
 revoke all on private.company_preregistrations from public, anon, authenticated, service_role;
 
 -- 2) Cache de dados públicos de pessoa jurídica (ADR-0017 D4 a D6, com a aceitação: não é apagado, é renovado).
--- Não registra quem consultou. Pessoa física fica só com a marca, sem nome.
+-- Não registra quem consultou. Pessoa física fica só com a marca, sem nome e sem e-mail.
 create table private.cnpj_cache (
   cnpj text primary key check (cnpj ~ '^[0-9A-Z]{12}[0-9]{2}$'),
   natural_person boolean not null,
@@ -81,7 +84,9 @@ create table private.cnpj_cache (
   legal_nature text check (legal_nature is null or legal_nature ~ '^[0-9]{3,4}$'),
   provider text not null check (provider in ('minhareceita', 'brasilapi')),
   fetched_at timestamptz not null default now(),
-  check (not natural_person or (legal_name is null and trade_name is null)),
+  -- E-mail do cadastro da Receita: destino alternativo do aviso, visível só para a equipe (revisão de 2026-11-19).
+  email text check (email is null or (char_length(email) <= 254 and email = lower(email) and email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$')),
+  check (not natural_person or (legal_name is null and trade_name is null and email is null)),
   check (natural_person or legal_name is not null)
 );
 revoke all on private.cnpj_cache from public, anon, authenticated, service_role;
@@ -125,7 +130,7 @@ $$;
 
 create function public.cnpj_cache_put(p_cnpj text, p_natural_person boolean, p_legal_name text, p_trade_name text,
                                       p_cadastral_situation text, p_city text, p_state text, p_main_cnae text,
-                                      p_legal_nature text, p_provider text)
+                                      p_legal_nature text, p_provider text, p_email text default null)
 returns void language plpgsql security definer set search_path = '' as $$
 declare
   v_cnpj text := upper(regexp_replace(coalesce(p_cnpj, ''), '[^0-9A-Za-z]', '', 'g'));
@@ -133,23 +138,26 @@ declare
   v_cnae text := regexp_replace(coalesce(p_main_cnae, ''), '\D', '', 'g');  -- lpad só até 7: lpad corta o que passa
   v_nature text := nullif(regexp_replace(coalesce(p_legal_nature, ''), '\D', '', 'g'), '');
   v_state text := upper(nullif(btrim(p_state), ''));
+  v_email text := lower(nullif(btrim(p_email), ''));
 begin
   if not private.valid_cnpj(v_cnpj) then raise exception 'CNPJ inválido.' using errcode = 'P0001'; end if;
   -- Valores fora do formato viram nulo em vez de erro: o provedor não tem contrato estável.
   if not v_np and nullif(btrim(p_legal_name), '') is null then v_np := true; end if;
   insert into private.cnpj_cache as c (cnpj, natural_person, legal_name, trade_name, cadastral_situation, city, state,
-                                       main_cnae, legal_nature, provider, fetched_at)
+                                       main_cnae, legal_nature, provider, fetched_at, email)
   values (v_cnpj, v_np,
           case when v_np then null else left(btrim(p_legal_name), 160) end,
           case when v_np then null else left(nullif(btrim(p_trade_name), ''), 160) end,
           left(nullif(btrim(p_cadastral_situation), ''), 40), left(nullif(btrim(p_city), ''), 80),
           case when v_state ~ '^[A-Z]{2}$' then v_state end,
           case when char_length(v_cnae) between 5 and 7 then lpad(v_cnae, 7, '0') end,
-          case when v_nature ~ '^[0-9]{3,4}$' then v_nature end, p_provider, now())
+          case when v_nature ~ '^[0-9]{3,4}$' then v_nature end, p_provider, now(),
+          case when not v_np and char_length(v_email) <= 254 and v_email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then v_email end)
   on conflict (cnpj) do update set
     natural_person = excluded.natural_person, legal_name = excluded.legal_name, trade_name = excluded.trade_name,
     cadastral_situation = excluded.cadastral_situation, city = excluded.city, state = excluded.state,
-    main_cnae = excluded.main_cnae, legal_nature = excluded.legal_nature, provider = excluded.provider, fetched_at = now();
+    main_cnae = excluded.main_cnae, legal_nature = excluded.legal_nature, provider = excluded.provider, fetched_at = now(),
+    email = excluded.email;
 end;
 $$;
 
@@ -162,17 +170,21 @@ end;
 $$;
 
 revoke all on function public.cnpj_cache_get(text),
-  public.cnpj_cache_put(text, boolean, text, text, text, text, text, text, text, text),
+  public.cnpj_cache_put(text, boolean, text, text, text, text, text, text, text, text, text),
   public.cnpj_quota_take(uuid) from public, anon, authenticated;
 grant execute on function public.cnpj_cache_get(text),
-  public.cnpj_cache_put(text, boolean, text, text, text, text, text, text, text, text),
+  public.cnpj_cache_put(text, boolean, text, text, text, text, text, text, text, text, text),
   public.cnpj_quota_take(uuid) to service_role;
 
--- 5) Contato indicado pelo trabalhador para o aviso (ADR-0012 D4, mínimo: só e-mail). A empresa nunca lê.
+-- 5) Contato indicado pelo trabalhador na manifestação (ADR-0012 D4; revisão de 2026-11-19): um por manifestação, para
+-- qualquer empresa, cadastrada ou não; e-mail e/ou telefone. Não é representante. A empresa nunca lê; só o trabalhador
+-- dono e a equipe. Na empresa não cadastrada, é o destino do aviso; na cadastrada, segundo canal para a equipe.
 create table public.complaint_contacts (
   id uuid primary key default gen_random_uuid(),
   complaint_id uuid not null unique references public.complaints (id) on delete cascade,
-  email text not null check (char_length(email) <= 254 and email = lower(email) and email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
+  email text check (email is null or (char_length(email) <= 254 and email = lower(email) and email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$')),
+  phone text check (phone is null or phone ~ '^\d{10,11}$'),
+  check (email is not null or phone is not null),
   possibly_involved boolean not null,
   worker_consented boolean not null check (worker_consented),
   status text not null default 'candidate' check (status in ('candidate', 'verified', 'rejected')),
@@ -191,12 +203,14 @@ create table public.company_notices (
   complaint_id uuid references public.complaints (id) on delete set null,
   contact_id uuid references public.complaint_contacts (id) on delete set null,
   status text not null check (status in ('approved', 'sent', 'rejected', 'bounced')),
+  destination_source text check (destination_source is null or destination_source in ('worker', 'receita')),  -- nulo na recusa
   reason text check (reason is null or char_length(btrim(reason)) between 10 and 300),
   decided_by uuid not null,
   decided_at timestamptz not null default now(),
   sent_by uuid,
   sent_at timestamptz,
-  check (status <> 'rejected' or reason is not null)
+  check (status <> 'rejected' or reason is not null),
+  check (status = 'rejected' or destination_source is not null)
 );
 create unique index company_notices_one_active on public.company_notices (complaint_id) where status in ('approved', 'sent');
 create index company_notices_company_idx on public.company_notices (company_id, decided_at);
@@ -207,7 +221,8 @@ create function private.company_notice_guard()
 returns trigger language plpgsql set search_path = '' as $$
 begin
   if tg_op = 'UPDATE' and new.id = old.id and new.company_id = old.company_id and new.decided_by = old.decided_by
-     and new.decided_at = old.decided_at and new.reason is not distinct from old.reason then
+     and new.decided_at = old.decided_at and new.reason is not distinct from old.reason
+     and new.destination_source is not distinct from old.destination_source then
     -- set null das chaves estrangeiras, sem outra mudança
     if new.status = old.status and new.sent_by is not distinct from old.sent_by and new.sent_at is not distinct from old.sent_at
        and (new.complaint_id is not distinct from old.complaint_id or new.complaint_id is null)
@@ -249,9 +264,12 @@ $s0$-- ADR-0023 (aceita em 2026-11-17) e ADR-0017 (aceita em 2026-11-17), migrat
 -- Sem enum novo: estados em text + check.
 -- service_role (chave da Edge Function) sem acesso direto a nenhuma tabela nova: só às três RPCs do cache e da cota. Os
 -- e-mails indicados (complaint_contacts) e os avisos ficam fora do alcance dela (revisão do DevOps, 2026-11-18).
+-- Revisão de 2026-11-19 (responsável, "Isso, confirmo"): contato do trabalhador vale para qualquer empresa, com e-mail
+-- e/ou telefone; o cache guarda também o e-mail da Receita (só para a equipe, destino alternativo do aviso); o aviso
+-- registra a origem do destino (worker ou receita).
 --
 -- Rollback (antes da migration 2): drop function public.cnpj_cache_get(text), public.cnpj_cache_put(text, boolean, text, text,
---   text, text, text, text, text, text), public.cnpj_quota_take(uuid), private.take_quota(uuid, text, integer);
+--   text, text, text, text, text, text, text), public.cnpj_quota_take(uuid), private.take_quota(uuid, text, integer);
 --   drop table private.notice_opt_outs, public.company_notices, public.complaint_contacts, private.company_preregistrations,
 --   private.cnpj_lookup_quota, private.cnpj_cache; drop function private.company_notice_guard();
 --   alter table public.companies drop constraint companies_address_when_registered, drop column data_source,
@@ -287,7 +305,7 @@ create table private.company_preregistrations (
 )$s0$,
 $s0$revoke all on private.company_preregistrations from public, anon, authenticated, service_role$s0$,
 $s0$-- 2) Cache de dados públicos de pessoa jurídica (ADR-0017 D4 a D6, com a aceitação: não é apagado, é renovado).
--- Não registra quem consultou. Pessoa física fica só com a marca, sem nome.
+-- Não registra quem consultou. Pessoa física fica só com a marca, sem nome e sem e-mail.
 create table private.cnpj_cache (
   cnpj text primary key check (cnpj ~ '^[0-9A-Z]{12}[0-9]{2}$'),
   natural_person boolean not null,
@@ -300,7 +318,9 @@ create table private.cnpj_cache (
   legal_nature text check (legal_nature is null or legal_nature ~ '^[0-9]{3,4}$'),
   provider text not null check (provider in ('minhareceita', 'brasilapi')),
   fetched_at timestamptz not null default now(),
-  check (not natural_person or (legal_name is null and trade_name is null)),
+  -- E-mail do cadastro da Receita: destino alternativo do aviso, visível só para a equipe (revisão de 2026-11-19).
+  email text check (email is null or (char_length(email) <= 254 and email = lower(email) and email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$')),
+  check (not natural_person or (legal_name is null and trade_name is null and email is null)),
   check (natural_person or legal_name is not null)
 )$s0$,
 $s0$revoke all on private.cnpj_cache from public, anon, authenticated, service_role$s0$,
@@ -340,7 +360,7 @@ language sql stable security definer set search_path = '' as $$
 $$$s0$,
 $s0$create function public.cnpj_cache_put(p_cnpj text, p_natural_person boolean, p_legal_name text, p_trade_name text,
                                       p_cadastral_situation text, p_city text, p_state text, p_main_cnae text,
-                                      p_legal_nature text, p_provider text)
+                                      p_legal_nature text, p_provider text, p_email text default null)
 returns void language plpgsql security definer set search_path = '' as $$
 declare
   v_cnpj text := upper(regexp_replace(coalesce(p_cnpj, ''), '[^0-9A-Za-z]', '', 'g'));
@@ -348,23 +368,26 @@ declare
   v_cnae text := regexp_replace(coalesce(p_main_cnae, ''), '\D', '', 'g');  -- lpad só até 7: lpad corta o que passa
   v_nature text := nullif(regexp_replace(coalesce(p_legal_nature, ''), '\D', '', 'g'), '');
   v_state text := upper(nullif(btrim(p_state), ''));
+  v_email text := lower(nullif(btrim(p_email), ''));
 begin
   if not private.valid_cnpj(v_cnpj) then raise exception 'CNPJ inválido.' using errcode = 'P0001'; end if;
   -- Valores fora do formato viram nulo em vez de erro: o provedor não tem contrato estável.
   if not v_np and nullif(btrim(p_legal_name), '') is null then v_np := true; end if;
   insert into private.cnpj_cache as c (cnpj, natural_person, legal_name, trade_name, cadastral_situation, city, state,
-                                       main_cnae, legal_nature, provider, fetched_at)
+                                       main_cnae, legal_nature, provider, fetched_at, email)
   values (v_cnpj, v_np,
           case when v_np then null else left(btrim(p_legal_name), 160) end,
           case when v_np then null else left(nullif(btrim(p_trade_name), ''), 160) end,
           left(nullif(btrim(p_cadastral_situation), ''), 40), left(nullif(btrim(p_city), ''), 80),
           case when v_state ~ '^[A-Z]{2}$' then v_state end,
           case when char_length(v_cnae) between 5 and 7 then lpad(v_cnae, 7, '0') end,
-          case when v_nature ~ '^[0-9]{3,4}$' then v_nature end, p_provider, now())
+          case when v_nature ~ '^[0-9]{3,4}$' then v_nature end, p_provider, now(),
+          case when not v_np and char_length(v_email) <= 254 and v_email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then v_email end)
   on conflict (cnpj) do update set
     natural_person = excluded.natural_person, legal_name = excluded.legal_name, trade_name = excluded.trade_name,
     cadastral_situation = excluded.cadastral_situation, city = excluded.city, state = excluded.state,
-    main_cnae = excluded.main_cnae, legal_nature = excluded.legal_nature, provider = excluded.provider, fetched_at = now();
+    main_cnae = excluded.main_cnae, legal_nature = excluded.legal_nature, provider = excluded.provider, fetched_at = now(),
+    email = excluded.email;
 end;
 $$$s0$,
 $s0$-- Cota da busca: 10 por minuto e 50 por dia por conta (ADR-0017 D9). Devolve false acima do limite.
@@ -375,16 +398,20 @@ begin
 end;
 $$$s0$,
 $s0$revoke all on function public.cnpj_cache_get(text),
-  public.cnpj_cache_put(text, boolean, text, text, text, text, text, text, text, text),
+  public.cnpj_cache_put(text, boolean, text, text, text, text, text, text, text, text, text),
   public.cnpj_quota_take(uuid) from public, anon, authenticated$s0$,
 $s0$grant execute on function public.cnpj_cache_get(text),
-  public.cnpj_cache_put(text, boolean, text, text, text, text, text, text, text, text),
+  public.cnpj_cache_put(text, boolean, text, text, text, text, text, text, text, text, text),
   public.cnpj_quota_take(uuid) to service_role$s0$,
-$s0$-- 5) Contato indicado pelo trabalhador para o aviso (ADR-0012 D4, mínimo: só e-mail). A empresa nunca lê.
+$s0$-- 5) Contato indicado pelo trabalhador na manifestação (ADR-0012 D4; revisão de 2026-11-19): um por manifestação, para
+-- qualquer empresa, cadastrada ou não; e-mail e/ou telefone. Não é representante. A empresa nunca lê; só o trabalhador
+-- dono e a equipe. Na empresa não cadastrada, é o destino do aviso; na cadastrada, segundo canal para a equipe.
 create table public.complaint_contacts (
   id uuid primary key default gen_random_uuid(),
   complaint_id uuid not null unique references public.complaints (id) on delete cascade,
-  email text not null check (char_length(email) <= 254 and email = lower(email) and email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
+  email text check (email is null or (char_length(email) <= 254 and email = lower(email) and email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$')),
+  phone text check (phone is null or phone ~ '^\d{10,11}$'),
+  check (email is not null or phone is not null),
   possibly_involved boolean not null,
   worker_consented boolean not null check (worker_consented),
   status text not null default 'candidate' check (status in ('candidate', 'verified', 'rejected')),
@@ -402,12 +429,14 @@ create table public.company_notices (
   complaint_id uuid references public.complaints (id) on delete set null,
   contact_id uuid references public.complaint_contacts (id) on delete set null,
   status text not null check (status in ('approved', 'sent', 'rejected', 'bounced')),
+  destination_source text check (destination_source is null or destination_source in ('worker', 'receita')),  -- nulo na recusa
   reason text check (reason is null or char_length(btrim(reason)) between 10 and 300),
   decided_by uuid not null,
   decided_at timestamptz not null default now(),
   sent_by uuid,
   sent_at timestamptz,
-  check (status <> 'rejected' or reason is not null)
+  check (status <> 'rejected' or reason is not null),
+  check (status = 'rejected' or destination_source is not null)
 )$s0$,
 $s0$create unique index company_notices_one_active on public.company_notices (complaint_id) where status in ('approved', 'sent')$s0$,
 $s0$create index company_notices_company_idx on public.company_notices (company_id, decided_at)$s0$,
@@ -417,7 +446,8 @@ $s0$create function private.company_notice_guard()
 returns trigger language plpgsql set search_path = '' as $$
 begin
   if tg_op = 'UPDATE' and new.id = old.id and new.company_id = old.company_id and new.decided_by = old.decided_by
-     and new.decided_at = old.decided_at and new.reason is not distinct from old.reason then
+     and new.decided_at = old.decided_at and new.reason is not distinct from old.reason
+     and new.destination_source is not distinct from old.destination_source then
     -- set null das chaves estrangeiras, sem outra mudança
     if new.status = old.status and new.sent_by is not distinct from old.sent_by and new.sent_at is not distinct from old.sent_at
        and (new.complaint_id is not distinct from old.complaint_id or new.complaint_id is null)

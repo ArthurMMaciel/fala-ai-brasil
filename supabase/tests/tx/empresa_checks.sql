@@ -1,4 +1,4 @@
--- declare: u_w uuid := 'ebbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'; u_c uuid := 'eccccccc-cccc-cccc-cccc-cccccccccccc'; u_op uuid := 'eddddddd-dddd-dddd-dddd-dddddddddddd'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_api text := '98765001987643'; cnpj_pf text := '98765002987698'; cnpj_man text := '98765003987632'; cnpj_extra text := '98765004987687'; cnpj_reg text := '98765005987621'; co_reg uuid; co_api uuid; co_pf uuid; co_man uuid; cp1 uuid; cp2 uuid; cp3 uuid; cp4 uuid; cp5 uuid; cp6 uuid; cp7 uuid; n1 uuid; n int; r record; base jsonb;
+-- declare: u_w uuid := 'ebbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'; u_c uuid := 'eccccccc-cccc-cccc-cccc-cccccccccccc'; u_op uuid := 'eddddddd-dddd-dddd-dddd-dddddddddddd'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_api text := '98765001987643'; cnpj_pf text := '98765002987698'; cnpj_man text := '98765003987632'; cnpj_extra text := '98765004987687'; cnpj_reg text := '98765005987621'; co_reg uuid; co_api uuid; co_pf uuid; co_man uuid; cp1 uuid; cp2 uuid; cp3 uuid; cp4 uuid; cp5 uuid; cp6 uuid; cp7 uuid; cp8 uuid; co_extra uuid; n1 uuid; n int; r record; base jsonb;
 -- Verificações da ADR-0023/ADR-0017 (20261118120000 e 20261118130000, revista após a revisão do DevOps) na transação
 -- de teste. Imprime só contagens e nomes. CNPJs e CPF de teste (dígitos válidos); se algum existir em produção, para
 -- antes de criar dados. CNPJs conferidos como inexistentes na Minha Receita e na BrasilAPI em 2026-11-18 (só o código HTTP 404).
@@ -24,8 +24,9 @@ end if;
 
 -- Edge Function simulada (service_role): grava o cache; pessoa física sem nome; não lê e-mails nem avisos.
 execute 'set local role service_role';
-perform public.cnpj_cache_put(cnpj_api, false, 'Tx Empresa Api Ltda', 'Tx Api', 'ATIVA', 'Campinas', 'sp', '6201501', '206-2', 'minhareceita');
-perform public.cnpj_cache_put(cnpj_pf, true, 'Fulano Tx da Silva', null, 'ATIVA', 'Campinas', 'SP', '111301', '2135', 'brasilapi');
+perform public.cnpj_cache_put(cnpj_api, false, 'Tx Empresa Api Ltda', 'Tx Api', 'ATIVA', 'Campinas', 'sp', '6201501', '206-2', 'minhareceita', 'Receita@Tx-Api.invalid');
+perform public.cnpj_cache_put(cnpj_pf, true, 'Fulano Tx da Silva', null, 'ATIVA', 'Campinas', 'SP', '111301', '2135', 'brasilapi', 'fulano@tx.invalid');
+perform public.cnpj_cache_put(cnpj_extra, false, 'Tx Empresa Receita Ltda', null, 'ATIVA', 'Santos', 'SP', '6201501', '2062', 'minhareceita', 'receita@tx-extra.invalid');
 if not public.cnpj_quota_take(u_w) then falhas := falhas || jsonb_build_object('cota da função recusou a 1ª', true); end if;
 begin
   select count(*) into n from public.complaint_contacts;
@@ -41,15 +42,22 @@ begin
 exception when insufficient_privilege then null; end;
 execute 'reset role';
 select * into r from private.cnpj_cache where cnpj = cnpj_pf;
-if r.legal_name is not null or r.trade_name is not null or not r.natural_person or r.main_cnae is distinct from '0111301' then
-  falhas := falhas || jsonb_build_object('cache de pessoa física com nome ou CNAE errado', true);
+if r.legal_name is not null or r.trade_name is not null or r.email is not null or not r.natural_person or r.main_cnae is distinct from '0111301' then
+  falhas := falhas || jsonb_build_object('cache de pessoa física com nome, e-mail ou CNAE errado', true);
+end if;
+if (select email from private.cnpj_cache where cnpj = cnpj_api) is distinct from 'receita@tx-api.invalid' then
+  falhas := falhas || jsonb_build_object('cache sem o e-mail da Receita normalizado', true);
+end if;
+if exists (select 1 from information_schema.routines where routine_schema = 'public' and routine_name = 'cnpj_cache_get')
+   and (select prosrc like '%c.email%' from pg_proc where oid = to_regprocedure('public.cnpj_cache_get(text)')) then
+  falhas := falhas || jsonb_build_object('cnpj_cache_get devolve o e-mail da Receita', true);
 end if;
 
 -- Trabalhador.
 execute 'set local role authenticated';
 perform set_config('request.jwt.claims', json_build_object('sub', u_w, 'role', 'authenticated')::text, true);
 begin
-  perform public.cnpj_cache_put(cnpj_extra, false, 'Forjada Ltda', null, null, null, null, null, null, 'minhareceita');
+  perform public.cnpj_cache_put(cnpj_extra, false, 'Forjada Ltda', null, null, null, null, null, null, 'minhareceita', null);
   falhas := falhas || jsonb_build_object('authenticated grava no cache', true);
 exception when insufficient_privilege then null; end;
 begin
@@ -60,7 +68,7 @@ if (select count(*) from public.find_company_by_cnpj(cnpj_reg)) <> 1 then falhas
 if (select count(*) from public.find_company_by_cnpj(cnpj_api)) <> 0 then falhas := falhas || jsonb_build_object('busca acha CNPJ não cadastrado', true); end if;
 -- Sem cache e sem dados manuais: recusa antes de qualquer gravação.
 begin
-  perform public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_extra), true);
+  perform public.create_complaint(base || jsonb_build_object('company_cnpj', '98765009987600'), true);
   falhas := falhas || jsonb_build_object('relato por CNPJ sem cache nem dados manuais', true);
 exception when others then
   if sqlerrm not like 'Informe o nome da empresa%' then falhas := falhas || jsonb_build_object('mensagem sem dados manuais', sqlerrm); end if;
@@ -75,6 +83,16 @@ begin
   perform public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_api,
     'notice_contact', jsonb_build_object('email', 'rh@tx.invalid', 'consent', true)), true);
   falhas := falhas || jsonb_build_object('contato sem possibly_involved aceito', true);
+exception when others then null; end;
+begin
+  perform public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_api,
+    'notice_contact', jsonb_build_object('possibly_involved', false, 'consent', true)), true);
+  falhas := falhas || jsonb_build_object('contato sem e-mail nem telefone aceito', true);
+exception when others then null; end;
+begin
+  perform public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_api,
+    'notice_contact', jsonb_build_object('phone', '123', 'possibly_involved', false, 'consent', true)), true);
+  falhas := falhas || jsonb_build_object('telefone de contato inválido aceito', true);
 exception when others then null; end;
 begin
   perform public.create_complaint(jsonb_build_object('company_cnpj', cnpj_api, 'category', 'Carga de trabalho', 'title', 'Tx sem compartilhar',
@@ -116,12 +134,12 @@ cp4 := public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_p
 cp5 := public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_man,
   'company_manual', jsonb_build_object('name', 'Tx Empresa Manual Ltda', 'city', 'Santos', 'state', 'SP'),
   'notice_contact', jsonb_build_object('email', 'saiu@tx-man.invalid', 'possibly_involved', false, 'consent', true)), true);
--- Empresa cadastrada, por id ou por CNPJ: relato aceito e contato descartado em silêncio.
+-- Empresa cadastrada, por id ou por CNPJ: relato aceito e contato gravado (segundo canal para a equipe).
 cp6 := public.create_complaint(base || jsonb_build_object('company_id', co_reg,
   'notice_contact', jsonb_build_object('email', 'rh@tx-reg.invalid', 'possibly_involved', false, 'consent', true)), true);
 cp7 := public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_reg,
   'company_manual', jsonb_build_object('name', 'Outro Nome', 'city', 'Santos', 'state', 'SP'),
-  'notice_contact', jsonb_build_object('email', 'rh@tx-reg.invalid', 'possibly_involved', false, 'consent', true)), true);
+  'notice_contact', jsonb_build_object('phone', '(11) 3333-0000', 'possibly_involved', false, 'consent', true)), true);
 -- Fora das listas.
 execute 'reset role';
 select id into co_pf from public.companies where cnpj = cnpj_pf;
@@ -130,9 +148,30 @@ if (select company_id from public.complaints where id = cp7) is distinct from co
    or (select legal_name from public.companies where id = co_reg) is distinct from 'Tx Empresa Cadastrada Ltda' then
   falhas := falhas || jsonb_build_object('relato por CNPJ de cadastrada não entrou nela ou mudou o nome', true);
 end if;
-if exists (select 1 from public.complaint_contacts where complaint_id in (cp6, cp7)) then
-  falhas := falhas || jsonb_build_object('contato gravado para empresa cadastrada', true);
+if (select count(*) from public.complaint_contacts where complaint_id in (cp6, cp7)) <> 2
+   or (select phone from public.complaint_contacts where complaint_id = cp7) is distinct from '1133330000'
+   or (select email from public.complaint_contacts where complaint_id = cp7) is not null then
+  falhas := falhas || jsonb_build_object('contato da empresa cadastrada não gravado como enviado', true);
 end if;
+-- Relato sem contato numa empresa com e-mail da Receita (destino alternativo); zera a cota antes.
+delete from private.cnpj_lookup_quota where user_id = u_w;
+execute 'set local role authenticated';
+perform set_config('request.jwt.claims', json_build_object('sub', u_w, 'role', 'authenticated')::text, true);
+cp8 := public.create_complaint(base || jsonb_build_object('company_cnpj', cnpj_extra), true);
+-- O trabalhador lê o próprio contato; a empresa cadastrada não lê o contato do relato contra ela.
+if (select email from public.my_complaint_contact(cp6)) is distinct from 'rh@tx-reg.invalid' then
+  falhas := falhas || jsonb_build_object('trabalhador não lê o próprio contato', true);
+end if;
+perform set_config('request.jwt.claims', json_build_object('sub', u_c, 'role', 'authenticated')::text, true);
+if exists (select 1 from public.my_complaint_contact(cp6)) then
+  falhas := falhas || jsonb_build_object('empresa lê o contato do relato', true);
+end if;
+begin
+  perform public.ops_complaint_contact(cp6);
+  falhas := falhas || jsonb_build_object('empresa usa ops_complaint_contact', true);
+exception when others then null; end;
+execute 'reset role';
+select company_id into co_extra from public.complaints where id = cp8;
 select pr.natural_person, co.registration_status into r from public.companies co join private.company_preregistrations pr on pr.company_id = co.id where co.id = co_pf;
 if r.natural_person is distinct from true or r.registration_status is distinct from 'pending_check' then
   falhas := falhas || jsonb_build_object('pessoa física manual sem a marca ou fora de pending_check', true);
@@ -176,14 +215,28 @@ end if;
 if exists (select 1 from public.ops_list_companies() l where l.id in (co_api, co_pf, co_man)) then
   falhas := falhas || jsonb_build_object('pré-cadastrada em ops_list_companies', true);
 end if;
-if (select email from public.ops_list_notice_candidates() c where c.complaint_id = cp1) is distinct from 'rh@tx-api.invalid' then
-  falhas := falhas || jsonb_build_object('e-mail não normalizado na fila', true);
+select * into r from public.ops_list_notice_candidates() c where c.complaint_id = cp1;
+if r.contact_email is distinct from 'rh@tx-api.invalid' or r.destination_source is distinct from 'worker'
+   or r.receita_email is distinct from 'receita@tx-api.invalid' then
+  falhas := falhas || jsonb_build_object('fila sem destino do trabalhador e e-mail da Receita', true);
+end if;
+select * into r from public.ops_list_notice_candidates() c where c.complaint_id = cp8;
+if r.destination_email is distinct from 'receita@tx-extra.invalid' or r.destination_source is distinct from 'receita' then
+  falhas := falhas || jsonb_build_object('fila sem o e-mail da Receita como destino alternativo', true);
+end if;
+if exists (select 1 from public.ops_list_notice_candidates() c where c.complaint_id in (cp6, cp7)) then
+  falhas := falhas || jsonb_build_object('empresa cadastrada na fila de aviso', true);
+end if;
+if (select phone from public.ops_complaint_contact(cp7)) is distinct from '1133330000' then
+  falhas := falhas || jsonb_build_object('equipe não vê o contato da empresa cadastrada', true);
 end if;
 perform public.ops_decide_complaint(cp1, 'released', null);
 perform public.ops_decide_complaint(cp2, 'released', null);
 perform public.ops_decide_complaint(cp3, 'released', null);
 perform public.ops_decide_complaint(cp4, 'released', null);
 perform public.ops_decide_complaint(cp5, 'released', null);
+perform public.ops_decide_complaint(cp6, 'released', null);
+perform public.ops_decide_complaint(cp8, 'released', null);
 -- Sem a troca do gate (130000) o aviso é recusado; com ela, segue. Este teste roda com ou sem a 130000 na transação.
 if not exists (select 1 from pg_proc where oid = to_regprocedure('public.list_company_complaints()') and prosrc like '%is_verified_company_user%') then
   begin
@@ -223,6 +276,16 @@ else
     perform public.ops_mark_notice_sent(n1, 'sent');
     falhas := falhas || jsonb_build_object('envio marcado duas vezes', true);
   exception when others then null; end;
+  begin
+    perform public.ops_decide_notice(cp6, 'approved', null);
+    falhas := falhas || jsonb_build_object('aviso a empresa cadastrada', true);
+  exception when others then null; end;
+  -- Sem contato do trabalhador: destino Receita, aprovado pela equipe.
+  n1 := public.ops_decide_notice(cp8, 'approved', null);
+  if (select destination_source from public.company_notices where id = n1) is distinct from 'receita'
+     or (select contact_id from public.company_notices where id = n1) is not null then
+    falhas := falhas || jsonb_build_object('aviso pela Receita sem a origem registrada', true);
+  end if;
 end if;
 perform public.ops_decide_notice(cp3, 'rejected', 'Tx empresa já avisada neste mês.');
 begin

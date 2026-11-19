@@ -48,7 +48,7 @@ end;
 $$;
 
 drop function public.find_company_by_cnpj(text), public.my_complaint_companies(), private.preregister_company(text, jsonb), public.ops_list_pending_companies(),
-  public.ops_review_company(uuid, text, text, boolean), public.ops_list_notice_candidates(), public.ops_decide_notice(uuid, text, text),
+  public.ops_review_company(uuid, text, text, boolean), public.ops_list_notice_candidates(), public.ops_decide_notice(uuid, text, text, text), public.ops_complaint_contact(uuid), public.my_complaint_contact(uuid),
   public.ops_mark_notice_sent(uuid, text), public.ops_add_opt_out(text), public.ops_purge_expired_contacts(),
   private.norm_cnpj(text), private.email_hash(text);
 delete from supabase_migrations.schema_migrations where version = '20261118130000';

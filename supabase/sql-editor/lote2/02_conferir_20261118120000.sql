@@ -19,9 +19,13 @@ with c(n, verificacao, ok) as (values
       and not has_table_privilege('service_role', 'public.company_notices', 'select')
       and not has_table_privilege('authenticated', 'public.complaint_contacts', 'select')
       and not has_table_privilege('anon', 'public.complaint_contacts', 'select')),
+  (8, 'contato do trabalhador com e-mail e/ou telefone; cache e aviso com o e-mail da Receita e a origem do destino',
+      (select count(*) = 1 from information_schema.columns where table_schema = 'public' and table_name = 'complaint_contacts' and column_name = 'phone')
+      and (select count(*) = 1 from information_schema.columns where table_schema = 'private' and table_name = 'cnpj_cache' and column_name = 'email')
+      and (select count(*) = 1 from information_schema.columns where table_schema = 'public' and table_name = 'company_notices' and column_name = 'destination_source')),
   (7, 'RPCs do cache só para a service_role',
       coalesce(has_function_privilege('service_role', to_regprocedure('public.cnpj_cache_get(text)'), 'execute'), false)
-      and not coalesce(has_function_privilege('authenticated', to_regprocedure('public.cnpj_cache_put(text,boolean,text,text,text,text,text,text,text,text)'), 'execute'), true)
+      and not coalesce(has_function_privilege('authenticated', to_regprocedure('public.cnpj_cache_put(text,boolean,text,text,text,text,text,text,text,text,text)'), 'execute'), true)
       and not coalesce(has_function_privilege('anon', to_regprocedure('public.cnpj_quota_take(uuid)'), 'execute'), true))
 )
 select n, verificacao, coalesce(ok, false) as ok from c

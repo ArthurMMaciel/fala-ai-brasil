@@ -29,7 +29,7 @@ end $trava$;
 
 -- A trilha de avisos é imutável: o gatilho sai antes do drop da tabela.
 drop trigger company_notices_guard on public.company_notices;
-drop function public.cnpj_cache_get(text), public.cnpj_cache_put(text, boolean, text, text, text, text, text, text, text, text),
+drop function public.cnpj_cache_get(text), public.cnpj_cache_put(text, boolean, text, text, text, text, text, text, text, text, text),
   public.cnpj_quota_take(uuid), private.take_quota(uuid, text, integer);
 drop table public.company_notices;
 drop table public.complaint_contacts;

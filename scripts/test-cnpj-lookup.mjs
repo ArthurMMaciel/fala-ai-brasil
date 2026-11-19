@@ -58,15 +58,17 @@ test('pessoa física: MEI, empresário individual, EIRELI, grupo 4 e natureza au
 
 test('lista branca: sem QSA, contato, endereço ou capital; pessoa física sem nome', () => {
   const e = lk.toWhitelist(company, 'minhareceita');
-  assert.deepEqual(Object.keys(e).sort(), ['cadastral_situation', 'city', 'legal_name', 'legal_nature', 'main_cnae', 'natural_person', 'provider', 'state', 'trade_name']);
+  assert.deepEqual(Object.keys(e).sort(), ['cadastral_situation', 'city', 'email', 'legal_name', 'legal_nature', 'main_cnae', 'natural_person', 'provider', 'state', 'trade_name']);
+  assert.equal(e.email, 'contato@ficticia.invalid');  // e-mail da Receita guardado para a equipe
   assert.equal(e.main_cnae, '0111301');
   assert.equal(e.legal_nature, '2062');
   assert.equal(JSON.stringify(e).includes('PESSOA INVENTADA'), false);
-  assert.equal(JSON.stringify(e).includes('ficticia.invalid'), false);
+  assert.equal(JSON.stringify(e).includes('1100000000'), false);  // telefone fora
   const p = lk.toWhitelist(mei, 'brasilapi');
   assert.equal(p.natural_person, true);
   assert.equal(p.legal_name, null);
   assert.equal(p.trade_name, null);
+  assert.equal(p.email, null);
 });
 
 test('cota estourada: manual sem consultar cache nem provedor', async () => {
@@ -129,6 +131,8 @@ test('resposta e log sem dado além do necessário', async () => {
   const t = makeDeps({ results: { minhareceita: { status: 'found', raw: company } } });
   const r = await lk.lookupCnpj('11.222.333/0001-81', 'conta-123', t.deps);
   assert.deepEqual(Object.keys(r.body.company).sort(), ['cadastral_situation', 'city', 'legal_name', 'state', 'trade_name']);
+  assert.equal(JSON.stringify(r.body).includes('ficticia.invalid'), false);  // e-mail da Receita nunca sai para quem buscou
+  assert.equal(t.calls.put[0].entry.email, 'contato@ficticia.invalid');
   const logText = JSON.stringify(t.calls.logs);
   assert.equal(logText.includes(CNPJ), false);
   assert.equal(logText.includes('conta-123'), false);

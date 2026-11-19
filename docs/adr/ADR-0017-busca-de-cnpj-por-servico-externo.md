@@ -179,6 +179,21 @@ Desligar a função: o front passa ao preenchimento manual, que já é o caminho
   - 1 decidida em 2026-11-18 ("Aceito as duas, e grava quando relatar."): Minha Receita como principal e BrasilAPI de reserva, aceitas no piloto mesmo sem termos de uso.
 - **Finalidade comercial.** A frase cita a conversão da empresa em cliente. A base legal e o aviso de privacidade (D4 e "Transparência") precisam cobrir esse uso. Fica com o advogado (TASK-0007).
 
+## Revisão de 2026-11-19: e-mail da Receita na lista branca
+
+Decisão do responsável (ver ADR-0023, revisão de 2026-11-19): "Esses contatos são apenas para ter um segundo meio de comunicação além do email e numero da empresa, as vezes o manifestante deseja fazer para o rh diretamente e tem o email [...] Ai salva na manifestação, não precisa salvar como responsável ou algo do tipo. Cada manifestação deve ter o seu, ai caso o manifestante não coloque nenhum, mandamos para o email que pegamos no get de CNPJ." Confirmado com "Isso, confirmo" (repassado pelo Gestor).
+
+- **O que muda na D4:** a lista branca passa a incluir o e-mail do cadastro da Receita, e só ele. Telefone, QSA, endereço e capital continuam fora.
+- **Onde o e-mail fica:**
+  - em `private.cnpj_cache.email`, gravado por `cnpj_cache_put(..., p_email)`, que normaliza e descarta formato inválido;
+  - visível só para a equipe, na fila do aviso;
+  - nunca na resposta da Edge Function a quem buscou;
+  - nunca em `cnpj_cache_get`;
+  - nunca para a empresa.
+- **Pessoa física ou MEI (D5):** o e-mail não é guardado. O cache só aceita e-mail quando `natural_person` é falso.
+- **Teste:** `scripts/test-cnpj-lookup.mjs` confere que o e-mail entra no cache, fica fora da resposta, fica fora para pessoa física e que o telefone fica de fora.
+- **Avaliação de privacidade:** o e-mail do cadastro da Receita é dado público de pessoa jurídica, mas pode ser pessoal (de sócio ou contador). Por isso ele só é usado pela equipe, como destino alternativo do aviso, com aprovação manual. A base legal fica com o advogado (TASK-0007).
+
 ## Decisões que dependem do responsável
 
 1. Aceitar Minha Receita e BrasilAPI sem termos de uso publicados (a primeira sem termos localizados, a segunda em beta).

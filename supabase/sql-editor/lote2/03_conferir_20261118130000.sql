@@ -15,16 +15,18 @@ with c(n, verificacao, ok) as (values
       to_regprocedure('public.ops_list_pending_companies()') is not null
       and to_regprocedure('public.ops_review_company(uuid,text,text,boolean)') is not null
       and to_regprocedure('public.ops_list_notice_candidates()') is not null
-      and to_regprocedure('public.ops_decide_notice(uuid,text,text)') is not null
+      and to_regprocedure('public.ops_decide_notice(uuid,text,text,text)') is not null
       and to_regprocedure('public.ops_mark_notice_sent(uuid,text)') is not null
       and to_regprocedure('public.ops_add_opt_out(text)') is not null
       and to_regprocedure('public.ops_purge_expired_contacts()') is not null
-      and to_regprocedure('public.my_complaint_companies()') is not null),
+      and to_regprocedure('public.my_complaint_companies()') is not null
+      and to_regprocedure('public.ops_complaint_contact(uuid)') is not null
+      and to_regprocedure('public.my_complaint_contact(uuid)') is not null),
   (6, 'aviso exige a troca do gate',
-      (select prosrc like '%is_verified_company_user%' from pg_proc where oid = to_regprocedure('public.ops_decide_notice(uuid,text,text)'))),
+      (select prosrc like '%is_verified_company_user%' from pg_proc where oid = to_regprocedure('public.ops_decide_notice(uuid,text,text,text)'))),
   (7, 'anon não executa busca nem decisões',
       not coalesce(has_function_privilege('anon', to_regprocedure('public.find_company_by_cnpj(text)'), 'execute'), true)
-      and not coalesce(has_function_privilege('anon', to_regprocedure('public.ops_decide_notice(uuid,text,text)'), 'execute'), true))
+      and not coalesce(has_function_privilege('anon', to_regprocedure('public.ops_decide_notice(uuid,text,text,text)'), 'execute'), true))
 )
 select n, verificacao, coalesce(ok, false) as ok from c
 union all select 99, 'RESULTADO GERAL', bool_and(coalesce(ok, false)) from c

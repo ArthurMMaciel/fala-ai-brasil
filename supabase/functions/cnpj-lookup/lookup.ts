@@ -7,6 +7,8 @@
 // - cache próprio primeiro; renovado depois de 30 dias; se o provedor falhar, o cache vencido ainda serve (aceitação);
 // - Minha Receita, depois BrasilAPI só em erro ou timeout; 404 = não encontrado, sem reserva (D7);
 // - só a lista branca sai da função e entra no cache (D4); pessoa física sem nome (D5);
+// - revisão de 2026-11-19: o e-mail da Receita entra no cache (destino alternativo do aviso, só para a equipe), nunca na
+//   resposta a quem buscou; pessoa física sem e-mail; telefone e QSA continuam fora;
 // - log só com resultado, provedor e tempo: nunca CNPJ, conta, IP ou corpo (D10).
 
 export type Provider = 'minhareceita' | 'brasilapi';
@@ -22,8 +24,10 @@ export interface CacheEntry {
   main_cnae: string | null;
   legal_nature: string | null;
   provider: Provider;
+  email: string | null;  // só cache; nunca na resposta
 }
-export interface CacheRow extends CacheEntry { stale: boolean }
+// cnpj_cache_get não devolve o e-mail: a função não precisa dele para responder.
+export interface CacheRow extends Omit<CacheEntry, 'email'> { stale: boolean }
 
 export type ProviderResult = { status: 'found'; raw: Record<string, unknown> } | { status: 'not_found' } | { status: 'error' };
 
@@ -70,6 +74,12 @@ function text(value: unknown, max: number): string | null {
   return t ? t.slice(0, max) : null;
 }
 
+function emailOf(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const e = value.trim().toLowerCase();
+  return e.length <= 254 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e) ? e : null;
+}
+
 export function isNaturalPerson(raw: Record<string, unknown>): boolean {
   if (raw.opcao_pelo_mei === true) return true;
   const nature = digits(raw.codigo_natureza_juridica);
@@ -94,10 +104,11 @@ export function toWhitelist(raw: Record<string, unknown>, provider: Provider): C
     main_cnae: cnae.length >= 5 && cnae.length <= 7 ? cnae.padStart(7, '0') : null,
     legal_nature: /^\d{3,4}$/.test(nature) ? nature : null,
     provider,
+    email: natural ? null : emailOf(raw.email),
   };
 }
 
-function found(entry: CacheEntry, source: Provider | 'cache'): LookupBody {
+function found(entry: Omit<CacheEntry, 'email'>, source: Provider | 'cache'): LookupBody {
   return {
     status: 'found',
     company: {

@@ -235,6 +235,32 @@ Padrões passados pelo Gestor ao Front:
 
 Texto do consentimento, válido para os dois casos: "Se a empresa ainda não estiver na plataforma, ela receberá um aviso de que existe um relato, sem o conteúdo, sem o seu nome e sem a data." Assim, o trabalhador não é enganado quando a empresa já é cadastrada. A versão final passa pelo advogado.
 
+## Revisão de 2026-11-19: contato da manifestação para qualquer empresa e e-mail da Receita
+
+Decisão do responsável: "Esses contatos são apenas para ter um segundo meio de comunicação além do email e numero da empresa, as vezes o manifestante deseja fazer para o rh diretamente e tem o email [...] Ai salva na manifestação, não precisa salvar como responsável ou algo do tipo. Cada manifestação deve ter o seu, ai caso o manifestante não coloque nenhum, mandamos para o email que pegamos no get de CNPJ." Confirmado com "Isso, confirmo" (repassado pelo Gestor).
+
+Ela substitui, nas migrations 20261118120000 e 20261118130000, ainda não aplicadas, o que diverge abaixo; o restante desta ADR continua valendo.
+
+1. **Contato da manifestação** (`complaint_contacts`):
+   - **Escopo:** vale para qualquer empresa, cadastrada ou não. Um por manifestação, com e-mail e/ou telefone (10 ou 11 dígitos).
+   - **Campos obrigatórios:** `possibly_involved` e o consentimento, sempre que houver contato.
+   - **Natureza:** não é representante nem vínculo. É dado da manifestação.
+   - **Quem lê:** a empresa nunca lê. Leem o trabalhador dono (`my_complaint_contact`) e a equipe (`ops_complaint_contact`).
+   - **Retenção:** 90 dias, como antes.
+2. **Aviso para empresa não cadastrada:**
+   - O destino é o e-mail do contato do trabalhador. Sem ele, a fila mostra o e-mail da Receita (do cache), marcado com `destination_source = 'receita'`.
+   - A equipe aprova ou recusa manualmente; nada é automático.
+   - Continuam todas as travas: liberada (`shared`), troca do gate, `possibly_involved`, opt-out, `pending_check`, bloqueada, pessoa física e 30 dias por empresa.
+   - O contato marcado como possivelmente envolvido não recebe. A equipe pode escolher a Receita como destino (`p_destination = 'receita'`).
+3. **Empresa cadastrada:** o contato aparece para a equipe no detalhe da manifestação, como segundo canal. Não gera aviso, e `ops_decide_notice` recusa.
+4. **Descarte em silêncio:** o descarte na cadastrada (revisão do DevOps) deixa de existir: o contato agora é gravado em qualquer caso. A resposta de `create_complaint` continua igual para cadastrada e não cadastrada, então o estado da empresa segue sem ser revelado.
+5. **Contrato novo:**
+   - `p.notice_contact = {email?, phone?, possibly_involved: bool, consent: true}`, só com `p_share`.
+   - `ops_list_notice_candidates()` devolve `contact_email`, `contact_phone`, `receita_email`, `destination_email` e `destination_source`.
+   - `ops_decide_notice(p_complaint, p_decision, p_reason, p_destination)`.
+   - `ops_complaint_contact(p_complaint)` e `my_complaint_contact(p_complaint)`.
+6. **Risco novo:** o e-mail da Receita pode ser de contador ou de escritório, e não da empresa, ou estar desatualizado. A equipe confere antes de aprovar. O texto do aviso, que não traz conteúdo, continua passando pelo advogado.
+
 ## Ordem de aplicação
 
 Formato igual ao do lote atual: scripts `aplicar` e `conferir` para o SQL Editor, rollback por passo e teste tx antes de cada um, com liberação escrita.
