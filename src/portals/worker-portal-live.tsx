@@ -31,9 +31,9 @@ function Companies({ companies, onNew }: { companies: DirectoryCompany[]; onNew:
  useEffect(() => { let active = true; listCompanyResponsiveness().then(data => { if (active) setRows(data); }); return () => { active = false; }; }, []);
  const listed = companies.filter(company => `${company.name} ${company.city} ${company.state}`.toLowerCase().includes(search.toLowerCase()));
  return <section className="worker-companies">
-  <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Área do trabalhador</span><h2>Empresas</h2><p className="muted">Escolha a empresa para iniciar uma manifestação. Você também pode consultar como as empresas respondem.</p></div></div>
+  <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Área do trabalhador</span><h2>Empresas</h2><p className="muted">Escolha a empresa para iniciar uma manifestação. Você também pode consultar como as empresas respondem.</p></div><button className="btn" onClick={() => onNew('')}>Minha empresa não está na lista: buscar pelo CNPJ</button></div>
   <label className="field worker-company-search">Buscar empresa<input value={search} onChange={event => setSearch(event.target.value)} placeholder="Nome ou cidade" /></label>
-  {!listed.length ? <p className="muted">Nenhuma empresa encontrada.</p> : <div className="worker-company-list">{listed.map(company => <article key={company.id} className="worker-company-row"><div><strong>{company.name}</strong><small>{company.city}/{company.state}</small></div><button className="btn" onClick={() => onNew(company.id)}>Fazer manifestação</button></article>)}</div>}
+  {!listed.length ? <p className="muted">Nenhuma empresa encontrada na lista. Use "Minha empresa não está na lista: buscar pelo CNPJ".</p> : <div className="worker-company-list">{listed.map(company => <article key={company.id} className="worker-company-row"><div><strong>{company.name}</strong><small>{company.city}/{company.state}</small></div><button className="btn" onClick={() => onNew(company.id)}>Fazer manifestação</button></article>)}</div>}
   <h3>Como as empresas respondem</h3>
   <p className="muted small">{responsivenessMethod} Nenhum relato ou identidade aparece aqui.</p>
   {rows === null ? <p className="muted">Carregando…</p> : rows.length === 0 ? <p>Ainda não há empresas com manifestações liberadas suficientes.</p> : <ResponsivenessTable rows={rows} />}
@@ -192,7 +192,7 @@ export function WorkerPortalLive({ initialView = 'dashboard', onViewChange }: { 
    view === 'new' ? <ComplaintWizard key={newCompanyId} companies={companies} initialCompanyId={newCompanyId} onCancel={() => setView('companies')} onCreated={() => { reload(); setView('list'); }} /> :
    view === 'detail' && selected ? <Detail complaint={selected} company={byId.get(selected.companyId)} onBack={() => setView('list')} onChanged={reload} /> :
    view === 'companies' ? <Companies companies={companies} onNew={startNew} /> :
-   view === 'list' ? <List complaints={complaints} companies={byId} onSelect={item => { setSelectedId(item.id); setView('detail'); }} onNew={() => setView('companies')} /> :
-   <Dashboard complaints={complaints} companies={byId} onList={() => setView('list')} onNew={() => setView('companies')} onCompanies={() => setView('companies')} onOpen={item => { setSelectedId(item.id); setView('detail'); }} />}
+   view === 'list' ? <List complaints={complaints} companies={byId} onSelect={item => { setSelectedId(item.id); setView('detail'); }} onNew={() => startNew('')} /> :
+   <Dashboard complaints={complaints} companies={byId} onList={() => setView('list')} onNew={() => startNew('')} onCompanies={() => setView('companies')} onOpen={item => { setSelectedId(item.id); setView('detail'); }} />}
  </main>;
 }
