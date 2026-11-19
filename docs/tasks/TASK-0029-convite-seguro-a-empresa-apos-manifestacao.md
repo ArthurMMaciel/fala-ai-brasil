@@ -1,6 +1,6 @@
 # TASK-0029 — Definir convite seguro à empresa após manifestação
 
-- Status: proposta
+- Status: em-andamento: o recorte do piloto (ADR-0023: aviso manual aprovado pela equipe, reivindicação no cadastro) foi aplicado em produção em 2026-11-19; token de convite e envio automático seguem fora.
 - Proposta de modelo: [ADR-0012](../adr/ADR-0012-representante-verificado-e-convite-a-empresa.md) (aguardando aprovação)
 - ClickUp: [TASK-0029](https://app.clickup.com/t/17tu7rp9zge)
 - Área: Produto/Privacidade/Integrações

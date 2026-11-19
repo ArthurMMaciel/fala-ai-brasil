@@ -1,6 +1,6 @@
 # TASK-0038 — Busca de CNPJ por serviço externo, via Edge Function
 
-- Status: proposta (aguardando aprovação do responsável; sem código nem migration)
+- Status: em-andamento: ADR-0017 aceita; banco (cache, cota e RPCs da Edge Function) aplicado em produção em 2026-11-19 (`20261118120000`); Edge Function `cnpj-lookup` escrita e testada, publicação com o DevOps.
 - ClickUp: [TASK-0038](https://app.clickup.com/t/17tu7rpc7ph)
 - Área: Backend/DevOps/Privacidade
 - Prioridade: P1 (é a fonte (b) da base de empresas do piloto, ADR-0012 D9)

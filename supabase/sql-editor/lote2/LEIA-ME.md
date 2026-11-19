@@ -1,5 +1,7 @@
 # Lote 2 no SQL Editor de produção: troca do gate, empresa pré-cadastrada e aba Contratados
 
+**Aplicado em produção em 2026-11-19** (passos 01 a 05, conferidos pelo responsável). Os arquivos das migrations estão em `supabase/migrations`.
+
 O formato é o mesmo do lote 1 (`../LEIA-ME.md`, aplicado e conferido em 2026-11-18). O responsável roda os scripts no SQL Editor de produção. Não há db push nem backup: o risco foi aceito pelo responsável.
 
 ## Antes de começar
@@ -30,7 +32,7 @@ O formato é o mesmo do lote 1 (`../LEIA-ME.md`, aplicado e conferido em 2026-11
   - Erro de lock timeout: espere e rode de novo.
   - Erro "já está registrada": rode só o `conferir`.
   - `conferir` com `false`: pare e avise.
-- Depois de cada passo, avise o Back. Ele move o arquivo de `supabase/pending` para `supabase/migrations`.
+- Depois de cada passo, avise o Back. Ele move o arquivo de `supabase/pending` para `supabase/migrations` (feito em 2026-11-19).
 
 ## Rollbacks (`supabase/tests/rollback/`), na ordem inversa
 

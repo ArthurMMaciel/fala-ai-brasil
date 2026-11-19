@@ -1,6 +1,6 @@
 # TASK-0011 — Verificar contatos empresariais antes de enviar relatos
 
-- Status: proposta
+- Status: concluída no recorte do piloto (ADR-0012 V1 + C1 + R3): verificação do representante e troca do gate aplicadas em produção (`20261117120000` em 2026-11-18, `20261117130000` em 2026-11-19).
 - Proposta de modelo: [ADR-0012](../adr/ADR-0012-representante-verificado-e-convite-a-empresa.md) (aguardando aprovação)
 - ClickUp: [TASK-0011](https://app.clickup.com/t/86aktn72m)
 - Área: Produto/Integrações/Segurança

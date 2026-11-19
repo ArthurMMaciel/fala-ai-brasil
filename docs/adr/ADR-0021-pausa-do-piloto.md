@@ -1,6 +1,6 @@
 # ADR-0021 — Pausa do piloto pela operação
 
-- Estado: **Aceita**, pelo responsável em 2026-11-17 ("Aprovo todas", repassado pelo Gestor), com a pausa sem incluir o cadastro. Formulário de contato fora da pausa até decisão. Implementação: `20261117150000`, ainda não aplicada.
+- Estado: **Aceita**, pelo responsável em 2026-11-17 ("Aprovo todas", repassado pelo Gestor), com a pausa sem incluir o cadastro. Formulário de contato fora da pausa até decisão. Implementação: `20261117150000`, aplicada em produção em 2026-11-18 (lote 1 do SQL Editor).
 - Tarefas: piloto fechado de 30/11 (go/no-go 25/11); relacionadas TASK-0009, TASK-0011, TASK-0029
 - Relacionadas: ADR-0010 (revisão humana), ADR-0012 (representante e convite), ADR-0013 (resposta revisada)
 
