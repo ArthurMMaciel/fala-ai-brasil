@@ -53,7 +53,8 @@ const sponsors = [
 const users = [];
 for (const [slug, legal, trade, base, address, plan] of companies) users.push([`rh.${slug}@example.com`, trade, 'company', { legal_name: legal, trade_name: trade, cnpj: cnpj(base), plan_id: plan, subscription_mode: 'trial', address }]);
 for (const [slug, name, base, address] of workers) users.push([`${slug}@example.com`, name, 'worker', { full_name: name, cpf: cpf(base), address }]);
-partners.forEach(([slug, name, specialty, description, address, plan], i) => users.push([`${slug}@example.com`, name, 'partner', { display_name: name, document_type: 'cpf', document: cpf(612345670 + i), specialty, description, plan_id: plan, subscription_mode: 'trial', address }]));
+// Contato do parceiro: obrigatório no cadastro novo desde a 20261118150000 (fictício, domínio example.com).
+partners.forEach(([slug, name, specialty, description, address, plan], i) => users.push([`${slug}@example.com`, name, 'partner', { display_name: name, document_type: 'cpf', document: cpf(612345670 + i), specialty, description, contact_email: `contato.${slug}@example.com`, contact_phone: `1198888000${i}`, plan_id: plan, subscription_mode: 'trial', address }]));
 sponsors.forEach(([slug, name, plan], i) => users.push([`${slug}@example.com`, name, 'sponsor', { name, cnpj: cnpj(70100200 + i * 7), plan_id: plan, subscription_mode: 'trial', address: addr('01310200', 'avenue', 'Paulista', String(2000 + i), 'Bela Vista', 'São Paulo', 'SP') }]));
 
 let sql = `do $$\ndeclare uid uuid;\nbegin\n`;
@@ -97,15 +98,19 @@ const workerRef = slug => W(`${slug}@example.com`);
 sql += `do $$\ndeclare cid uuid;\nbegin\nif exists (select 1 from public.complaints) then return; end if;\n`;
 for (const [worker, company, category, title, original, shared, status, days, response, feedback] of complaints) {
   const created = `now() - interval '${days} days'`;
+  // Pula o relato se o trabalhador ou a empresa não existirem (contas *.teste são criadas fora deste script).
+  sql += `if ${workerRef(worker)} is not null and ${companyRef(company)} is not null then
+`;
   sql += `insert into public.complaints (worker_id, company_id, category, title, status, worker_feedback, created_at, updated_at, closed_at, expected_outcomes)
   values (${workerRef(worker)}, ${companyRef(company)}, ${q(category)}, ${q(title)}, '${status}', ${feedback ? `'${feedback}'` : 'null'}, ${created}, ${created}, ${status === 'closed' ? `now() - interval '${Math.max(1, days - 10)} days'` : 'null'}, '{"Receber uma resposta"}') returning id into cid;
 insert into public.complaint_originals values (cid, ${q(original)});
 insert into public.complaint_events (complaint_id, status, actor, note, created_at) values (cid, 'received', 'worker', 'Manifestação registrada.', ${created});\n`;
   if (status !== 'received') sql += `insert into public.complaint_shared_versions values (cid, ${q(shared)}, ${created} + interval '10 minutes');
 insert into public.complaint_events (complaint_id, status, actor, note, created_at) values (cid, 'shared', 'worker', 'Versão compartilhável confirmada e enviada à empresa.', ${created} + interval '10 minutes');\n`;
-  if (response) sql += `insert into public.company_responses (complaint_id, company_id, content, created_at) values (cid, ${companyRef(company)}, ${q(response)}, ${created} + interval '${1 + (days % 3)} days');
+  if (response) sql += `insert into public.company_responses (complaint_id, company_id, content, created_at, review_status, released_at) values (cid, ${companyRef(company)}, ${q(response)}, ${created} + interval '${1 + (days % 3)} days', 'released', ${created} + interval '${1 + (days % 3)} days');
 insert into public.complaint_events (complaint_id, status, actor, note, created_at) values (cid, 'answered', 'company', 'Empresa enviou uma resposta institucional.', ${created} + interval '${1 + (days % 3)} days');\n`;
   if (status === 'closed') sql += `insert into public.complaint_events (complaint_id, status, actor, note, created_at) values (cid, 'closed', 'worker', 'Trabalhador encerrou o acompanhamento.', now() - interval '${Math.max(1, days - 10)} days');\n`;
+  sql += `end if;\n`;
 }
 sql += `end $$;\n\n`;
 
@@ -116,7 +121,8 @@ const connections = [
   ['parceiro.teste', 'aurora', 'company_interest'], ['parceiro.teste', 'nova', 'client'], ['parceiro.teste', 'lumina', 'client'], ['parceiro.teste', 'viaserena', 'partner_contacted'], ['parceiro.teste', 'empresa.teste', 'company_interest'],
   ['marina.costa', 'aurora', 'client'], ['marina.costa', 'empresa.teste', 'company_interest'], ['rafael.nunes', 'viaserena', 'company_interest'], ['camila.torres', 'nova', 'partner_contacted'],
 ];
-sql += `insert into public.partner_connections (partner_id, company_id, stage) values\n${connections.map(([p, c, stage]) => `(${P(`${p}@example.com`)}, ${companyRef(c)}, '${stage}')`).join(',\n')}\non conflict do nothing;\n\n`;
+// Só as conexões cujas duas pontas existem (contas *.teste podem faltar).
+sql += `insert into public.partner_connections (partner_id, company_id, stage)\nselect v.partner_id, v.company_id, v.stage::public.connection_stage from (values\n${connections.map(([p, c, stage]) => `(${P(`${p}@example.com`)}, ${companyRef(c)}, '${stage}')`).join(',\n')}\n) as v (partner_id, company_id, stage)\nwhere v.partner_id is not null and v.company_id is not null\non conflict do nothing;\n\n`;
 sql += `do $$\nbegin\nif exists (select 1 from public.campaigns) then return; end if;\n`;
 for (const [slug, , , [kind, title, description]] of sponsors) {
   sql += `insert into public.campaigns (sponsor_id, subscription_id, kind, title, description, starts_at, ends_at, status, submitted_at, reviewed_at)
@@ -135,6 +141,10 @@ sql += `update public.companies set contact_email = 'contato.empresateste@exampl
 `;
 sql += `update public.subscriptions set plan_id = 'partner-national' where partner_id = ${P('parceiro.teste@example.com')};
 `;
+// Contato fictício para parceiros de demonstração criados antes da 20261118150000 (coluna existe só depois dela).
+sql += `do $$\nbegin\nif exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'partners' and column_name = 'contact_email') then\n`;
+sql += `  update public.partners p set contact_email = 'contato.' || split_part(u.email, '@', 1) || '@example.com', contact_phone = '11988880099'\n  from auth.users u where u.id = p.user_id and u.email like '%@example.com' and p.contact_email is null;\n`;
+sql += `end if;\nend $$;\n`;
 
 process.stdout.write(sql);
 

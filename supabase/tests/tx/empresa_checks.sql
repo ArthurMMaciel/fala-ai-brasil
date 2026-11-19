@@ -139,6 +139,9 @@ if r.natural_person is distinct from true or r.registration_status is distinct f
 end if;
 execute 'set local role authenticated';
 perform set_config('request.jwt.claims', json_build_object('sub', u_w, 'role', 'authenticated')::text, true);
+if (select count(*) from public.my_complaint_companies() m where m.company_id in (co_api, co_pf, co_man, co_reg) and m.name is not null) <> 4 then
+  falhas := falhas || jsonb_build_object('trabalhador sem o nome das empresas dos próprios relatos', true);
+end if;
 if exists (select 1 from public.list_company_directory() d where d.id in (co_api, co_pf, co_man)) then
   falhas := falhas || jsonb_build_object('pré-cadastrada no diretório', true);
 end if;
@@ -154,6 +157,11 @@ begin
   perform public.ops_decide_notice(cp1, 'approved', null);
   falhas := falhas || jsonb_build_object('trabalhador decide aviso', true);
 exception when others then null; end;
+-- Outra conta não vê as empresas dos relatos do trabalhador.
+perform set_config('request.jwt.claims', json_build_object('sub', u_c, 'role', 'authenticated')::text, true);
+if exists (select 1 from public.my_complaint_companies() m where m.company_id in (co_api, co_pf, co_man)) then
+  falhas := falhas || jsonb_build_object('outra conta vê empresas dos relatos do trabalhador', true);
+end if;
 -- A empresa cadastrada não vê nada da pré-cadastrada.
 perform set_config('request.jwt.claims', json_build_object('sub', u_c, 'role', 'authenticated')::text, true);
 if exists (select 1 from public.list_company_complaints() l where l.id in (cp1, cp2, cp3, cp4, cp5)) then

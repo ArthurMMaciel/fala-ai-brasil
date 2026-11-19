@@ -697,7 +697,7 @@ create table private.notice_opt_outs (
       res := res || jsonb_build_object('20261118120000', 'aplicada na transação de teste');
     end if;
 
-    -- 20261118130000_empresa_pre_cadastrada_funcoes.sql (16 instruções)
+    -- 20261118130000_empresa_pre_cadastrada_funcoes.sql (17 instruções)
     if exists (select 1 from supabase_migrations.schema_migrations where version = '20261118130000') then
       res := res || jsonb_build_object('20261118130000', 'já aplicada em produção; pulada');
     else
@@ -717,7 +717,7 @@ create table private.notice_opt_outs (
 -- confere; nenhuma delas é redefinida aqui.
 --
 -- Rollback: reaplicar create_complaint de 20261117150000; depois
---   drop function public.find_company_by_cnpj(text), private.preregister_company(text, jsonb),
+--   drop function public.find_company_by_cnpj(text), public.my_complaint_companies(), private.preregister_company(text, jsonb),
 --     public.ops_list_pending_companies(), public.ops_review_company(uuid, text, text, boolean),
 --     public.ops_list_notice_candidates(), public.ops_decide_notice(uuid, text, text), public.ops_mark_notice_sent(uuid, text),
 --     public.ops_add_opt_out(text), public.ops_purge_expired_contacts(), private.norm_cnpj(text), private.email_hash(text);
@@ -874,6 +874,20 @@ begin
   end if;
   return v_id;
 end;
+$$$s0$;
+      execute $s0$-- 3b) Nome das empresas dos próprios relatos, para a lista do trabalhador. O diretório não serve: ele exclui a
+-- pré-cadastrada (sem endereço), e a tela mostrava "—". Só empresas em que a conta tem relato; nada de estado,
+-- origem nem contato. Município e UF vêm do endereço (cadastrada) ou do pré-cadastro.
+create function public.my_complaint_companies()
+returns table (company_id uuid, name text, city text, state text)
+language sql stable security definer set search_path = '' as $$
+  select co.id, coalesce(co.trade_name, co.legal_name), coalesce(a.city, pr.city), coalesce(a.state, pr.state)
+  from public.companies co
+  left join public.addresses a on a.id = co.address_id
+  left join private.company_preregistrations pr on pr.company_id = co.id
+  where exists (select 1 from public.complaints c join public.workers w on w.id = c.worker_id
+                where c.company_id = co.id and w.user_id = auth.uid())
+  order by 2;
 $$$s0$;
       execute $s0$-- 4) Equipe: empresas fora do cadastro, para conferir na Receita.
 create function public.ops_list_pending_companies()
@@ -1049,11 +1063,11 @@ begin
   return v_count;
 end;
 $$$s0$;
-      execute $s0$revoke execute on function public.find_company_by_cnpj(text), public.ops_list_pending_companies(),
+      execute $s0$revoke execute on function public.find_company_by_cnpj(text), public.my_complaint_companies(), public.ops_list_pending_companies(),
   public.ops_review_company(uuid, text, text, boolean), public.ops_list_notice_candidates(),
   public.ops_decide_notice(uuid, text, text), public.ops_mark_notice_sent(uuid, text), public.ops_add_opt_out(text),
   public.ops_purge_expired_contacts() from public, anon, service_role$s0$;
-      execute $s0$grant execute on function public.find_company_by_cnpj(text), public.ops_list_pending_companies(),
+      execute $s0$grant execute on function public.find_company_by_cnpj(text), public.my_complaint_companies(), public.ops_list_pending_companies(),
   public.ops_review_company(uuid, text, text, boolean), public.ops_list_notice_candidates(),
   public.ops_decide_notice(uuid, text, text), public.ops_mark_notice_sent(uuid, text), public.ops_add_opt_out(text),
   public.ops_purge_expired_contacts() to authenticated$s0$;
@@ -1202,6 +1216,9 @@ $$$s0$;
     end if;
     execute 'set local role authenticated';
     perform set_config('request.jwt.claims', json_build_object('sub', u_w, 'role', 'authenticated')::text, true);
+    if (select count(*) from public.my_complaint_companies() m where m.company_id in (co_api, co_pf, co_man, co_reg) and m.name is not null) <> 4 then
+      falhas := falhas || jsonb_build_object('trabalhador sem o nome das empresas dos próprios relatos', true);
+    end if;
     if exists (select 1 from public.list_company_directory() d where d.id in (co_api, co_pf, co_man)) then
       falhas := falhas || jsonb_build_object('pré-cadastrada no diretório', true);
     end if;
@@ -1217,6 +1234,11 @@ $$$s0$;
       perform public.ops_decide_notice(cp1, 'approved', null);
       falhas := falhas || jsonb_build_object('trabalhador decide aviso', true);
     exception when others then null; end;
+    -- Outra conta não vê as empresas dos relatos do trabalhador.
+    perform set_config('request.jwt.claims', json_build_object('sub', u_c, 'role', 'authenticated')::text, true);
+    if exists (select 1 from public.my_complaint_companies() m where m.company_id in (co_api, co_pf, co_man)) then
+      falhas := falhas || jsonb_build_object('outra conta vê empresas dos relatos do trabalhador', true);
+    end if;
     -- A empresa cadastrada não vê nada da pré-cadastrada.
     perform set_config('request.jwt.claims', json_build_object('sub', u_c, 'role', 'authenticated')::text, true);
     if exists (select 1 from public.list_company_complaints() l where l.id in (cp1, cp2, cp3, cp4, cp5)) then

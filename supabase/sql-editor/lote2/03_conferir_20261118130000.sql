@@ -18,7 +18,8 @@ with c(n, verificacao, ok) as (values
       and to_regprocedure('public.ops_decide_notice(uuid,text,text)') is not null
       and to_regprocedure('public.ops_mark_notice_sent(uuid,text)') is not null
       and to_regprocedure('public.ops_add_opt_out(text)') is not null
-      and to_regprocedure('public.ops_purge_expired_contacts()') is not null),
+      and to_regprocedure('public.ops_purge_expired_contacts()') is not null
+      and to_regprocedure('public.my_complaint_companies()') is not null),
   (6, 'aviso exige a troca do gate',
       (select prosrc like '%is_verified_company_user%' from pg_proc where oid = to_regprocedure('public.ops_decide_notice(uuid,text,text)'))),
   (7, 'anon não executa busca nem decisões',

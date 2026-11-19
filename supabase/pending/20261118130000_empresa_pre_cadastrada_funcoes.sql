@@ -14,7 +14,7 @@
 -- confere; nenhuma delas é redefinida aqui.
 --
 -- Rollback: reaplicar create_complaint de 20261117150000; depois
---   drop function public.find_company_by_cnpj(text), private.preregister_company(text, jsonb),
+--   drop function public.find_company_by_cnpj(text), public.my_complaint_companies(), private.preregister_company(text, jsonb),
 --     public.ops_list_pending_companies(), public.ops_review_company(uuid, text, text, boolean),
 --     public.ops_list_notice_candidates(), public.ops_decide_notice(uuid, text, text), public.ops_mark_notice_sent(uuid, text),
 --     public.ops_add_opt_out(text), public.ops_purge_expired_contacts(), private.norm_cnpj(text), private.email_hash(text);
@@ -174,6 +174,21 @@ begin
   end if;
   return v_id;
 end;
+$$;
+
+-- 3b) Nome das empresas dos próprios relatos, para a lista do trabalhador. O diretório não serve: ele exclui a
+-- pré-cadastrada (sem endereço), e a tela mostrava "—". Só empresas em que a conta tem relato; nada de estado,
+-- origem nem contato. Município e UF vêm do endereço (cadastrada) ou do pré-cadastro.
+create function public.my_complaint_companies()
+returns table (company_id uuid, name text, city text, state text)
+language sql stable security definer set search_path = '' as $$
+  select co.id, coalesce(co.trade_name, co.legal_name), coalesce(a.city, pr.city), coalesce(a.state, pr.state)
+  from public.companies co
+  left join public.addresses a on a.id = co.address_id
+  left join private.company_preregistrations pr on pr.company_id = co.id
+  where exists (select 1 from public.complaints c join public.workers w on w.id = c.worker_id
+                where c.company_id = co.id and w.user_id = auth.uid())
+  order by 2;
 $$;
 
 -- 4) Equipe: empresas fora do cadastro, para conferir na Receita.
@@ -357,11 +372,11 @@ begin
 end;
 $$;
 
-revoke execute on function public.find_company_by_cnpj(text), public.ops_list_pending_companies(),
+revoke execute on function public.find_company_by_cnpj(text), public.my_complaint_companies(), public.ops_list_pending_companies(),
   public.ops_review_company(uuid, text, text, boolean), public.ops_list_notice_candidates(),
   public.ops_decide_notice(uuid, text, text), public.ops_mark_notice_sent(uuid, text), public.ops_add_opt_out(text),
   public.ops_purge_expired_contacts() from public, anon, service_role;
-grant execute on function public.find_company_by_cnpj(text), public.ops_list_pending_companies(),
+grant execute on function public.find_company_by_cnpj(text), public.my_complaint_companies(), public.ops_list_pending_companies(),
   public.ops_review_company(uuid, text, text, boolean), public.ops_list_notice_candidates(),
   public.ops_decide_notice(uuid, text, text), public.ops_mark_notice_sent(uuid, text), public.ops_add_opt_out(text),
   public.ops_purge_expired_contacts() to authenticated;
