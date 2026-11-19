@@ -449,3 +449,7 @@
 /* Responsividade (ClickUp 17tu7rpfxh4): texto só para leitor de tela (position: absolute) dentro de tabela larga escapava
    do contêiner com rolagem e esticava a página no celular (375 e 414 px). O contêiner passa a ser o ponto de referência. */
 .worker-table-wrap, .commercial-table-wrap, .contact-admin-table-wrap, .table-wrap { position: relative; }
+
+/* Operação: abas das seções Manifestações e Empresas, com contador de pendências. */
+.ops-section-tabs { margin: 0 0 18px; flex-wrap: wrap; }
+.ops-tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; margin-left: 8px; padding: 0 7px; border-radius: 999px; background: var(--amber); color: var(--ink); font-size: 12px; font-weight: 700; line-height: 1; }

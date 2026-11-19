@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { decideOpsComplaint, listOpsComplaints, listOpsCompanies, loadOpsMetrics, loadOpsTimeline, readOpsOriginal, type OpsComplaint, type OpsCompany, type OpsMetrics, type OpsTimelineItem, type ReviewDecision } from '../services/ops';
+import { decideOpsComplaint, listOpsComplaints, listOpsCompanies, listOpsRepresentatives, loadOpsMetrics, loadOpsTimeline, readOpsOriginal, type OpsComplaint, type OpsCompany, type OpsMetrics, type OpsTimelineItem, type ReviewDecision } from '../services/ops';
 import type { ComplaintStatusDb } from '../services/data';
 import { statusLabel } from '../domain/complaint-status';
 import { oldestFirst, opsReasonMax, validateOpsReason, waitingLabel } from '../domain/ops-queue';
@@ -10,11 +10,27 @@ import { ContactSolicitationsAdmin } from './contact-solicitations-admin';
 import { OpsResponses } from './response-review';
 import { OpsRepresentatives } from './representatives';
 import { OpsNotices, OpsPendingCompanies } from './company-notices';
-import { listNoticeCandidates, loadComplaintContact, type ComplaintContact as ComplaintContactData } from '../services/notices';
+import { listNoticeCandidates, listPendingCompanies, loadComplaintContact, type ComplaintContact as ComplaintContactData } from '../services/notices';
+import { noticeTab } from '../domain/company-notice';
 import { formatPhone } from '../domain/account-rules';
 
 // Área da equipe (ADR-0010): revisão antes da liberação, acesso ao original só com justificativa, números agregados.
 type OpsView = 'overview' | 'queue' | 'responses' | 'representatives' | 'pending-companies' | 'notices' | 'all' | 'companies' | 'contacts';
+// Menu em quatro seções (proposta aprovada em 2026-11-19); as telas de antes viram abas, nenhuma some.
+type OpsSection = 'overview' | 'complaints' | 'companies' | 'contacts';
+const sectionOf: Record<OpsView, OpsSection> = { overview: 'overview', queue: 'complaints', responses: 'complaints', all: 'complaints', companies: 'companies', representatives: 'companies', 'pending-companies': 'companies', notices: 'companies', contacts: 'contacts' };
+const firstTab: Record<OpsSection, OpsView> = { overview: 'overview', complaints: 'queue', companies: 'companies', contacts: 'contacts' };
+const sectionTabs: Partial<Record<OpsSection, [OpsView, string][]>> = {
+ complaints: [['queue', 'Revisão do relato'], ['responses', 'Respostas da empresa'], ['all', 'Todas']],
+ companies: [['companies', 'Todas'], ['representatives', 'Representantes'], ['pending-companies', 'A conferir'], ['notices', 'Avisos']],
+};
+export interface OpsCounts { queue: number; responses: number; all: number; companies: number; representatives: number | null; pendingCompanies: number | null; notices: number | null; contacts: number }
+
+function SectionTabs({ section, view, counts, onView }: { section: OpsSection; view: OpsView; counts: Partial<Record<OpsView, number | null>>; onView: (view: OpsView) => void }) {
+ const tabs = sectionTabs[section];
+ if (!tabs) return null;
+ return <div className="account-tabs ops-section-tabs" role="tablist" aria-label={section === 'complaints' ? 'Manifestações' : 'Empresas'}>{tabs.map(([key, label]) => { const count = counts[key]; return <button key={key} role="tab" aria-selected={view === key} className={`account-tab${view === key ? ' active' : ''}`} onClick={() => onView(key)}>{label}{typeof count === 'number' && count > 0 ? <span className="ops-tab-count" aria-label={`${count} pendentes`}>{count}</span> : null}</button>; })}</div>;
+}
 
 const statusLabels: Record<ComplaintStatusDb, string> = { received: 'Guardada pelo trabalhador', in_review: 'Em revisão', adjustment_requested: 'Ajuste solicitado', held: 'Retida', shared: 'Liberada · aguardando empresa', answer_in_review: 'Resposta em revisão', answered: 'Respondida', closed: 'Finalizada', canceled: 'Retirada' };
 const statusTone: Record<ComplaintStatusDb, string> = { received: 'em-aberto', in_review: 'em-revisão', adjustment_requested: 'em-revisão', held: 'retida', shared: 'encaminhada-para-empresa', answer_in_review: 'em-revisão', answered: 'respondida', closed: 'finalizada', canceled: 'finalizada' };
@@ -26,20 +42,19 @@ function hours(value: number | null) { return value === null ? '—' : value < 4
 function Status({ status }: { status: ComplaintStatusDb }) { return <span className={`worker-status ${statusLabel(statusTone, status, 'em-aberto')}`}>{statusLabel(statusLabels, status)}</span>; }
 const head = (eyebrow: string, title: string, text: string) => <div className="commercial-page-head"><div><span className="editorial-eyebrow">{eyebrow}</span><h1>{title}</h1><p>{text}</p></div></div>;
 
-function Overview({ metrics, onView }: { metrics: OpsMetrics | null; onView: (view: OpsView) => void }) {
+function Overview({ metrics, counts, onView }: { metrics: OpsMetrics | null; counts: OpsCounts; onView: (view: OpsView) => void }) {
  if (!metrics) return <p className="muted">Carregando números…</p>;
  const s = metrics.byStatus;
  const max = Math.max(1, ...metrics.weekly.map(item => item.total));
- return <>{head('Operação', 'Visão geral', 'Números agregados da plataforma. Nenhum dado individual aparece aqui.')}
-  <QuickActions label="Atalhos da equipe" items={[
-   { icon: 'inbox', label: 'Fila de revisão', badge: (s.in_review ?? 0) + (s.held ?? 0), onClick: () => onView('queue') },
-   { icon: 'inbox', label: 'Respostas em revisão', badge: metrics.responsesInReview, onClick: () => onView('responses') },
-   { icon: 'building', label: 'Representantes a verificar', onClick: () => onView('representatives') },
-   { icon: 'building', label: 'Empresas a conferir', onClick: () => onView('pending-companies') },
-   { icon: 'inbox', label: 'Avisos à empresa', onClick: () => onView('notices') },
-   { icon: 'list', label: 'Todas as manifestações', onClick: () => onView('all') },
-   { icon: 'building', label: 'Empresas', onClick: () => onView('companies') },
-   { icon: 'users', label: 'Solicitações de contato', badge: metrics.contactsWaiting, onClick: () => onView('contacts') },
+ const badge = (value: number | null) => value ?? undefined;
+ return <>{head('Operação', 'Visão geral', 'O que espera a equipe agora e os números agregados da plataforma. Nenhum dado individual aparece aqui.')}
+  <QuickActions label="O que espera a equipe" items={[
+   { icon: 'inbox', label: 'Relatos para revisar', badge: counts.queue, onClick: () => onView('queue') },
+   { icon: 'briefcase', label: 'Respostas da empresa para revisar', badge: counts.responses, onClick: () => onView('responses') },
+   { icon: 'user', label: 'Representantes a verificar', badge: badge(counts.representatives), onClick: () => onView('representatives') },
+   { icon: 'building', label: 'Empresas a conferir', badge: badge(counts.pendingCompanies), onClick: () => onView('pending-companies') },
+   { icon: 'info', label: 'Avisos a decidir', badge: badge(counts.notices), onClick: () => onView('notices') },
+   { icon: 'users', label: 'Contatos aguardando', badge: counts.contacts, onClick: () => onView('contacts') },
   ]} />
   <div className="commercial-metrics">
    <Metric label="Em revisão" value={s.in_review ?? 0} note="aguardando decisão da equipe" />
@@ -133,7 +148,7 @@ function ComplaintDetail({ complaint, onBack, onChanged }: { complaint: OpsCompl
 }
 
 function Companies({ rows }: { rows: OpsCompany[] | null }) {
- return <>{head('Operação', 'Empresas', 'Empresas cadastradas, volume e resposta. A verificação de representante entra na próxima etapa (TASK-0011).')}
+ return <>{head('Operação', 'Empresas', 'Empresas cadastradas, volume e resposta. Representantes, empresas a conferir e avisos ficam nas abas ao lado.')}
   {rows === null ? <p className="muted">Carregando…</p> : <div className="commercial-table-wrap"><table className="commercial-table"><thead><tr><th>Empresa</th><th>Cidade</th><th>Usuários</th><th>Manifestações</th><th>Liberadas</th><th>Respondidas</th><th>Contato</th><th>Cadastro</th></tr></thead>
    <tbody>{rows.map(row => <tr key={row.id}><td>{row.name}<small>{row.legalName}</small></td><td>{row.city}/{row.state}</td><td>{row.users}</td><td>{row.complaints}</td><td>{row.released}</td><td>{row.answered}</td><td>{row.hasContact ? 'Sim' : '—'}</td><td>{when(row.createdAt)}</td></tr>)}</tbody></table></div>}</>;
 }
@@ -148,22 +163,42 @@ export function OpsPortalLive() {
  const [search, setSearch] = useState('');
  const [version, setVersion] = useState(0);
  const [failure, setFailure] = useState('');
+ const [pendingCounts, setPendingCounts] = useState<{ representatives: number | null; pendingCompanies: number | null; notices: number | null }>({ representatives: null, pendingCompanies: null, notices: null });
  useEffect(() => {
   let active = true;
   Promise.all([loadOpsMetrics(), listOpsComplaints(), listOpsCompanies()])
    .then(([m, c, co]) => { if (active) { setMetrics(m); setComplaints(c); setCompanies(co); setFailure(''); } })
    .catch(error => { if (active) setFailure(error instanceof Error ? error.message : 'Não foi possível carregar a área da equipe.'); });
+  // Contadores das abas: sem a função no banco ou com erro, a aba fica sem número.
+  Promise.allSettled([listOpsRepresentatives('pending'), listPendingCompanies(), listNoticeCandidates()]).then(([reps, pending, notices]) => {
+   if (!active) return;
+   setPendingCounts({
+    representatives: reps.status === 'fulfilled' && !reps.value.missing ? reps.value.rows.length : null,
+    pendingCompanies: pending.status === 'fulfilled' && !pending.value.missing ? pending.value.rows.filter(row => row.registrationStatus === 'pending_check' && !row.reviewDecision).length : null,
+    notices: notices.status === 'fulfilled' && !notices.value.missing ? notices.value.rows.filter(row => noticeTab(row) === 'decide').length : null,
+   });
+  });
   return () => { active = false; };
  }, [version]);
  const queue = useMemo(() => oldestFirst((complaints ?? []).filter(item => item.status === 'in_review' || item.status === 'held')), [complaints]);
  const filtered = useMemo(() => (complaints ?? []).filter(item => (!filter || item.status === filter) && `${item.protocol} ${item.companyName} ${item.title} ${item.category}`.toLowerCase().includes(search.toLowerCase())), [complaints, filter, search]);
  const opened = complaints?.find(item => item.id === openId) ?? null;
  const go = (next: OpsView) => { setView(next); setOpenId(null); };
- const items: [OpsView, string][] = [['overview', 'Visão geral'], ['queue', `Fila de revisão${queue.length ? ` (${queue.length})` : ''}`], ['responses', `Respostas em revisão${metrics?.responsesInReview ? ` (${metrics.responsesInReview})` : ''}`], ['representatives', 'Representantes'], ['pending-companies', 'Empresas a conferir'], ['notices', 'Avisos à empresa'], ['all', 'Manifestações'], ['companies', 'Empresas'], ['contacts', 'Solicitações de contato']];
- return <main className="commercial-portal-content"><Sidebar eyebrow="Operação" name="Equipe Escuta Aí Brasil" items={items} view={view} onView={go} /><section className="commercial-portal-main">
+ const counts: OpsCounts = { queue: queue.length, responses: metrics?.responsesInReview ?? 0, all: complaints?.length ?? 0, companies: companies?.length ?? 0, ...pendingCounts, contacts: metrics?.contactsWaiting ?? 0 };
+ const tabCounts: Partial<Record<OpsView, number | null>> = { queue: counts.queue, responses: counts.responses, representatives: counts.representatives, 'pending-companies': counts.pendingCompanies, notices: counts.notices };
+ const sum = (...values: (number | null)[]) => values.reduce<number>((total, value) => total + (value ?? 0), 0);
+ const section = sectionOf[view];
+ const items: [OpsSection, string][] = [
+  ['overview', 'Visão geral'],
+  ['complaints', `Manifestações${counts.queue + counts.responses ? ` (${counts.queue + counts.responses})` : ''}`],
+  ['companies', `Empresas${sum(counts.representatives, counts.pendingCompanies, counts.notices) ? ` (${sum(counts.representatives, counts.pendingCompanies, counts.notices)})` : ''}`],
+  ['contacts', `Contatos${counts.contacts ? ` (${counts.contacts})` : ''}`],
+ ];
+ return <main className="commercial-portal-content"><Sidebar eyebrow="Operação" name="Equipe Escuta Aí Brasil" items={items} view={section} onView={next => go(firstTab[next])} /><section className="commercial-portal-main">
+  {!opened && <SectionTabs section={section} view={view} counts={tabCounts} onView={go} />}
   {failure ? <section className="commercial-panel"><h2>Não foi possível carregar</h2><p>{failure}</p></section> :
    opened ? <ComplaintDetail key={opened.id + opened.status} complaint={opened} onBack={() => setOpenId(null)} onChanged={() => setVersion(value => value + 1)} /> :
-   view === 'overview' ? <Overview metrics={metrics} onView={go} /> :
+   view === 'overview' ? <Overview metrics={metrics} counts={counts} onView={go} /> :
    view === 'queue' ? <>{head('Operação', 'Fila de revisão', 'Confira a versão compartilhável e decida: liberar para a empresa, pedir ajuste ao trabalhador ou reter para análise.')}
     {complaints === null ? <p className="muted">Carregando…</p> : <ComplaintList rows={queue} waiting onOpen={row => setOpenId(row.id)} empty="Nenhuma manifestação aguardando revisão." />}</> :
    view === 'all' ? <>{head('Operação', 'Manifestações', 'Todas as manifestações, sem identidade de quem relatou.')}
