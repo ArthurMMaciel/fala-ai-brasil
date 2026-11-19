@@ -49,7 +49,12 @@ test('abas da fila de avisos', () => {
 test('textos do aviso: em revisão jurídica, com a frase da ADR-0023 e sem link no e-mail', () => {
   assert.equal(notice.noticeTextsInReview, true);
   assert.ok(notice.noticeTexts.consent.includes('Se a empresa ainda não estiver na plataforma, ela receberá um aviso de que existe um relato, sem o conteúdo, sem o seu nome e sem a data.'));
-  assert.doesNotMatch(notice.noticeTexts.emailBody, /https?:\/\/|www\.|\.com\b|\.br\b/i);
+  assert.doesNotMatch(notice.noticeTexts.emailBody, /https?:\/\/|www\.|\.com\b|\.br\b|<a\b/i);
+  // Endereço do site como texto, vindo de um lugar único (decisão do responsável em 2026-11-19).
+  assert.equal(notice.platformAddress, 'fala-ai-brasil.vercel.app');
+  assert.ok(notice.noticeTexts.emailBody.includes(`digite no navegador o endereço ${notice.platformAddress}`));
+  assert.equal(readFileSync('src/domain/company-notice.ts', 'utf8').split('fala-ai-brasil.vercel.app').length - 1, 1, 'endereço escrito uma vez só');
+  assert.match(readFileSync('src/app/main.js', 'utf8'), /Se a empresa já usa a plataforma, sua conta entra como integrante e a equipe confirma o vínculo\./);
   const wizard = readFileSync('src/portals/complaint-wizard.tsx', 'utf8');
   assert.match(wizard, /noticeTextsInReview && <p className="legal-review-banner">Texto em revisão jurídica\.<\/p>/);
   assert.doesNotMatch(wizard, /Demonstração: contatos/);

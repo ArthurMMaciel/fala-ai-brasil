@@ -3,6 +3,9 @@ import { brazilianStates } from './account-rules';
 // ADR-0023: relato contra empresa não cadastrada e aviso à empresa, sem conteúdo, aprovado e enviado à mão pela equipe.
 // Textos marcados "em revisão jurídica" até o advogado (prazo 24/11). Mudar aqui muda todas as telas.
 export const noticeTextsInReview = true;
+// Endereço do site no e-mail de aviso, como TEXTO (sem https:// nem link). Decisão do responsável em 2026-11-19;
+// trocar aqui quando houver domínio próprio. Alguns leitores de e-mail transformam texto em link por conta própria.
+export const platformAddress = 'fala-ai-brasil.vercel.app';
 export const noticeTexts = {
   field: 'E-mail da empresa para o aviso (opcional)',
   help: 'Prefira um canal institucional, como RH, ouvidoria ou o contato do site. Não indique o e-mail pessoal de alguém.',
@@ -16,7 +19,7 @@ export const noticeTexts = {
     'Olá,',
     'A Escuta Aí Brasil é uma plataforma de escuta psicossocial no trabalho. Informamos que existe um relato na plataforma relacionado à sua empresa.',
     'Este aviso não traz o conteúdo do relato, a identidade de quem relatou nem a data.',
-    'Para saber mais, digite no navegador o endereço oficial da Escuta Aí Brasil e cadastre a empresa com o CNPJ. Não enviamos links por e-mail.',
+    `Para saber mais, digite no navegador o endereço ${platformAddress} e cadastre a empresa com o CNPJ. Não enviamos links por e-mail.`,
     'Se não quiser receber novos avisos, responda a este e-mail pedindo a exclusão.',
     'Equipe Escuta Aí Brasil',
   ].join('\n\n'),

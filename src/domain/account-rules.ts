@@ -284,7 +284,7 @@ const authMessages: Record<string, string> = {
   signup_disabled: "O cadastro está temporariamente indisponível.",
   // O gatilho de cadastro recusou os dados (CPF/CNPJ com dígito inválido, entre outros): o Auth devolve 500 sem a mensagem do banco.
   profile_rejected: "Não foi possível concluir o cadastro. Confira o CPF/CNPJ e os demais dados.",
-  unexpected_failure: "Não foi possível concluir o cadastro. Se a empresa já estiver cadastrada, peça acesso a quem a cadastrou; caso contrário, confira os dados.",
+  unexpected_failure: "Não foi possível concluir o cadastro. Confira os dados e tente novamente.",
 };
 
 /** Código do erro do signUp: separa falha de SMTP e recusa do gatilho de cadastro, que chegam como 500 genérico. */
