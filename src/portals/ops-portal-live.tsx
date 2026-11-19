@@ -10,7 +10,7 @@ import { ContactSolicitationsAdmin } from './contact-solicitations-admin';
 import { OpsResponses } from './response-review';
 import { OpsRepresentatives } from './representatives';
 import { OpsNotices, OpsPendingCompanies } from './company-notices';
-import { listNoticeCandidates, type NoticeCandidate } from '../services/notices';
+import { listNoticeCandidates, loadComplaintContact, type ComplaintContact as ComplaintContactData } from '../services/notices';
 import { formatPhone } from '../domain/account-rules';
 
 // Área da equipe (ADR-0010): revisão antes da liberação, acesso ao original só com justificativa, números agregados.
@@ -68,11 +68,20 @@ function ComplaintList({ rows, onOpen, empty, waiting = false }: { rows: OpsComp
   <tbody>{rows.map(row => <tr key={row.id} tabIndex={0} onClick={() => onOpen(row)} onKeyDown={event => event.key === 'Enter' && onOpen(row)}><td>{row.protocol}</td><td>{row.companyName}</td><td>{row.title}<small>{row.category}</small></td><td><Status status={row.status} /></td><td>{waiting ? <span title={when(row.updatedAt)}>{waitingLabel(row.updatedAt)}</span> : when(row.updatedAt)}</td></tr>)}</tbody></table></div>;
 }
 
-// Contato na empresa indicado pelo trabalhador (só a equipe vê). Hoje vem da fila de avisos; troca para a função
-// dedicada quando o Back mandar o contrato. Sem dado, a seção não aparece.
+// Contato na empresa indicado pelo trabalhador (só a equipe vê): ops_complaint_contact (contrato e0f43bd).
+// Sem a função, usa a fila de avisos. Sem dado, a seção não aparece.
 function ComplaintContact({ complaintId }: { complaintId: string }) {
- const [contact, setContact] = useState<NoticeCandidate | null>(null);
- useEffect(() => { let active = true; listNoticeCandidates().then(result => { if (active && !result.missing) setContact(result.rows.find(row => row.complaintId === complaintId && (row.email || row.phone)) ?? null); }).catch(() => undefined); return () => { active = false; }; }, [complaintId]);
+ const [contact, setContact] = useState<ComplaintContactData | null>(null);
+ useEffect(() => {
+  let active = true;
+  loadComplaintContact(complaintId, 'ops').then(async result => {
+   if (!result.missing) { if (active) setContact(result.contact && (result.contact.email || result.contact.phone) ? result.contact : null); return; }
+   const fallback = await listNoticeCandidates();
+   const row = fallback.missing ? undefined : fallback.rows.find(item => item.complaintId === complaintId && (item.email || item.phone));
+   if (active) setContact(row ? { email: row.email, phone: row.phone, possiblyInvolved: row.possiblyInvolved } : null);
+  }).catch(() => undefined);
+  return () => { active = false; };
+ }, [complaintId]);
  if (!contact) return null;
  return <section className="worker-detail-section"><h3>Contato indicado pelo trabalhador</h3><p className="muted small">Só a equipe vê. A empresa não recebe este contato.</p>
   <ul className="ops-notice-facts">{contact.email && <li><span className="muted small">E-mail</span><strong>{contact.email}</strong></li>}{contact.phone && <li><span className="muted small">Telefone</span><strong>{formatPhone(contact.phone)}</strong></li>}

@@ -18,12 +18,23 @@ test('etapa de contato aparece em toda manifestação, com texto próprio para e
   assert.doesNotMatch(wizard, /Formas de comunicação|Demonstração: contatos/);
 });
 
-test('sem o contrato novo: telefone desligado e contato só vai com e-mail (o create_complaint atual exige e-mail)', async () => {
-  const notice = await load(false);
-  assert.equal(notice.companyContactPhoneEnabled, false);
-  assert.equal(notice.noticeContactPayload({ email: '', phone: '(11) 91234-5678', involvement: 'no', consent: true }), null);
-  assert.deepEqual(JSON.parse(JSON.stringify(notice.noticeContactPayload({ email: 'RH@example.com', phone: '(11) 91234-5678', involvement: 'no', consent: true }, true))), { email: 'rh@example.com', possibly_involved: false, consent: true });
-  assert.match(notice.validateNoticeContact({ email: 'rh@example.com', involvement: 'no', consent: false }, true), /segundo canal/);
+test('contrato final (e0f43bd): telefone ligado, e-mail e telefone no payload e mensagens iguais às do banco', async () => {
+  assert.match(source, /export const companyContactPhoneEnabled = true;/);
+  const notice = await load(true);
+  assert.deepEqual(JSON.parse(JSON.stringify(notice.noticeContactPayload({ email: 'RH@example.com', phone: '(11) 91234-5678', involvement: 'no', consent: true }, true))), { email: 'rh@example.com', phone: '11912345678', possibly_involved: false, consent: true });
+  assert.equal(notice.validateNoticeContact({ email: 'rh@example.com', involvement: 'no', consent: false }, true), 'Para indicar um contato, confirme o uso dele pela equipe.');
+  assert.equal(notice.validateNoticeContact({ email: '', phone: '(11) 1234', involvement: 'no', consent: true }), 'Informe um telefone de contato com DDD (10 ou 11 dígitos).');
+});
+
+test('Operação e trabalhador no contrato final: campos novos da fila, escolha do destino e contato por função', () => {
+  const service = readFileSync('src/services/notices.ts', 'utf8');
+  assert.match(service, /email: String\(row\.contact_email \?\? row\.email \?\? ''\)/);
+  assert.match(service, /registryEmail: String\(row\.receita_email \?\? ''\)/);
+  assert.match(service, /\.\.\.\(destination \? \{ p_destination: destination \} : \{\}\)/, 'p_destination só quando a equipe escolhe');
+  assert.match(service, /'ops_complaint_contact' : 'my_complaint_contact'/);
+  const notices = readFileSync('src/portals/company-notices.tsx', 'utf8');
+  assert.match(notices, /decision === 'approved' && bothDestinations && <fieldset/);
+  assert.match(readFileSync('src/portals/worker-portal-live.tsx', 'utf8'), /<MyComplaintContact complaintId=\{complaint\.id\} \/>/);
 });
 
 test('com o telefone ligado: e-mail ou telefone, pelo menos um; pergunta e consentimento quando houver contato', async () => {

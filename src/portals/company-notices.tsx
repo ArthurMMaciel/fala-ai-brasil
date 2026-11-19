@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { showToast } from '../app/toast';
 import { maskCnpj } from '../domain/account-rules';
 import { dataSourceLabels, noticeStatusLabels, noticeTab, noticeTexts, noticeTextsInReview, registrationLabels, validateOpsReason, type NoticeTab } from '../domain/company-notice';
-import { addNoticeOptOut, decideNotice, listNoticeCandidates, listPendingCompanies, markNoticeSent, noticeDestination, purgeExpiredContacts, reviewPendingCompany, type NoticeCandidate, type PendingCompany } from '../services/notices';
+import { addNoticeOptOut, decideNotice, listNoticeCandidates, listPendingCompanies, markNoticeSent, noticeDestination, purgeExpiredContacts, reviewPendingCompany, type NoticeCandidate, type NoticeDestinationChoice, type PendingCompany } from '../services/notices';
 
 const registryEmailBadge = 'E-mail da Receita: confira antes (pode ser do contador ou pessoal)';
 
@@ -85,7 +85,10 @@ function NoticeDetail({ item, onBack, onChanged }: { item: NoticeCandidate; onBa
  const [busy, setBusy] = useState(false);
  const locks = blockers(item);
  // Sem contato do trabalhador, o destino é o e-mail da Receita (pode ser do contador ou pessoal): a equipe confere.
- const destination = noticeDestination(item);
+ // Com os dois e-mails (do trabalhador e da Receita), a equipe escolhe o destino na aprovação (p_destination).
+ const bothDestinations = Boolean(item.email && item.registryEmail);
+ const [choice, setChoice] = useState<NoticeDestinationChoice | null>(bothDestinations ? (item.destinationSource === 'receita' ? 'receita' : 'worker') : null);
+ const destination = noticeDestination(item, choice ?? undefined);
  const to = destination?.email ?? '';
  const registryBadge = destination?.fromRegistry ? <span className="commercial-badge">{registryEmailBadge}</span> : null;
  const run = async (action: () => Promise<{ ok: boolean; message?: string }>, done: string) => { setBusy(true); const result = await action(); setBusy(false); if (!result.ok) return showToast('error', result.message ?? 'Não foi possível concluir.'); showToast('success', done); onChanged(); };
@@ -93,7 +96,7 @@ function NoticeDetail({ item, onBack, onChanged }: { item: NoticeCandidate; onBa
   event.preventDefault();
   if (decision === 'rejected') { const problem = validateOpsReason(reason); if (problem) return showToast('error', problem, 'Confira os dados'); }
   if (!window.confirm(decision === 'approved' ? `Aprovar o aviso para ${to}?${destination?.fromRegistry ? ' É o e-mail da Receita: confirme que é um canal da empresa.' : ''} Depois de aprovado, você envia o texto fixo pela conta da plataforma.` : 'Recusar o aviso? O e-mail não recebe nada.')) return;
-  await run(() => decideNotice(item.complaintId, decision, reason), decision === 'approved' ? 'Aviso aprovado. Envie e marque como enviado.' : 'Aviso recusado.');
+  await run(() => decideNotice(item.complaintId, decision, reason, decision === 'approved' ? choice : null), decision === 'approved' ? 'Aviso aprovado. Envie e marque como enviado.' : 'Aviso recusado.');
  }
  const copy = async () => { try { await navigator.clipboard.writeText(`${noticeTexts.emailSubject}\n\n${noticeTexts.emailBody}`); showToast('success', 'Texto copiado.'); } catch { showToast('error', 'Não foi possível copiar. Selecione o texto e copie manualmente.'); } };
  const optOut = () => { if (to && window.confirm(`Registrar que ${to} pediu para não receber avisos? Nenhum aviso futuro vai para este e-mail.`)) run(() => addNoticeOptOut(to), 'Pedido registrado.'); };
@@ -106,6 +109,9 @@ function NoticeDetail({ item, onBack, onChanged }: { item: NoticeCandidate; onBa
     <fieldset className="response-rating"><legend>O que fazer</legend>
      <label className="check-row"><input type="radio" name="notice-decision" checked={decision === 'approved'} onChange={() => setDecision('approved')} /> <span>Aprovar o aviso</span></label>
      <label className="check-row"><input type="radio" name="notice-decision" checked={decision === 'rejected'} onChange={() => setDecision('rejected')} /> <span>Recusar o aviso</span></label></fieldset>
+    {decision === 'approved' && bothDestinations && <fieldset className="response-rating"><legend>Enviar para</legend>
+     <label className="check-row"><input type="radio" name="notice-destination" checked={choice === 'worker'} onChange={() => setChoice('worker')} /> <span>{item.email} (indicado pelo trabalhador)</span></label>
+     <label className="check-row"><input type="radio" name="notice-destination" checked={choice === 'receita'} onChange={() => setChoice('receita')} /> <span>{item.registryEmail} ({registryEmailBadge})</span></label></fieldset>}
     {decision === 'rejected' && <label className="field">Motivo<textarea rows={3} maxLength={300} value={reason} onChange={event => setReason(event.target.value)} placeholder="Ex.: e-mail pessoal de uma pessoa nomeada." /><small className="muted">{reason.trim().length}/300 caracteres. Sem conteúdo de relato.</small></label>}
     <div className="ops-decision-actions"><button className="btn primary" type="submit" disabled={busy}>{busy ? 'Registrando…' : decision === 'approved' ? 'Aprovar aviso' : 'Recusar aviso'}</button></div>
    </form>}

@@ -19,7 +19,7 @@ test('cnpj-lookup: só 200 com status found e dados completos preenchem a empres
 test('contato do aviso: opcional; com e-mail, pergunta e consentimento são obrigatórios; "Não sei" conta como envolvido', () => {
   assert.equal(notice.validateNoticeContact({ email: '', involvement: '', consent: false }), null);
   assert.equal(notice.noticeContactPayload({ email: '  ', involvement: 'no', consent: true }), null);
-  assert.match(notice.validateNoticeContact({ email: 'rh@', involvement: 'no', consent: true }), /e-mail válido/);
+  assert.equal(notice.validateNoticeContact({ email: 'rh@', involvement: 'no', consent: true }), 'Informe um e-mail de contato válido.');
   assert.match(notice.validateNoticeContact({ email: 'rh@empresa.com.br', involvement: '', consent: true }), /envolvida/);
   assert.match(notice.validateNoticeContact({ email: 'rh@empresa.com.br', involvement: 'no', consent: false }), /confirme/);
   assert.deepEqual(plain(notice.noticeContactPayload({ email: ' RH@Empresa.com.br ', involvement: 'no', consent: true })), { email: 'rh@empresa.com.br', possibly_involved: false, consent: true });
@@ -48,7 +48,8 @@ test('abas da fila de avisos', () => {
 
 test('textos do aviso: em revisão jurídica, com a frase da ADR-0023 e sem link no e-mail', () => {
   assert.equal(notice.noticeTextsInReview, true);
-  assert.ok(notice.noticeTexts.consent.includes('Se a empresa ainda não estiver na plataforma, ela receberá um aviso de que existe um relato, sem o conteúdo, sem o seu nome e sem a data.'));
+  assert.equal(notice.noticeTexts.consent, 'A equipe da Escuta Aí Brasil pode usar este contato como segundo canal com a empresa. Se a empresa ainda não estiver na plataforma, ela receberá por ele um aviso de que existe um relato, sem o conteúdo, sem o seu nome e sem a data.');
+  assert.equal(notice.registeredContactTexts.consent, notice.noticeTexts.consent, 'consentimento único para qualquer empresa');
   assert.doesNotMatch(notice.noticeTexts.emailBody, /https?:\/\/|www\.|\.com\b|\.br\b|<a\b/i);
   // Endereço do site como texto, vindo de um lugar único (decisão do responsável em 2026-11-19).
   assert.equal(notice.platformAddress, 'fala-ai-brasil.vercel.app');

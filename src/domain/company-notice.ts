@@ -9,8 +9,9 @@ export const platformAddress = 'fala-ai-brasil.vercel.app';
 export const noticeTexts = {
   field: 'E-mail da empresa para o aviso (opcional)',
   help: 'Prefira um canal institucional, como RH, ouvidoria ou o contato do site. Não indique o e-mail pessoal de alguém.',
-  question: 'A pessoa que lê esse e-mail pode estar envolvida no que você relata?',
-  consent: 'Concordo. Se a empresa ainda não estiver na plataforma, ela receberá um aviso de que existe um relato, sem o conteúdo, sem o seu nome e sem a data. A equipe da Escuta Aí Brasil confere o e-mail antes e pode decidir não enviar o aviso.',
+  question: 'A pessoa desse contato pode estar envolvida no que você relata?',
+  // Consentimento único para qualquer empresa (contrato do Back e0f43bd, em revisão jurídica).
+  consent: 'A equipe da Escuta Aí Brasil pode usar este contato como segundo canal com a empresa. Se a empresa ainda não estiver na plataforma, ela receberá por ele um aviso de que existe um relato, sem o conteúdo, sem o seu nome e sem a data.',
   involvedWarning: 'Com essa resposta, o aviso não será enviado a esse e-mail.',
   notSharedWarning: 'O e-mail para o aviso só é guardado quando você solicita a revisão. Ao guardar sem compartilhar, ele não é enviado.',
   // Texto que a equipe copia e envia da conta da plataforma. Sem link clicável (ADR-0023, mitigação do Gmail).
@@ -28,18 +29,17 @@ export const noticeTexts = {
 export type Involvement = 'yes' | 'no' | 'unknown' | '';
 export const involvementLabels: Record<Exclude<Involvement, ''>, string> = { yes: 'Sim', no: 'Não', unknown: 'Não sei' };
 
-// Contato na empresa em TODA manifestação (decisão do responsável, 2026-11-19): e-mail e telefone opcionais, pelo menos um.
-// Telefone pronto na tela, mas desligado: o create_complaint atual exige e-mail sempre que vem notice_contact.
-// Ligar quando o Back mandar o contrato novo (chave "phone" provisória).
-export const companyContactPhoneEnabled = false;
+// Contato na empresa em TODA manifestação (decisão do responsável, 2026-11-19; contrato do Back e0f43bd):
+// p.notice_contact = { email?, phone?, possibly_involved, consent: true }, pelo menos um entre e-mail e telefone, só com p_share.
+export const companyContactPhoneEnabled = true;
 
 // Empresa cadastrada: o contato fica só com a equipe, como segundo canal; a empresa não vê.
 export const registeredContactTexts = {
   intro: 'Se quiser, indique um contato da empresa, como o RH. Esse contato fica só com a equipe da Escuta Aí Brasil, como segundo canal desta manifestação. A empresa não vê o contato que você indicar. É opcional.',
   email: 'E-mail de contato na empresa (opcional)',
   phone: 'Telefone de contato na empresa (opcional)',
-  consent: 'Concordo que a equipe da Escuta Aí Brasil guarde este contato como segundo canal desta manifestação. A empresa não vê este contato.',
-  missingConsent: 'Para indicar o contato, confirme que a equipe pode guardá-lo como segundo canal.',
+  consent: noticeTexts.consent,
+  missingConsent: 'Para indicar um contato, confirme o uso dele pela equipe.',
 };
 
 export interface NoticeContactInput { email: string; phone?: string; involvement: Involvement; consent: boolean }
@@ -53,10 +53,11 @@ const hasPhone = (input: NoticeContactInput) => companyContactPhoneEnabled && Bo
 export function validateNoticeContact(input: NoticeContactInput, registered = false): string | null {
   const email = input.email.trim();
   if (!email && !hasPhone(input)) return null;
-  if (email && (email.length > 254 || !emailPattern.test(email))) return 'Informe um e-mail válido ou deixe o campo vazio.';
-  if (hasPhone(input) && !/^\d{10,11}$/.test(phoneDigits(input.phone ?? ''))) return 'Informe um telefone com DDD (10 ou 11 dígitos) ou deixe o campo vazio.';
+  // Mesmas mensagens do create_complaint (contrato e0f43bd).
+  if (email && (email.length > 254 || !emailPattern.test(email))) return 'Informe um e-mail de contato válido.';
+  if (hasPhone(input) && !/^\d{10,11}$/.test(phoneDigits(input.phone ?? ''))) return 'Informe um telefone de contato com DDD (10 ou 11 dígitos).';
   if (!input.involvement) return 'Responda se a pessoa desse contato pode estar envolvida no que você relata.';
-  if (!input.consent) return registered ? registeredContactTexts.missingConsent : 'Para indicar o e-mail, confirme que a empresa receberá o aviso de que existe um relato.';
+  if (!input.consent) return registeredContactTexts.missingConsent;
   return null;
 }
 
@@ -64,8 +65,6 @@ export function validateNoticeContact(input: NoticeContactInput, registered = fa
 export function noticeContactPayload(input: NoticeContactInput, registered = false): NoticeContactPayload | null {
   const email = input.email.trim();
   if ((!email && !hasPhone(input)) || validateNoticeContact(input, registered)) return null;
-  // Contrato atual: notice_contact exige e-mail. Até o contrato novo, contato só com telefone não é enviado.
-  if (!email && !companyContactPhoneEnabled) return null;
   return { ...(email ? { email: email.toLowerCase() } : {}), ...(hasPhone(input) ? { phone: phoneDigits(input.phone ?? '') } : {}), possibly_involved: input.involvement !== 'no', consent: true };
 }
 

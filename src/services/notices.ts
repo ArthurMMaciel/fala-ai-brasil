@@ -58,13 +58,18 @@ export interface NoticeCandidate {
   complaintId: string; protocol: string; complaintStatus: ComplaintStatusDb; companyId: string; companyName: string; registrationStatus: string;
   naturalPerson: boolean | null; reviewDecision: string | null; contactId: string | null; email: string; possiblyInvolved: boolean; contactStatus: string;
   optedOut: boolean; lastCompanyNoticeAt: string | null; noticeId: string | null; noticeStatus: NoticeStatus | null;
-  // Contrato novo (decisão do responsável, 2026-11-19), nomes provisórios até o Back confirmar: telefone indicado pelo
-  // trabalhador e e-mail da Receita (cnpj-lookup), usado como destino quando o trabalhador não indica contato.
-  phone: string; registryEmail: string;
+  // Contrato e0f43bd (2026-11-19): email = contact_email; telefone do contato; e-mail da Receita (cnpj-lookup) e o destino
+  // que o banco propõe (destination_source 'worker' | 'receita').
+  phone: string; registryEmail: string; destinationEmail: string; destinationSource: 'worker' | 'receita' | '';
 }
 
-// Destino do aviso: o contato do trabalhador; sem ele, o e-mail da Receita, que a equipe precisa conferir.
-export function noticeDestination(row: Pick<NoticeCandidate, 'email' | 'registryEmail'>): { email: string; fromRegistry: boolean } | null {
+export type NoticeDestinationChoice = 'worker' | 'receita';
+
+// Destino do aviso: o escolhido pela equipe; senão o proposto pelo banco; senão o contato do trabalhador e, sem ele, a Receita.
+export function noticeDestination(row: Pick<NoticeCandidate, 'email' | 'registryEmail'> & Partial<Pick<NoticeCandidate, 'destinationEmail' | 'destinationSource'>>, choice?: NoticeDestinationChoice): { email: string; fromRegistry: boolean } | null {
+  if (choice === 'worker' && row.email) return { email: row.email, fromRegistry: false };
+  if (choice === 'receita' && row.registryEmail) return { email: row.registryEmail, fromRegistry: true };
+  if (row.destinationEmail) return { email: row.destinationEmail, fromRegistry: row.destinationSource === 'receita' };
   if (row.email) return { email: row.email, fromRegistry: false };
   return row.registryEmail ? { email: row.registryEmail, fromRegistry: true } : null;
 }
@@ -75,16 +80,28 @@ export async function listNoticeCandidates(): Promise<{ missing: true } | { miss
   return { missing: false, rows: (data ?? []).map((row: Record<string, unknown>) => ({
     complaintId: String(row.complaint_id), protocol: String(row.protocol ?? ''), complaintStatus: row.complaint_status as ComplaintStatusDb, companyId: String(row.company_id),
     companyName: String(row.company_name ?? ''), registrationStatus: String(row.registration_status ?? ''), naturalPerson: (row.natural_person as boolean | null) ?? null,
-    reviewDecision: (row.review_decision as string | null) ?? null, contactId: (row.contact_id as string | null) ?? null, email: String(row.email ?? ''),
-    phone: String(row.phone ?? ''), registryEmail: String(row.registry_email ?? ''),
+    reviewDecision: (row.review_decision as string | null) ?? null, contactId: (row.contact_id as string | null) ?? null, email: String(row.contact_email ?? row.email ?? ''),
+    phone: String(row.contact_phone ?? ''), registryEmail: String(row.receita_email ?? ''),
+    destinationEmail: String(row.destination_email ?? ''), destinationSource: row.destination_source === 'worker' || row.destination_source === 'receita' ? row.destination_source : '',
     possiblyInvolved: Boolean(row.possibly_involved), contactStatus: String(row.contact_status ?? 'candidate'), optedOut: Boolean(row.opted_out),
     lastCompanyNoticeAt: (row.last_company_notice_at as string | null) ?? null, noticeId: (row.notice_id as string | null) ?? null, noticeStatus: (row.notice_status as NoticeStatus | null) ?? null,
   })) };
 }
 
-export async function decideNotice(complaintId: string, decision: 'approved' | 'rejected', reason: string): Promise<AuthResult<null>> {
-  const { error } = await supabase().rpc('ops_decide_notice', { p_complaint: complaintId, p_decision: decision, p_reason: reason.trim() || null });
+// p_destination só vai quando a equipe escolhe: a versão anterior da função não tem o parâmetro.
+export async function decideNotice(complaintId: string, decision: 'approved' | 'rejected', reason: string, destination: NoticeDestinationChoice | null = null): Promise<AuthResult<null>> {
+  const { error } = await supabase().rpc('ops_decide_notice', { p_complaint: complaintId, p_decision: decision, p_reason: reason.trim() || null, ...(destination ? { p_destination: destination } : {}) });
   return error ? { ok: false, message: opsFailure(error, 'Não foi possível registrar a decisão do aviso.') } : { ok: true, value: null };
+}
+
+// Contato da manifestação: equipe (ops_complaint_contact) e trabalhador (my_complaint_contact). Sem a função: missing.
+export interface ComplaintContact { email: string; phone: string; possiblyInvolved: boolean; status?: string; createdAt?: string }
+const toContact = (row: Record<string, unknown> | undefined): ComplaintContact | null => row ? { email: String(row.email ?? ''), phone: String(row.phone ?? ''), possiblyInvolved: Boolean(row.possibly_involved), status: row.status ? String(row.status) : undefined, createdAt: row.created_at ? String(row.created_at) : undefined } : null;
+
+export async function loadComplaintContact(complaintId: string, as: 'ops' | 'worker'): Promise<{ missing: true } | { missing: false; contact: ComplaintContact | null }> {
+  const { data, error } = await supabase().rpc(as === 'ops' ? 'ops_complaint_contact' : 'my_complaint_contact', { p_complaint: complaintId });
+  if (error) { if (missingFunction(error)) return { missing: true }; throw new Error(opsFailure(error, 'Não foi possível carregar o contato.')); }
+  return { missing: false, contact: toContact((data ?? [])[0] as Record<string, unknown> | undefined) };
 }
 
 export async function markNoticeSent(noticeId: string, outcome: 'sent' | 'bounced'): Promise<AuthResult<null>> {

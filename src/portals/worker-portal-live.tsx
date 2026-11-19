@@ -9,6 +9,8 @@ import { statusLabel } from '../domain/complaint-status';
 import { buildWorkerPrint, printDateTime } from '../domain/print-document';
 import { usePrintDocument } from './print-document';
 import { WorkerResponses } from './response-review';
+import { loadComplaintContact, type ComplaintContact } from '../services/notices';
+import { formatPhone } from '../domain/account-rules';
 
 // Portal do trabalhador com dados reais (modelo v3). O relato original nunca sai daqui; a empresa recebe só a versão revisada.
 type View = 'dashboard' | 'list' | 'detail' | 'new' | 'companies' | 'profile';
@@ -102,6 +104,16 @@ function List({ complaints, companies, onSelect, onNew }: { complaints: WorkerCo
   <div className="worker-table-wrap"><table className="worker-table"><thead><tr><th>Protocolo</th><th>Assunto</th><th>Empresa</th><th>Situação</th><th>Criada em</th><th><span className="sr-only">Abrir</span></th></tr></thead><tbody>{rows.map(item => <tr key={item.id} tabIndex={0} onClick={() => onSelect(item)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') onSelect(item); }}><td>{item.protocol}</td><td>{item.title}</td><td>{companies.get(item.companyId)?.name ?? '—'}</td><td><Status status={item.status} /></td><td>{dateLabel(item.createdAt)}</td><td><button className="worker-row-action" aria-label={`Abrir manifestação ${item.protocol}`} onClick={event => { event.stopPropagation(); onSelect(item); }}>›</button></td></tr>)}</tbody></table></div>}</>;
 }
 
+// Contato na empresa que o próprio trabalhador indicou (my_complaint_contact, contrato e0f43bd). Sem função ou sem contato: nada.
+function MyComplaintContact({ complaintId }: { complaintId: string }) {
+ const [contact, setContact] = useState<ComplaintContact | null>(null);
+ useEffect(() => { let active = true; loadComplaintContact(complaintId, 'worker').then(result => { if (active && !result.missing && result.contact && (result.contact.email || result.contact.phone)) setContact(result.contact); }).catch(() => undefined); return () => { active = false; }; }, [complaintId]);
+ if (!contact) return null;
+ return <section className="worker-detail-section"><h3>Contato que você indicou</h3><p className="muted small">Só a equipe da Escuta Aí Brasil vê este contato. A empresa não vê.</p>
+  <ul className="ops-notice-facts">{contact.email && <li><span className="muted small">E-mail</span><strong>{contact.email}</strong></li>}{contact.phone && <li><span className="muted small">Telefone</span><strong>{formatPhone(contact.phone)}</strong></li>}
+   {contact.possiblyInvolved && <li><span className="muted small">Você indicou</span><strong>que a pessoa pode estar envolvida: a equipe não usa este contato.</strong></li>}</ul></section>;
+}
+
 function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerComplaint; company?: DirectoryCompany; onBack: () => void; onChanged: () => void }) {
  const [detail, setDetail] = useState<WorkerComplaintDetail | null>(null);
  const [shareText, setShareText] = useState('');
@@ -165,6 +177,7 @@ function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerCo
    <WorkerResponses responses={responses} ratings={ratings} onRated={() => setRatingsVersion(value => value + 1)} />
    {complaint.expectedOutcomes.length > 0 && <section className="worker-detail-section"><h3>O que você espera</h3><ul>{complaint.expectedOutcomes.map(item => <li key={item}>{item}</li>)}</ul></section>}
   </div><aside className="worker-detail-aside">
+   <MyComplaintContact complaintId={complaint.id} />
    <section className="worker-detail-section"><h3>Acompanhamento</h3><ol className="worker-timeline">{detail.timeline.map((item, index) => <li key={index} className={item.kind === 'response' ? 'worker-timeline-response' : ''}><strong>{item.kind === 'response' ? 'Resposta da empresa' : statusLabel(eventLabels, item.status ?? 'received')}</strong><span>{dateLabel(item.kind === 'response' ? item.releasedAt ?? item.createdAt : item.createdAt)}</span><p>{item.kind === 'response' ? item.workerSummary ?? item.content : item.content}</p></li>)}</ol></section>
    {open && <section className="worker-detail-section worker-actions"><h3>{preRelease ? 'Retirar manifestação' : 'Encerrar acompanhamento'}</h3>{!preRelease && <label>A resposta ajudou?<select value={feedback} onChange={event => setFeedback(event.target.value as ComplaintFeedback | '')}><option value="">Prefiro não avaliar</option>{Object.entries(feedbackLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>}<button className="btn" disabled={busy} onClick={close}>{preRelease ? 'Retirar manifestação' : 'Encerrar acompanhamento'}</button></section>}
    {complaint.feedback && <section className="worker-detail-section"><h3>Sua avaliação</h3><p>{feedbackLabels[complaint.feedback]}</p></section>}
