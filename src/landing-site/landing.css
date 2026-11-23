@@ -4,6 +4,11 @@
    SVG fica de fora: o reset anularia os atributos fill e stroke. */
 #escuta-site :where(:not(svg, svg *)){all:revert}
 #escuta-site{min-height:100vh;font-size:16px;text-align:left;letter-spacing:normal}
+/* O reset também anula o atributo hidden (o Chrome o trata como estilo do autor); aqui ele volta a esconder. */
+#escuta-site [hidden]{display:none}
+/* Campo armadilha contra robôs (bot-field → p_website): fora da tela, sem display:none, que alguns robôs detectam.
+   Escondido também de leitor de tela (aria-hidden) e do Tab (tabIndex -1). */
+#escuta-site .hp{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 @font-face{font-family:Outfit;src:url("/fonts/outfit.ttf") format("truetype");font-weight:100 900;font-style:normal;font-display:swap}
 
 #escuta-site{

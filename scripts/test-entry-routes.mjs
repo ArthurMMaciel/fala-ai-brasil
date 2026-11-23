@@ -72,6 +72,12 @@ test('páginas da landing (React): links válidos, contato ligado ao serviço, n
   assert.match(parts, /<input id="tel" name="telefone" required/);
   assert.match(parts, /Não escreva relatos/);
   assert.doesNotMatch(parts, /dangerouslySetInnerHTML|innerHTML/);
+  // Honeypot escondido de verdade (pedido do responsável, 2026-11-23): fora da tela, sem display:none, fora do leitor e do Tab.
+  assert.match(parts, /<p className="hp" aria-hidden="true"><label>Não preencha: <input name="bot-field" tabIndex=\{-1\} autoComplete="off" \/><\/label><\/p>/);
+  const css = readFileSync('src/landing-site/landing.css', 'utf8');
+  assert.match(css, /#escuta-site \.hp\{position:absolute;left:-10000px;[^}]*overflow:hidden/);
+  assert.doesNotMatch(css.match(/#escuta-site \.hp\{[^}]*\}/)[0], /display:none|visibility:hidden/);
+  assert.match(css, /#escuta-site \[hidden\]\{display:none\}/, 'atributo hidden volta a valer depois do reset');
   assert.equal(readFileSync('vite.config.mjs', 'utf8').includes('rollupOptions'), false, 'só o index.html é entrada do build');
   for (const page of pages) assert.throws(() => readFileSync(`${page}.html`), `${page}.html saiu`);
 });

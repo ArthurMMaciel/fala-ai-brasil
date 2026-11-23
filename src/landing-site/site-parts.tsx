@@ -151,7 +151,7 @@ export function ContactForm({ pagina, perfil, organizacao = false }: { pagina: s
   return (
     <form className="form" data-pagina={pagina} noValidate onSubmit={submit} onInput={() => { if (error) setError(''); }}>
       {organizacao ? null : <input type="hidden" name="organizacao" defaultValue="" />}
-      <p hidden aria-hidden="true"><label>Não preencha: <input name="bot-field" tabIndex={-1} autoComplete="off" /></label></p>
+      <p className="hp" aria-hidden="true"><label>Não preencha: <input name="bot-field" tabIndex={-1} autoComplete="off" /></label></p>
       <span className="eyebrow">Saiba mais</span>
       <h2>Vamos conversar?</h2>
       <p style={{ color: 'var(--cinza)' }}>Deixe seus dados e nossa equipe retorna pra apresentar a escuta.aí pro seu perfil.</p>
