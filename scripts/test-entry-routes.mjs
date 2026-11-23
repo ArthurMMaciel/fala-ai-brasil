@@ -3,14 +3,17 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 
-// Landing oficial estática: entradas por hash para o login e o cadastro do app e contato gravado pela mesma RPC do app.
+// Landing oficial (React): entradas por hash para o login e o cadastro do app e contato gravado pela mesma RPC do app.
 const compile = file => ts.transpileModule(readFileSync(file, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2021, module: ts.ModuleKind.ES2022 } }).outputText;
 const asUrl = code => `data:text/javascript;base64,${Buffer.from(code).toString('base64')}`;
 const commercialUrl = asUrl(compile('src/domain/commercial.ts'));
 const entry = await import(asUrl(compile('src/domain/entry-routes.ts').replace(/from ['"]\.\/commercial['"]/, `from '${commercialUrl}'`)));
 const contact = await import(asUrl(compile('src/domain/landing-contact.ts')));
+const entryUrl = asUrl(compile('src/domain/entry-routes.ts').replace(/from ['"]\.\/commercial['"]/, `from '${commercialUrl}'`));
+const site = await import(asUrl(compile('src/domain/site-pages.ts').replace(/from ['"]\.\/entry-routes['"]/, `from '${entryUrl}'`)));
 const plain = value => JSON.parse(JSON.stringify(value));
 const pages = ['inicio', 'empresa', 'parceiros', 'patrocinio', 'intelligence', '404'];
+const pageSource = page => readFileSync(`src/landing-site/pages/${page}.tsx`, 'utf8').replace(/^\/\/.*$/gm, '');
 
 test('entrar e cadastrar abrem as telas do app com o público certo', () => {
   assert.deepEqual(plain(entry.authEntryFromHash('#entrar')), { mode: 'login', audience: 'worker', planId: '' });
@@ -53,30 +56,53 @@ test('contato: perfil e origem como no form do app; site não é enviado e honey
   assert.equal(contact.landingContactInput({ ...base, perfil: 'constructor', pagina: 'empresa' }), null);
 });
 
-test('páginas da landing: links válidos, contato ligado ao serviço, nada de Netlify nem asset de outro domínio', () => {
-  const config = readFileSync('vite.config.mjs', 'utf8');
+test('páginas da landing (React): links válidos, contato ligado ao serviço, nada de Netlify nem asset de outro domínio', () => {
+  const parts = readFileSync('src/landing-site/site-parts.tsx', 'utf8');
   for (const page of pages) {
-    assert.ok(config.includes(`'${page}'`), `${page} é entrada do build`);
-    const html = readFileSync(`${page}.html`, 'utf8');
-    for (const [, hash] of html.matchAll(/href="\/(#(?:entrar|cadastrar)[^"]*)"/g)) assert.ok(entry.authEntryFromHash(hash), `${page}: ${hash}`);
-    assert.doesNotMatch(html, /(entrar|cadastrar)\.html|data-netlify|data-ajax|fala-ai-brasil\.vercel\.app|images\.unsplash\.com|fonts\.googleapis|fonts\.gstatic|name="site"|href="\/?index\.html|href="#"/, page);
-    const forms = html.match(/<form\b[^>]*>/g) ?? [];
+    const source = pageSource(page);
+    for (const [, hash] of source.matchAll(/href="\/(#(?:entrar|cadastrar)[^"]*)"/g)) assert.ok(entry.authEntryFromHash(hash), `${page}: ${hash}`);
+    assert.doesNotMatch(source, /\.html|data-netlify|data-ajax|fala-ai-brasil\.vercel\.app|images\.unsplash\.com|fonts\.googleapis|fonts\.gstatic|name="site"|href="#"|dangerouslySetInnerHTML/, page);
+    const forms = [...source.matchAll(/<ContactForm [^>]*\/>/g)].map(m => m[0]);
     if (page === '404') { assert.equal(forms.length, 0); continue; }
-    assert.deepEqual(forms, [`<form class="form" data-contato data-pagina="${page}" novalidate>`], page);
-    assert.match(html, /<script type="module" src="\/src\/landing-site\/contato\.ts"><\/script>/, page);
-    assert.match(html, /<input id="tel" name="telefone" required/, page);
-    assert.match(html, /Não escreva relatos/, page);
+    assert.equal(forms.length, 1, page);
+    assert.match(forms[0], new RegExp(`pagina="${page}"`), page);
   }
-  assert.doesNotMatch(readFileSync('public/landing/site.js', 'utf8'), /fetch\(|data-ajax/);
+  for (const page of Object.values(site.sitePages)) for (const hash of [page.entrar, page.cadastrar]) assert.ok(entry.authEntryFromHash(hash.replace(/^\//, '')), `${page.id}: ${hash}`);
+  assert.match(parts, /submitContactSolicitation\(input\)/);
+  assert.match(parts, /<input id="tel" name="telefone" required/);
+  assert.match(parts, /Não escreva relatos/);
+  assert.doesNotMatch(parts, /dangerouslySetInnerHTML|innerHTML/);
+  assert.equal(readFileSync('vite.config.mjs', 'utf8').includes('rollupOptions'), false, 'só o index.html é entrada do build');
+  for (const page of pages) assert.throws(() => readFileSync(`${page}.html`), `${page}.html saiu`);
 });
 
-test('Intelligence e Patrocínio ocultos por enquanto: some o link e a página redireciona para o início', () => {
-  const css = readFileSync('public/landing/style.css', 'utf8');
-  for (const page of ['intelligence', 'patrocinio']) {
-    for (const where of ['.menu li:has(> a', '.f-top li:has(> a', '.cam']) assert.ok(css.includes(`${where}[href$="${page}.html"]`), `${page}: ${where}`);
-  }
-  assert.ok(css.includes('.patro-nota a[href$="patrocinio.html"]'));
-  for (const perfil of ['Intelligence', 'Patrocinador']) assert.ok(css.includes(`.perfis label:has(> input[value="${perfil}"])`), perfil);
-  const redirects = JSON.parse(readFileSync('vercel.json', 'utf8')).redirects;
-  for (const page of ['intelligence', 'patrocinio']) assert.ok(redirects.some(r => r.source === `/${page}.html` && r.destination === '/inicio.html' && r.permanent === false), page);
+test('rotas da landing: caminho de cada página, 404, SEO e retorno de confirmação esperando o app', () => {
+  assert.equal(site.sitePageFromPath('/'), 'inicio');
+  assert.equal(site.sitePageFromPath('/empresa'), 'empresa');
+  assert.equal(site.sitePageFromPath('/parceiros/'), 'parceiros');
+  assert.equal(site.sitePageFromPath('/empresa.html'), 'empresa');
+  assert.equal(site.sitePageFromPath('/inicio.html'), 'inicio');
+  assert.equal(site.sitePageFromPath('/qualquer-coisa'), '404');
+  for (const page of Object.values(site.sitePages)) assert.match(page.title, /^escuta\.aí Brasil \| /, page.id);
+  for (const page of Object.values(site.sitePages)) if (page.id !== '404') assert.ok(page.description, page.id);
+  assert.equal(site.showsLandingImmediately({ search: '', hash: '' }, []), true);
+  assert.equal(site.showsLandingImmediately({ search: '', hash: '#contato' }, []), true);
+  assert.equal(site.showsLandingImmediately({ search: '?code=x', hash: '' }, []), false);
+  assert.equal(site.showsLandingImmediately({ search: '', hash: '#access_token=x&type=recovery' }, []), false);
+  assert.equal(site.showsLandingImmediately({ search: '', hash: '' }, ['sb-abc-auth-token']), false);
+});
+
+test('Intelligence e Patrocínio ocultos por enquanto (mesma lista do cadastro): fora do menu, dos caminhos e do contato; endereço leva ao início', () => {
+  assert.deepEqual(site.siteMenu.map(item => item.id), ['inicio', 'empresa', 'parceiros']);
+  assert.deepEqual(site.contactProfiles, ['Trabalhador', 'Empresa', 'Parceiro']);
+  assert.equal(site.sitePageFromPath('/intelligence'), 'inicio');
+  assert.equal(site.sitePageFromPath('/patrocinio.html'), 'inicio');
+  const parts = readFileSync('src/landing-site/site-parts.tsx', 'utf8');
+  assert.match(parts, /caminhos\.filter\(item => isVisibleSitePage\(item\.id\)\)/);
+  assert.match(parts, /isVisibleSitePage\('patrocinio'\) \? <> <a href="\/patrocinio"/);
+  const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'));
+  const redirects = vercel.redirects.map(({ source, destination }) => ({ source, destination }));
+  assert.deepEqual(redirects, plain(site.siteRedirects), 'vercel.json igual a siteRedirects');
+  assert.ok(vercel.redirects.every(r => r.permanent === false), 'redirecionamentos temporários');
+  assert.ok(vercel.rewrites.some(r => r.destination === '/index.html'), 'caminhos da landing caem no app');
 });

@@ -2,8 +2,17 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm test && npm run build",
   "redirects": [
-    { "source": "/intelligence.html", "destination": "/inicio.html", "permanent": false },
-    { "source": "/patrocinio.html", "destination": "/inicio.html", "permanent": false }
+    { "source": "/inicio.html", "destination": "/", "permanent": false },
+    { "source": "/404.html", "destination": "/", "permanent": false },
+    { "source": "/empresa.html", "destination": "/empresa", "permanent": false },
+    { "source": "/parceiros.html", "destination": "/parceiros", "permanent": false },
+    { "source": "/intelligence.html", "destination": "/", "permanent": false },
+    { "source": "/patrocinio.html", "destination": "/", "permanent": false },
+    { "source": "/intelligence", "destination": "/", "permanent": false },
+    { "source": "/patrocinio", "destination": "/", "permanent": false }
+  ],
+  "rewrites": [
+    { "source": "/((?!assets/|landing/|brand/|fonts/|sponsors/|media/).*)", "destination": "/index.html" }
   ],
   "headers": [
     {

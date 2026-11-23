@@ -49,7 +49,7 @@ function app() {
     experienceRoutes: experience.experienceRoutes,
     mountExperience() { reactMounted = true; },
     unmountLanding() { reactMounted = false; },
-    openStaticLanding() { staticOpened++; },
+    mountSite(_element, page) { assert.equal(page, 'inicio'); reactMounted = true; staticOpened++; }, showsLandingImmediately: () => false, sitePageFromPath: () => 'inicio',
     // Cadastro real (ADR-0009) fica desligado no host de teste; contas demo seguem locais.
     isAccountServiceConfigured: () => false, loadAccount: async () => null, readRedirectError: () => null, consumeEmailConfirmation: async () => null, passwordRulesMarkup: () => "",
     registerAccount: async () => ({ ok: false, message: 'indisponível' }), resendConfirmation: async () => ({ ok: true, value: null }),
@@ -89,7 +89,7 @@ test('após o cadastro mostra a tela de confirmar e-mail, e o botão leva ao log
 
 const settle = () => new Promise(resolve => setTimeout(resolve, 20));
 
-test('sem conta, a marca nas telas de login e cadastro leva à landing estática (/inicio.html), quantas vezes for', async () => {
+test('sem conta, a marca nas telas de login e cadastro mostra a landing React, quantas vezes for', async () => {
   const screen = app();
   await settle();
   const before = screen.staticOpened;
@@ -101,7 +101,7 @@ test('sem conta, a marca nas telas de login e cadastro leva à landing estática
   }
 });
 
-test('logado, a marca leva à própria área, nunca à landing estática', async () => {
+test('logado, a marca leva à própria área, nunca à landing', async () => {
   const screen = app();
   await settle();
   const before = screen.staticOpened;
@@ -133,13 +133,12 @@ test('cada plano abre cadastro da persona correta com seleção preservada', () 
   }
 });
 
-test('landing React antiga saiu: o app não monta mais a landing nem a busca de patrocinadores públicos', () => {
+test('landing React oficial: o app monta src/landing-site na rota landing e não busca patrocinadores públicos', () => {
   const main = readFileSync('src/app/main.js', 'utf8');
   assert.doesNotMatch(main, /\bmountLanding\(|acctRestore\(\);acctLoadSponsors\(\)/);
-  assert.match(main, /if\(o\.route==="landing"\)\{unmountLanding\(\);if\(o\.user\)\{acctOpenMyArea\(\);return\}if\(acctRestored\)\{openStaticLanding\(\);return\}/);
+  assert.match(main, /if\(o\.route==="landing"\)\{if\(o\.user\)\{unmountLanding\(\);acctOpenMyArea\(\);return\}if\(acctRestored\|\|acctLandingNow\(\)\)\{mountSite\(v,"inicio"\);return\}/);
   assert.match(main, /async function acctLogout\(\)\{try\{await signOut\(\)\}catch\{\}acctResetUi\(\)\}/, 'sai da conta antes de ir para a landing');
   assert.match(main, /if\(t==="ended"\)\{acctResetUi\("login"\);showToast\("info",sessionChangeMessages\.ended\)\}/, 'sessão encerrada fica no login, com o aviso');
-  assert.match(readFileSync('src/app/static-landing.ts', 'utf8'), /export const staticLandingPath = "\/inicio\.html";/);
 });
 
 test('solicitação de contato exige dados mínimos e mantém o perfil da landing', () => {
@@ -178,7 +177,7 @@ test('avaliação e finalização do caso respondem e não duplicam o encerramen
 
 test('desmontagem descarta a raiz React antes de remontar as telas editoriais', () => {
   let created = 0, unmounted = 0;
-  const lifecycle = compile('src/landing/landing-react.tsx', '', name => name === 'react-dom/client' ? { createRoot() { created++; return { render() {}, unmount() { unmounted++; } }; } } : ({ '../editorial/editorial-experience': experience }[name] ?? require(name)));
+  const lifecycle = compile('src/landing/landing-react.tsx', '', name => name === 'react-dom/client' ? { createRoot() { created++; return { render() {}, unmount() { unmounted++; } }; } } : ({ '../editorial/editorial-experience': experience, '../landing-site/site': { Site() { return null; } } }[name] ?? require(name)));
   lifecycle.mountExperience({}, { route: 'terms', onRoute() {} });
   lifecycle.mountExperience({}, { route: 'privacy', onRoute() {} });
   assert.equal(created, 1);
@@ -188,7 +187,7 @@ test('desmontagem descarta a raiz React antes de remontar as telas editoriais', 
   assert.equal(created, 2);
 });
 
-test('sair da conta leva à landing estática', async () => {
+test('sair da conta leva à landing', async () => {
   const screen = app();
   await settle();
   const before = screen.staticOpened;

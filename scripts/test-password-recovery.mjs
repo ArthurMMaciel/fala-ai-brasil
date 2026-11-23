@@ -43,8 +43,8 @@ test('serviço: resetPasswordForEmail com redirectTo do site, retorno de recuper
   assert.match(account, /\/\[#&\]type=signup\(&\|\$\)\//);
   const restore = readFileSync('src/app/main.js', 'utf8').match(/async function acctRestoreInner\(\)\{[^\n]*/)[0];
   assert.ok(restore.indexOf('consumeRecoveryArrival') < restore.indexOf('loadAccount'), 'o retorno de recuperação vem antes de entrar na conta');
-  const entry = readFileSync('public/landing/entrada.js', 'utf8');
-  assert.match(entry, /location\.hash \|\| location\.search/);
+  const pages = readFileSync('src/domain/site-pages.ts', 'utf8');
+  assert.match(pages, /if \(location\.search\) return false;\n  if \(\/\[=&\]\/\.test\(location\.hash\)\) return false;/, 'retorno de recuperação não cai na landing antes do app tratá-lo');
 });
 
 test('troca do e-mail de acesso liberada, com texto neutro sobre a confirmação; CPF continua travado', () => {
