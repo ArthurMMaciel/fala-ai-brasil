@@ -57,3 +57,13 @@ test('páginas da landing: links válidos, contato ligado ao serviço, nada de N
   }
   assert.doesNotMatch(readFileSync('public/landing/site.js', 'utf8'), /fetch\(|data-ajax/);
 });
+
+test('Intelligence e Patrocínio ocultos por enquanto: some o link e a página redireciona para o início', () => {
+  const css = readFileSync('public/landing/style.css', 'utf8');
+  for (const page of ['intelligence', 'patrocinio']) {
+    for (const where of ['.menu li:has(> a', '.f-top li:has(> a', '.cam']) assert.ok(css.includes(`${where}[href$="${page}.html"]`), `${page}: ${where}`);
+  }
+  assert.ok(css.includes('.patro-nota a[href$="patrocinio.html"]'));
+  const redirects = JSON.parse(readFileSync('vercel.json', 'utf8')).redirects;
+  for (const page of ['intelligence', 'patrocinio']) assert.ok(redirects.some(r => r.source === `/${page}.html` && r.destination === '/inicio.html' && r.permanent === false), page);
+});

@@ -471,3 +471,12 @@ body.p-parceiros .hero h1 em{color:#D98E00}
 .form-erro{color:#B42318;font-size:14px;margin:0 0 14px}
 .form-ok{padding:56px}.form-ok strong{display:block;font-size:24px;margin-bottom:8px}
 @media(max-width:760px){.form-ok{padding:36px 22px}}
+
+/* Páginas ocultas por enquanto (pedido do responsável, 2026-11-23): Intelligence e Patrocínio somem do menu, do menu mobile,
+   do rodapé, dos caminhos e do link "Quero apoiar". As páginas redirecionam para /inicio.html (vercel.json).
+   Para reverter: apagar este bloco e os dois redirects do vercel.json. */
+.menu li:has(> a[href$="intelligence.html"]),.menu li:has(> a[href$="patrocinio.html"]),
+.f-top li:has(> a[href$="intelligence.html"]),.f-top li:has(> a[href$="patrocinio.html"]),
+.cam[href$="intelligence.html"],.cam[href$="patrocinio.html"],
+.patro-nota a[href$="patrocinio.html"]{display:none}
+@media (min-width:1081px){.cam-grid{grid-template-columns:repeat(3,1fr)}}
