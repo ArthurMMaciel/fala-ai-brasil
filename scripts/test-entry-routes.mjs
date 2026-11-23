@@ -76,6 +76,7 @@ test('Intelligence e Patrocínio ocultos por enquanto: some o link e a página r
     for (const where of ['.menu li:has(> a', '.f-top li:has(> a', '.cam']) assert.ok(css.includes(`${where}[href$="${page}.html"]`), `${page}: ${where}`);
   }
   assert.ok(css.includes('.patro-nota a[href$="patrocinio.html"]'));
+  for (const perfil of ['Intelligence', 'Patrocinador']) assert.ok(css.includes(`.perfis label:has(> input[value="${perfil}"])`), perfil);
   const redirects = JSON.parse(readFileSync('vercel.json', 'utf8')).redirects;
   for (const page of ['intelligence', 'patrocinio']) assert.ok(redirects.some(r => r.source === `/${page}.html` && r.destination === '/inicio.html' && r.permanent === false), page);
 });
