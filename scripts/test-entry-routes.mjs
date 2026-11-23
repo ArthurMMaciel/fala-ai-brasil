@@ -18,11 +18,23 @@ test('entrar e cadastrar abrem as telas do app com o público certo', () => {
   assert.deepEqual(plain(entry.authEntryFromHash('#cadastrar-empresa')), { mode: 'register', audience: 'company', planId: '' });
   assert.deepEqual(plain(entry.authEntryFromHash('#entrar-empresa')), { mode: 'login', audience: 'company', planId: '' });
   assert.deepEqual(plain(entry.authEntryFromHash('#cadastrar-parceiro')), { mode: 'register', audience: 'partner', planId: '' });
-  assert.deepEqual(plain(entry.authEntryFromHash('#cadastrar-patrocinador')), { mode: 'register', audience: 'sponsor', planId: '' });
   assert.deepEqual(plain(entry.authEntryFromHash('#entrar-intelligence')), { mode: 'login', audience: 'intelligence', planId: '' });
-  assert.deepEqual(plain(entry.authEntryFromHash('#cadastrar-plano-intelligence-radar')), { mode: 'register', audience: 'intelligence', planId: 'intelligence-radar' });
+  assert.deepEqual(plain(entry.authEntryFromHash('#entrar-patrocinador')), { mode: 'login', audience: 'sponsor', planId: '' });
   assert.deepEqual(plain(entry.authEntryState(entry.authEntryFromHash('#cadastrar-plano-company-essential'))), { authAudience: 'company', landingAudience: 'company', selectedPlanId: 'company-essential', commercialAudience: 'company' });
   assert.equal(entry.authEntryState(entry.authEntryFromHash('#entrar')).commercialAudience, undefined);
+});
+
+test('Intelligence e Patrocínio ocultos no cadastro: as entradas abrem o cadastro de empresa ou o genérico, sem plano; o login segue', () => {
+  assert.deepEqual([...entry.hiddenAudiences], ['intelligence', 'sponsor']);
+  assert.deepEqual(plain(entry.authEntryFromHash('#cadastrar-patrocinador')), { mode: 'register', audience: 'worker', planId: '' });
+  assert.deepEqual(plain(entry.authEntryFromHash('#cadastrar-intelligence')), { mode: 'register', audience: 'company', planId: '' });
+  assert.deepEqual(plain(entry.authEntryFromHash('#cadastrar-plano-intelligence-radar')), { mode: 'register', audience: 'company', planId: '' });
+  assert.deepEqual(plain(entry.authEntryFromHash('#cadastrar-plano-company-essential')), { mode: 'register', audience: 'company', planId: 'company-essential' });
+  assert.equal(entry.isVisibleAudience('partner'), true);
+  assert.equal(entry.visibleRegisterAudience('sponsor'), 'worker');
+  const main = readFileSync('src/app/main.js', 'utf8');
+  assert.match(main, /Object\.keys\(E\)\.filter\(s=>s!=="studies"&&s!=="intelligence"&&isVisibleAudience\(s\)\)/, 'seletor de tipo de conta sem público oculto');
+  assert.match(main, /options\.filter\(i=>isVisibleAudience\(i\[0\]\)\|\|i\[0\]===e\)/, 'menu de acesso sem público oculto');
 });
 
 test('hash desconhecido não abre nada (termos, privacidade e tokens seguem com o app)', () => {

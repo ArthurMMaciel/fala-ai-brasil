@@ -53,7 +53,7 @@ function app() {
     // Cadastro real (ADR-0009) fica desligado no host de teste; contas demo seguem locais.
     isAccountServiceConfigured: () => false, loadAccount: async () => null, readRedirectError: () => null, consumeEmailConfirmation: async () => null, passwordRulesMarkup: () => "",
     registerAccount: async () => ({ ok: false, message: 'indisponível' }), resendConfirmation: async () => ({ ok: true, value: null }),
-    signIn: async () => ({ ok: false, message: 'indisponível' }), signOut: async () => {}, watchSession: () => () => {}, sessionChange: () => null, sessionChangeMessages: {}, legalRouteFromHash: () => null, authEntryFromHash: () => null, bindPasswordRecovery() {}, forgotPasswordMarkup: notice => `<main data-screen="forgot">${notice?.recoverySent ? "enviado" : "pedido"}</main>`, resetPasswordMarkup: () => '<main data-screen="reset"></main>', consumeRecoveryArrival: async () => null, recoverySavedMessage: '', authEntryState: () => ({}), location: { hash: '', pathname: '/', search: '' }, loadPartnerPhoto: async () => ({ url: null }), uploadPartnerPhoto: async () => ({ ok: false, message: 'indisponível' }),
+    signIn: async () => ({ ok: false, message: 'indisponível' }), signOut: async () => {}, watchSession: () => () => {}, sessionChange: () => null, sessionChangeMessages: {}, legalRouteFromHash: () => null, authEntryFromHash: () => null, bindPasswordRecovery() {}, forgotPasswordMarkup: notice => `<main data-screen="forgot">${notice?.recoverySent ? "enviado" : "pedido"}</main>`, resetPasswordMarkup: () => '<main data-screen="reset"></main>', consumeRecoveryArrival: async () => null, recoverySavedMessage: '', authEntryState: () => ({}), isVisibleAudience: audience => !['intelligence', 'sponsor'].includes(audience), visibleRegisterAudience: audience => audience === 'intelligence' ? 'company' : 'worker', location: { hash: '', pathname: '/', search: '' }, loadPartnerPhoto: async () => ({ url: null }), uploadPartnerPhoto: async () => ({ ok: false, message: 'indisponível' }),
     isDemoEmail: email => email.endsWith('@escutaai.demo'), listPublicSponsors: async () => [], minPasswordLength: 8, validateRegistration: () => null,
     escapeHtml: htmlSafety.escapeHtml, safeHttpUrl: htmlSafety.safeHttpUrl,
     brazilianStates: ['SP'], showToast() {}, createCampaign: async () => ({ ok: false, message: 'indisponível' }), deleteCampaignDraft: async () => ({ ok: true }), listCampaigns: async () => [], submitCampaign: async () => ({ ok: true }), campaignKindForPlan: () => null, campaignKindLabels: {}, campaignStatusLabels: {}, isActiveCampaign: () => false, validateCampaign: () => null, profileLabels: {}, splitStreet: () => null, streetTypeLabels: { street: 'Rua' },
@@ -111,9 +111,22 @@ test('logado, a marca leva à própria área, nunca à landing estática', async
   assert.equal(screen.staticOpened, before);
 });
 
+test('cadastro de Patrocínio ou Intelligence (ocultos) vira o genérico ou o de empresa; o seletor não lista Patrocínio', () => {
+  const screen = app();
+  screen.api.route('register', { authAudience: 'sponsor', selectedPlanId: 'sponsor-x' });
+  assert.equal(screen.api.state.authAudience, 'worker');
+  assert.equal(screen.api.state.selectedPlanId, '');
+  assert.doesNotMatch(screen.html, /<option value="sponsor"/);
+  assert.doesNotMatch(screen.html, /data-audience="sponsor"|data-audience="intelligence"/);
+  screen.api.route('register', { authAudience: 'intelligence' });
+  assert.equal(screen.api.state.authAudience, 'company');
+  assert.match(screen.html, /<option value="company" selected>/);
+  assert.match(screen.html, /<option value="partner"/);
+});
+
 test('cada plano abre cadastro da persona correta com seleção preservada', () => {
   const screen = app();
-  for (const plan of catalog) {
+  for (const plan of catalog.filter(item => !['intelligence', 'sponsor'].includes(item.audience))) {
     screen.api.route('register', { authAudience: plan.audience, landingAudience: plan.audience, commercialAudience: plan.audience, selectedPlanId: plan.id });
     assert.equal(screen.api.state.authAudience, plan.audience);
     assert.match(screen.html, new RegExp(`value="${plan.id}" selected`));
