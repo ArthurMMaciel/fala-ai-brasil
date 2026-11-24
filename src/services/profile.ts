@@ -55,3 +55,18 @@ export async function requestLoginEmailChange(email: string): Promise<AuthResult
   const message = error.code === "email_exists" ? "Este e-mail já está em uso em outra conta." : error.code === "over_email_send_rate_limit" ? "Aguarde alguns minutos antes de pedir outra troca de e-mail." : "Não foi possível pedir a troca de e-mail agora. Tente novamente.";
   return { ok: false, message, code: error.code };
 }
+
+// Aviso por e-mail ao trabalhador quando há atualização nas manifestações (ADR-0020, migration 20261123130000).
+// Sem as funções no banco (PGRST202/42883), o interruptor não aparece: a leitura devolve "missing".
+const missingFunction = (error: { code?: string }) => error.code === "PGRST202" || error.code === "42883";
+
+export async function loadEmailUpdates(): Promise<{ missing: true } | { missing: false; enabled: boolean }> {
+  const { data, error } = await supabase().rpc("my_email_updates");
+  if (error) { if (missingFunction(error)) return { missing: true }; throw new Error(rpcError(error, "Não foi possível carregar a preferência de e-mail.")); }
+  return { missing: false, enabled: data !== false };
+}
+
+export async function saveEmailUpdates(enabled: boolean): Promise<AuthResult<null>> {
+  const { error } = await supabase().rpc("set_worker_email_updates", { p_enabled: enabled });
+  return error ? { ok: false, message: rpcError(error, "Não foi possível salvar a preferência de e-mail. Tente novamente.") } : { ok: true, value: null };
+}

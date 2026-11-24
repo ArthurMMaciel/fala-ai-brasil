@@ -2,7 +2,7 @@ import { useEffect, useId, useState } from 'react';
 import { showToast } from '../app/toast';
 import { brazilianStates, maskCnpj, maskCpf, maskPhone, streetTypeLabels, type AddressInput } from '../domain/account-rules';
 import { companyProfileChanges, emailChangeEnabled, lockedDocumentNote, maskZip, validateCompanyProfile, validateLoginEmail, validateWorkerProfile, workerProfileChanges, type CompanyProfileForm, type WorkerProfileForm } from '../domain/profile';
-import { loadCompanyProfile, loadWorkerProfile, requestLoginEmailChange, updateCompanyProfile, updateWorkerProfile, type CompanyProfileData, type WorkerProfileData } from '../services/profile';
+import { loadCompanyProfile, loadEmailUpdates, loadWorkerProfile, requestLoginEmailChange, saveEmailUpdates, updateCompanyProfile, updateWorkerProfile, type CompanyProfileData, type WorkerProfileData } from '../services/profile';
 
 // "Meu perfil" do trabalhador e da empresa (ADR-0014). CPF, CNPJ e razão social só a equipe altera.
 
@@ -61,6 +61,24 @@ function useSave<T>(initial: T | null) {
  return { form, setForm, busy, setBusy };
 }
 
+// Aviso por e-mail das atualizações (ADR-0020). Sem a função no banco, nada aparece. Texto em revisão jurídica.
+export const emailUpdatesLabel = 'Receber e-mail quando houver atualização nas minhas manifestações';
+export function EmailUpdatesToggle() {
+ const [enabled, setEnabled] = useState<boolean | null>(null);
+ const [busy, setBusy] = useState(false);
+ const id = useId();
+ useEffect(() => { let active = true; loadEmailUpdates().then(value => { if (active && !value.missing) setEnabled(value.enabled); }).catch(() => undefined); return () => { active = false; }; }, []);
+ if (enabled === null) return null;
+ async function change(next: boolean) {
+  setBusy(true); setEnabled(next);
+  const result = await saveEmailUpdates(next); setBusy(false);
+  if (!result.ok) { setEnabled(!next); return showToast('error', result.message); }
+  showToast('success', next ? 'Você vai receber e-mail quando houver atualização.' : 'Você não vai mais receber esses e-mails.');
+ }
+ return <section className="commercial-panel profile-email-updates"><h2>Avisos por e-mail</h2>
+  <label className="check-row" htmlFor={id}><input id={id} type="checkbox" role="switch" checked={enabled} disabled={busy} onChange={event => change(event.target.checked)} /><span>{emailUpdatesLabel}</span></label></section>;
+}
+
 const workerForm = (data: WorkerProfileData): WorkerProfileForm => ({ fullName: data.fullName, phone: maskPhone(data.phone), address: data.address });
 
 export function WorkerProfile() {
@@ -90,7 +108,7 @@ export function WorkerProfile() {
     <AddressFields value={form.address} onChange={address => setForm({ ...form, address })} disabled={busy} />
     <button className="btn primary" type="submit" disabled={busy}>{busy ? 'Salvando…' : 'Salvar alterações'}</button>
    </form></section>
-   <div className="profile-side"><LockedFacts facts={[['CPF', maskCpf(data.cpf)]]} /><LoginEmail current={data.email} /></div>
+   <div className="profile-side"><LockedFacts facts={[['CPF', maskCpf(data.cpf)]]} /><LoginEmail current={data.email} /><EmailUpdatesToggle /></div>
   </div>}
  </>;
 }

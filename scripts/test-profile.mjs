@@ -82,3 +82,18 @@ test('endereço tem rótulo em todos os campos e opcionais marcados', () => {
   assert.match(html, /Complemento \(opcional\)/);
   assert.equal((html.match(/required=""/g) || []).length, 6);
 });
+
+// ADR-0020 (2026-11-23): interruptor de aviso por e-mail no Meu perfil do trabalhador, tolerante à função ausente.
+test('aviso por e-mail: lê my_email_updates, grava set_worker_email_updates e some sem a função', () => {
+  const service = readFileSync('src/services/profile.ts', 'utf8');
+  assert.match(service, /rpc\("my_email_updates"\)/);
+  assert.match(service, /rpc\("set_worker_email_updates", \{ p_enabled: enabled \}\)/);
+  assert.match(service, /if \(missingFunction\(error\)\) return \{ missing: true \};/);
+  assert.match(service, /error\.code === "PGRST202" \|\| error\.code === "42883"/);
+  assert.match(service, /enabled: data !== false/, 'padrão ligado');
+  const screen = readFileSync('src/portals/profile-live.tsx', 'utf8');
+  assert.match(screen, /export const emailUpdatesLabel = 'Receber e-mail quando houver atualização nas minhas manifestações';/);
+  assert.match(screen, /if \(enabled === null\) return null;/);
+  assert.match(screen, /<LoginEmail current=\{data\.email\} \/><EmailUpdatesToggle \/><\/div>/);
+  assert.match(screen, /if \(!result\.ok\) \{ setEnabled\(!next\);/, 'volta o interruptor se falhar');
+});
