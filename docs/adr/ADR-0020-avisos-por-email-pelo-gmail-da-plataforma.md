@@ -1,6 +1,6 @@
 # ADR-0020 — Avisos por e-mail pelo Gmail da plataforma
 
-- Estado: **Aceita em parte** em 2026-11-23 (ver "Revisão de 2026-11-23"): escopo das notificações por mudança de situação e teste da porta 465. Os lembretes de 7 e 15 dias (D5) continuam como proposta. Fila e gatilhos em `supabase/pending/20261123130000` (não aplicada); função `smtp-probe` do DevOps; nenhuma conta criada e nenhuma função de envio.
+- Estado: **Aceita em parte** em 2026-11-23 (ver "Revisão de 2026-11-23"): escopo das notificações por mudança de situação e teste da porta 465. Os lembretes de 7 e 15 dias (D5) continuam como proposta. **Envio ligado em produção em 2026-11-24:** fila `20261123130000` aplicada, `send-notifications` publicada e agendamento a cada 5 minutos ativo (ver "Envio ligado em 2026-11-24").
 - Data: 2026-11-09
 - Tarefa: [TASK-0042](../tasks/TASK-0042-avisos-por-email.md)
 - Relacionadas: ADR-0010 (revisão humana), ADR-0012 (representante verificado, D7 risco e D12 marcos de 7 e 15 dias), TASK-0023 (SMTP do Gmail), TASK-0007 (base legal e retenção), parecer de plataforma (seção 2 e R4.2, fora do Git)
@@ -110,6 +110,21 @@ A porta 465 abriu no teste de 2026-11-24 (`{"tls":true,"code":"220","open":true}
   - cabeçalho `Auto-Submitted: auto-generated`;
   - `ops_notification_stats()`, só para a equipe, com as contagens da fila para a Operação.
 - **SQL Editor, lote 4:** extensões, fila, e o agendamento (`cron.schedule` com `net.http_post`, lendo `project_url` e `notify_cron_secret` do Vault pelo nome), mais conferências e o desligamento (`cron.unschedule`).
+
+### Envio ligado em 2026-11-24
+
+Feito pelo responsável em produção (lote 4 do SQL Editor e runbook EMAIL_NOTIFICATIONS):
+- **Lote 4:** passo 00 (extensões `pg_cron`, `pg_net` e Vault) conferido; passo 01 (fila `20261123130000`) aplicado e conferido.
+- **Secrets da função, pelo painel:**
+  - `GMAIL_USER`;
+  - `GMAIL_APP_PASSWORD`, uma senha de app **nova e só para as notificações**, separada da do SMTP do Auth;
+  - `NOTIFY_CRON_SECRET`.
+
+  Segredos no Vault, pela tela: `project_url` e `notify_cron_secret`.
+- **`send-notifications` publicada** com `--no-verify-jwt`. POST sem segredo responde 401.
+- **Passo 02 (agendar) rodado.** A conferência deu tudo verdadeiro: job ativo a cada 5 minutos, rodada `succeeded` às 03:10 UTC e resposta 200.
+- **Conferido em leitura pelo Back:** `*/5 * * * *` ativo, 2 rodadas com sucesso e nenhuma com erro, 2 respostas 200 em `net._http_response` e fila vazia.
+- **Desligar já:** `supabase/sql-editor/lote4/02_desligar_envio.sql` (`cron.unschedule`).
 
 ## Alternativas consideradas
 - **Provedor transacional (Resend, SES):** tem domínio próprio e idempotência, mas foi descartado pela decisão de custo e pela transferência internacional. Fica na Revisão 3 do parecer como evolução.

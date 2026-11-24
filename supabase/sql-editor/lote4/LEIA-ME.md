@@ -3,7 +3,9 @@
 **Situação em 2026-11-24:**
 - **00, extensões:** conferido.
 - **01, fila (`20261123130000`):** aplicado em produção e conferido pelo responsável (itens 1 a 7) e, em leitura, pelo Back (versão, hash das instruções, tabela, gatilhos e contagens). A migration está em `supabase/migrations`. A fila já acumula avisos, sem enviar.
-- **Pendentes, nesta ordem:** secrets da função, publicação da `send-notifications` com teste, segredos no Vault e o **02, agendar**, que liga o envio.
+- **Secrets da função** (`GMAIL_USER`, `GMAIL_APP_PASSWORD` nova e só para as notificações, `NOTIFY_CRON_SECRET`) e **Vault** (`project_url`, `notify_cron_secret`): cadastrados pelo painel.
+- **`send-notifications`:** publicada com `--no-verify-jwt`; POST sem segredo responde 401.
+- **02, agendar:** rodado. A conferência deu tudo verdadeiro (job ativo a cada 5 minutos, rodada `succeeded` às 03:10 UTC, resposta 200). **Envio ligado.**
 
 O formato é o mesmo dos lotes anteriores. A ordem segue o runbook [EMAIL_NOTIFICATIONS](../../../docs/runbooks/EMAIL_NOTIFICATIONS.md). O passo 02 é o que liga o envio e vem por último. Não há backup.
 

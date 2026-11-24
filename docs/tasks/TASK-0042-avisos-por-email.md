@@ -1,6 +1,6 @@
 # TASK-0042 — Avisos por e-mail: atualização ao trabalhador e lembretes de 7 e 15 dias à empresa
 
-- Status: proposta
+- Status: concluída no escopo aprovado (contas da plataforma): envio ligado em produção em 2026-11-24 (ADR-0020, "Envio ligado em 2026-11-24"). Lembretes de 7 e 15 dias (D5) seguem fora.
 - ClickUp: (a criar pelo Gestor)
 - Área: Backend / DevOps
 - Prioridade: P1
@@ -53,6 +53,7 @@ Ver ADR-0020, seção "Testes necessários".
 ## Registro
 
 - **2026-11-24, teste da porta 465 (ADR-0020 D2), feito pelo responsável em produção:** a função descartável `smtp-probe` abriu TLS em `smtp.gmail.com:465` e recebeu a saudação `220` em 1.177 ms (`"open":true`). A porta está **aberta**. A função foi apagada do projeto logo depois (`functions delete` confirmado) e removida do repositório. Segue o plano da `send-notifications` ([EMAIL_NOTIFICATIONS](../runbooks/EMAIL_NOTIFICATIONS.md)).
+- **2026-11-24, envio ligado em produção (responsável):** fila `20261123130000` aplicada (lote 4, passo 01); secrets da função (`GMAIL_USER`, `GMAIL_APP_PASSWORD` nova e só para as notificações, `NOTIFY_CRON_SECRET`) e segredos do Vault (`project_url`, `notify_cron_secret`) pelo painel; `send-notifications` publicada com `--no-verify-jwt` (POST sem segredo responde 401); agendamento a cada 5 minutos ativo, rodada `succeeded` às 03:10 UTC e resposta 200. Conferido em leitura pelo Back: 2 rodadas com sucesso, 2 respostas 200 e fila vazia.
 
 ## Definição de pronto
 Envio manual em uso, porta 465 testada e envio automático ao trabalhador em produção. O lembrete automático à empresa só liga depois da ADR-0012.
