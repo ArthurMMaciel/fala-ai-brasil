@@ -1,4 +1,4 @@
--- declare: u_w uuid := 'ffffffff-0000-0000-0000-000000000002'; u_c uuid := 'ffffffff-0000-0000-0000-000000000003'; u_op uuid := 'ffffffff-0000-0000-0000-000000000004'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_c text := '98765007987610'; v_co uuid; v_worker uuid; v_cp uuid; n int;
+-- declare: u_w uuid := 'ffffffff-0000-0000-0000-000000000002'; u_c uuid := 'ffffffff-0000-0000-0000-000000000003'; u_op uuid := 'ffffffff-0000-0000-0000-000000000004'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_c text := '98765007987610'; v_co uuid; v_worker uuid; v_cp uuid; v_resp uuid; n int;
 -- Verificações de 20261123130000 (fila de avisos às contas da plataforma). Só contagens.
 -- CNPJ de teste conferido como inexistente (404 em 2026-11-18); CPF de teste só na transação.
 if exists (select 1 from public.companies where cnpj = cnpj_c) or exists (select 1 from public.workers where cpf = '31415926590') then
@@ -31,15 +31,35 @@ perform public.share_complaint(v_cp, 'Tx versao compartilhavel ajustada.');
 perform set_config('request.jwt.claims', json_build_object('sub', u_op, 'role', 'authenticated')::text, true);
 perform public.ops_verify_representative(v_co, u_c, 'verified', 'callback', 'Tx ligação ao telefone do site', null);
 perform public.ops_decide_complaint(v_cp, 'released', null);
--- Empresa responde: aviso ao trabalhador (há atualização), sem conteúdo.
+-- Empresa responde: aviso ao trabalhador (há atualização), sem conteúdo; a empresa não é avisada da própria resposta.
 perform set_config('request.jwt.claims', json_build_object('sub', u_c, 'role', 'authenticated')::text, true);
 perform public.respond_complaint(v_cp, 'Tx resposta institucional da empresa.');
 execute 'reset role';
+select id into v_resp from public.company_responses where complaint_id = v_cp;
+select count(*) into n from private.notification_outbox where kind = 'company_update' and company_id = v_co;
+if n <> 1 then falhas := falhas || jsonb_build_object('company_update após liberação e resposta (esperado 1, só a liberação)', n); end if;
+-- Equipe devolve a resposta: aviso à empresa (sem evento na linha do tempo).
+execute 'set local role authenticated';
+perform set_config('request.jwt.claims', json_build_object('sub', u_op, 'role', 'authenticated')::text, true);
+perform public.ops_decide_response(v_resp, 'returned', null, 'Tx devolução da resposta para ajuste no teste.');
+-- Empresa responde de novo; equipe libera; trabalhador encerra: aviso à empresa no encerramento.
+perform set_config('request.jwt.claims', json_build_object('sub', u_c, 'role', 'authenticated')::text, true);
+perform public.respond_complaint(v_cp, 'Tx resposta institucional revisada da empresa.');
+execute 'reset role';
+select id into v_resp from public.company_responses where complaint_id = v_cp and review_status = 'in_review';
+execute 'set local role authenticated';
+perform set_config('request.jwt.claims', json_build_object('sub', u_op, 'role', 'authenticated')::text, true);
+perform public.ops_decide_response(v_resp, 'released', 'Tx a empresa respondeu e explicou as medidas que vai tomar no caso relatado.', null);
+perform set_config('request.jwt.claims', json_build_object('sub', u_w, 'role', 'authenticated')::text, true);
+perform public.close_complaint(v_cp, 'yes');
+execute 'reset role';
 
+-- Trabalhador: ajuste, liberação, 1ª resposta (answer_in_review), 2ª resposta, resposta liberada (answered) = 5.
 select count(*) into n from private.notification_outbox where kind = 'worker_update' and worker_id = v_worker;
-if n <> 3 then falhas := falhas || jsonb_build_object('worker_update esperados 3 (ajuste, liberação, resposta)', n); end if;
-select count(*) into n from private.notification_outbox where kind = 'company_new_case' and company_id = v_co;
-if n <> 1 then falhas := falhas || jsonb_build_object('company_new_case esperado 1', n); end if;
+if n <> 5 then falhas := falhas || jsonb_build_object('worker_update esperados 5', n); end if;
+-- Empresa: liberação, devolução e encerramento = 3; nunca received, in_review, held ou answer_in_review.
+select count(*) into n from private.notification_outbox where kind = 'company_update' and company_id = v_co;
+if n <> 3 then falhas := falhas || jsonb_build_object('company_update esperados 3 (liberação, devolução, encerramento)', n); end if;
 if exists (select 1 from private.notification_outbox where (worker_id = v_worker or company_id = v_co) and status <> 'pending') then
   falhas := falhas || jsonb_build_object('linha nasceu fora de pending', true);
 end if;

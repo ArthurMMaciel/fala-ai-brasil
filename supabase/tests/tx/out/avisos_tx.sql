@@ -6,14 +6,14 @@ do $tx$
 declare
   res jsonb := '{}'::jsonb;
   falhas jsonb := '[]'::jsonb;
-  u_w uuid := 'ffffffff-0000-0000-0000-000000000002'; u_c uuid := 'ffffffff-0000-0000-0000-000000000003'; u_op uuid := 'ffffffff-0000-0000-0000-000000000004'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_c text := '98765007987610'; v_co uuid; v_worker uuid; v_cp uuid; n int;
+  u_w uuid := 'ffffffff-0000-0000-0000-000000000002'; u_c uuid := 'ffffffff-0000-0000-0000-000000000003'; u_op uuid := 'ffffffff-0000-0000-0000-000000000004'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_c text := '98765007987610'; v_co uuid; v_worker uuid; v_cp uuid; v_resp uuid; n int;
 begin
   begin  -- trava: nada pode commitar daqui para dentro
     -- Sem lock em 3 s, falha limpa em vez de enfileirar o site atrás do DDL. (statement_timeout não se aplica: o
     -- cronômetro começa no DO, que é a instrução de topo; um SET aqui dentro não o rearma.)
     execute 'set local lock_timeout = ''3s''';
 
-    -- 20261123130000_fila_de_avisos_da_plataforma.sql (8 instruções)
+    -- 20261123130000_fila_de_avisos_da_plataforma.sql (11 instruções)
     if exists (select 1 from supabase_migrations.schema_migrations where version = '20261123130000') then
       res := res || jsonb_build_object('20261123130000', 'já aplicada em produção; pulada');
     else
@@ -26,18 +26,21 @@ begin
 --   - nada de e-mail, nome, texto, protocolo, empresa ou categoria na fila: só o tipo, o destinatário por id e a chave de
 --     deduplicação. O e-mail é resolvido no momento do envio (worker -> auth.users; empresa -> vínculos 'verified').
 --   - worker_update: um por evento da linha do tempo que NÃO foi feito pelo próprio trabalhador (actor <> 'worker').
---   - company_new_case: um por manifestação, quando a equipe a libera à empresa (evento 'shared' que não é do trabalhador).
---     Empresa sem usuário verificado: a linha fica e o envio a marca 'suppressed' (resolvido no envio).
+--   - company_update: só nos eventos visíveis à empresa listados na revisão de 2026-11-23 da ADR-0020: liberação
+--     ('shared'), encerramento pelo trabalhador ('closed') e devolução da resposta pela equipe (company_responses passa a
+--     'returned'; não gera evento na linha do tempo, por isso tem gatilho próprio). Nunca em received, in_review, held ou
+--     answer_in_review. Empresa sem usuário verificado: a linha fica e o envio a marca 'suppressed' (resolvido no envio).
 --   - Lembretes de 7 e 15 dias (ADR-0020 D5) e opt-out do trabalhador (D8) ficam fora desta migration.
 --   - Retenção (D10, proposta): linhas 'sent' e 'suppressed' apagadas depois de 90 dias, pela rotina da função de envio.
 --
--- Rollback: drop trigger complaint_events_notify on public.complaint_events; drop function private.enqueue_notification();
+-- Rollback: drop trigger complaint_events_notify on public.complaint_events; drop trigger company_responses_notify on
+--   public.company_responses; drop function private.enqueue_notification(), private.enqueue_response_returned();
 --   drop table private.notification_outbox;
 
 set local lock_timeout = '5s'$s0$;
       execute $s0$create table private.notification_outbox (
   id uuid primary key default gen_random_uuid(),
-  kind text not null check (kind in ('worker_update', 'company_new_case')),
+  kind text not null check (kind in ('worker_update', 'company_update')),
   worker_id uuid references public.workers (id) on delete cascade,
   company_id uuid references public.companies (id) on delete cascade,
   dedupe_key text not null unique check (char_length(dedupe_key) <= 120),
@@ -48,7 +51,7 @@ set local lock_timeout = '5s'$s0$;
   sent_at timestamptz,
   created_at timestamptz not null default now(),
   check ((kind = 'worker_update' and worker_id is not null and company_id is null)
-         or (kind = 'company_new_case' and company_id is not null and worker_id is null))
+         or (kind = 'company_update' and company_id is not null and worker_id is null))
 )$s0$;
       execute $s0$create index notification_outbox_due_idx on private.notification_outbox (next_attempt_at) where status = 'pending'$s0$;
       execute $s0$alter table private.notification_outbox enable row level security$s0$;
@@ -58,15 +61,17 @@ create function private.enqueue_notification()
 returns trigger language plpgsql security definer set search_path = '' as $$
 declare v_worker uuid; v_company uuid;
 begin
-  if new.actor = 'worker' then return new; end if;  -- a própria ação do trabalhador não o avisa
   select worker_id, company_id into v_worker, v_company from public.complaints where id = new.complaint_id;
   if v_worker is null then return new; end if;
-  insert into private.notification_outbox (kind, worker_id, dedupe_key)
-  values ('worker_update', v_worker, 'worker_update:' || new.id)
-  on conflict (dedupe_key) do nothing;
-  if new.status = 'shared' then
+  if new.actor <> 'worker' then  -- a própria ação do trabalhador não o avisa
+    insert into private.notification_outbox (kind, worker_id, dedupe_key)
+    values ('worker_update', v_worker, 'worker_update:' || new.id)
+    on conflict (dedupe_key) do nothing;
+  end if;
+  -- Empresa: liberação (pela equipe) e encerramento (pelo trabalhador). 'closed' só existe depois de liberada.
+  if (new.status = 'shared' and new.actor <> 'worker') or new.status = 'closed' then
     insert into private.notification_outbox (kind, company_id, dedupe_key)
-    values ('company_new_case', v_company, 'company_new_case:' || new.complaint_id)
+    values ('company_update', v_company, 'company_update:' || new.id)
     on conflict (dedupe_key) do nothing;
   end if;
   return new;
@@ -75,11 +80,26 @@ $$$s0$;
       execute $s0$revoke all on function private.enqueue_notification() from public, anon, authenticated, service_role$s0$;
       execute $s0$create trigger complaint_events_notify after insert on public.complaint_events
   for each row execute function private.enqueue_notification()$s0$;
+      execute $s0$-- Devolução da resposta à empresa (ADR-0013 D2: sem evento na linha do tempo do trabalhador).
+create function private.enqueue_response_returned()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if new.review_status = 'returned' and old.review_status is distinct from 'returned' then
+    insert into private.notification_outbox (kind, company_id, dedupe_key)
+    values ('company_update', new.company_id, 'company_update:response_returned:' || new.id)
+    on conflict (dedupe_key) do nothing;
+  end if;
+  return new;
+end;
+$$$s0$;
+      execute $s0$revoke all on function private.enqueue_response_returned() from public, anon, authenticated, service_role$s0$;
+      execute $s0$create trigger company_responses_notify after update of review_status on public.company_responses
+  for each row execute function private.enqueue_response_returned()$s0$;
       res := res || jsonb_build_object('20261123130000', 'aplicada na transação de teste');
     end if;
 
     -- Verificações (avisos_checks.sql)
-    -- declare: u_w uuid := 'ffffffff-0000-0000-0000-000000000002'; u_c uuid := 'ffffffff-0000-0000-0000-000000000003'; u_op uuid := 'ffffffff-0000-0000-0000-000000000004'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_c text := '98765007987610'; v_co uuid; v_worker uuid; v_cp uuid; n int;
+    -- declare: u_w uuid := 'ffffffff-0000-0000-0000-000000000002'; u_c uuid := 'ffffffff-0000-0000-0000-000000000003'; u_op uuid := 'ffffffff-0000-0000-0000-000000000004'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_c text := '98765007987610'; v_co uuid; v_worker uuid; v_cp uuid; v_resp uuid; n int;
     -- Verificações de 20261123130000 (fila de avisos às contas da plataforma). Só contagens.
     -- CNPJ de teste conferido como inexistente (404 em 2026-11-18); CPF de teste só na transação.
     if exists (select 1 from public.companies where cnpj = cnpj_c) or exists (select 1 from public.workers where cpf = '31415926590') then
@@ -112,15 +132,35 @@ $$$s0$;
     perform set_config('request.jwt.claims', json_build_object('sub', u_op, 'role', 'authenticated')::text, true);
     perform public.ops_verify_representative(v_co, u_c, 'verified', 'callback', 'Tx ligação ao telefone do site', null);
     perform public.ops_decide_complaint(v_cp, 'released', null);
-    -- Empresa responde: aviso ao trabalhador (há atualização), sem conteúdo.
+    -- Empresa responde: aviso ao trabalhador (há atualização), sem conteúdo; a empresa não é avisada da própria resposta.
     perform set_config('request.jwt.claims', json_build_object('sub', u_c, 'role', 'authenticated')::text, true);
     perform public.respond_complaint(v_cp, 'Tx resposta institucional da empresa.');
     execute 'reset role';
+    select id into v_resp from public.company_responses where complaint_id = v_cp;
+    select count(*) into n from private.notification_outbox where kind = 'company_update' and company_id = v_co;
+    if n <> 1 then falhas := falhas || jsonb_build_object('company_update após liberação e resposta (esperado 1, só a liberação)', n); end if;
+    -- Equipe devolve a resposta: aviso à empresa (sem evento na linha do tempo).
+    execute 'set local role authenticated';
+    perform set_config('request.jwt.claims', json_build_object('sub', u_op, 'role', 'authenticated')::text, true);
+    perform public.ops_decide_response(v_resp, 'returned', null, 'Tx devolução da resposta para ajuste no teste.');
+    -- Empresa responde de novo; equipe libera; trabalhador encerra: aviso à empresa no encerramento.
+    perform set_config('request.jwt.claims', json_build_object('sub', u_c, 'role', 'authenticated')::text, true);
+    perform public.respond_complaint(v_cp, 'Tx resposta institucional revisada da empresa.');
+    execute 'reset role';
+    select id into v_resp from public.company_responses where complaint_id = v_cp and review_status = 'in_review';
+    execute 'set local role authenticated';
+    perform set_config('request.jwt.claims', json_build_object('sub', u_op, 'role', 'authenticated')::text, true);
+    perform public.ops_decide_response(v_resp, 'released', 'Tx a empresa respondeu e explicou as medidas que vai tomar no caso relatado.', null);
+    perform set_config('request.jwt.claims', json_build_object('sub', u_w, 'role', 'authenticated')::text, true);
+    perform public.close_complaint(v_cp, 'yes');
+    execute 'reset role';
     
+    -- Trabalhador: ajuste, liberação, 1ª resposta (answer_in_review), 2ª resposta, resposta liberada (answered) = 5.
     select count(*) into n from private.notification_outbox where kind = 'worker_update' and worker_id = v_worker;
-    if n <> 3 then falhas := falhas || jsonb_build_object('worker_update esperados 3 (ajuste, liberação, resposta)', n); end if;
-    select count(*) into n from private.notification_outbox where kind = 'company_new_case' and company_id = v_co;
-    if n <> 1 then falhas := falhas || jsonb_build_object('company_new_case esperado 1', n); end if;
+    if n <> 5 then falhas := falhas || jsonb_build_object('worker_update esperados 5', n); end if;
+    -- Empresa: liberação, devolução e encerramento = 3; nunca received, in_review, held ou answer_in_review.
+    select count(*) into n from private.notification_outbox where kind = 'company_update' and company_id = v_co;
+    if n <> 3 then falhas := falhas || jsonb_build_object('company_update esperados 3 (liberação, devolução, encerramento)', n); end if;
     if exists (select 1 from private.notification_outbox where (worker_id = v_worker or company_id = v_co) and status <> 'pending') then
       falhas := falhas || jsonb_build_object('linha nasceu fora de pending', true);
     end if;

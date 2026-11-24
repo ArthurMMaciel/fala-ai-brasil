@@ -1,6 +1,6 @@
 # ADR-0020 — Avisos por e-mail pelo Gmail da plataforma
 
-- Estado: **Aceita em parte** em 2026-11-23 (ver "Revisão de 2026-11-23"): escopo das notificações por mudança de situação e teste da porta 465. Os lembretes de 7 e 15 dias (D5) continuam como proposta. Nenhuma migration, função ou conta foi criada.
+- Estado: **Aceita em parte** em 2026-11-23 (ver "Revisão de 2026-11-23"): escopo das notificações por mudança de situação e teste da porta 465. Os lembretes de 7 e 15 dias (D5) continuam como proposta. Fila e gatilhos em `supabase/pending/20261123130000` (não aplicada); função `smtp-probe` do DevOps; nenhuma conta criada e nenhuma função de envio.
 - Data: 2026-11-09
 - Tarefa: [TASK-0042](../tasks/TASK-0042-avisos-por-email.md)
 - Relacionadas: ADR-0010 (revisão humana), ADR-0012 (representante verificado, D7 risco e D12 marcos de 7 e 15 dias), TASK-0023 (SMTP do Gmail), TASK-0007 (base legal e retenção), parecer de plataforma (seção 2 e R4.2, fora do Git)
@@ -60,7 +60,7 @@ Os textos finais passam por produto e jurídico.
 - A Operação mostra, por status, o total de pendentes, enviados no dia e falhas.
 - Linhas `sent` e `suppressed` são apagadas 90 dias depois por um job do `pg_cron`. O prazo é proposta, a definir na TASK-0007.
 
-## Revisão de 2026-11-23: escopo aprovado e fila adiantada
+### Parte de dados da revisão de 2026-11-23 (Back): fila adiantada
 
 Decisão do responsável ("Aprovo", repassado pelo Gestor):
 - **Destinatários:** os avisos vão só para contas da plataforma, o trabalhador dono do relato e os usuários verificados da empresa.
@@ -71,7 +71,7 @@ O que foi feito, em `supabase/pending/20261123130000_fila_de_avisos_da_plataform
 - **A fila:** `private.notification_outbox`, sem e-mail, nome, texto, protocolo, empresa ou categoria, só tipo, destinatário por id e chave de deduplicação.
 - **O gatilho em `complaint_events`:**
   - `worker_update`: um por evento que não foi feito pelo próprio trabalhador;
-  - `company_new_case`: um por manifestação, quando a equipe a libera à empresa.
+  - `company_update`: só nos eventos visíveis à empresa do item 1 da revisão abaixo: liberação, devolução da resposta (gatilho em `company_responses`, porque a devolução não gera evento) e encerramento pelo trabalhador.
 - **Destinatário resolvido no envio:** empresa sem usuário verificado vira `suppressed` no envio.
 - **Teste:** `supabase/tests/tx/avisos_checks.sql`.
 
