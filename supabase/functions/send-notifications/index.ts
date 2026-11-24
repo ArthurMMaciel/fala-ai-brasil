@@ -46,7 +46,7 @@ async function connect(): Promise<SmtpConn> {
   let buffer = '';
   // Prazo por operação: o timer é sempre limpo e, no estouro, a conexão é fechada (revisão do DevOps).
   const withTimeout = <T>(p: Promise<T>): Promise<T> => {
-    let timer: number | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;  // number no Deno, Timeout com os tipos do Node (deno check da CI)
     const timeout = new Promise<T>((_, reject) => {
       timer = setTimeout(() => { try { conn.close(); } catch { /* já fechada */ } reject(new SmtpError('timeout')); }, SMTP_TIMEOUT_MS);
     });
