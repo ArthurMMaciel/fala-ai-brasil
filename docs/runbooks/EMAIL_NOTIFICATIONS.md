@@ -1,6 +1,6 @@
 # Notificações por e-mail: teste da porta 465 e plano da função de envio (ADR-0020)
 
-- Estado: **preparado em 2026-11-23, nada executado.** O teste está marcado para 2026-11-24.
+- Estado: **porta 465 aberta** (teste de 2026-11-24, resultado abaixo). A `send-notifications` ainda não foi publicada.
 - Escopo aprovado pelo responsável ("Aprovo", repassado pelo Gestor em 2026-11-23): notificação automática **só para contas da plataforma**:
   - o trabalhador dono do relato;
   - os usuários verificados da empresa.
@@ -10,6 +10,8 @@
 - Relacionadas: ADR-0020 (revisão de 2026-11-23), ADR-0009 (Gmail do Auth), [EDGE_FUNCTION_DEPLOY](EDGE_FUNCTION_DEPLOY.md), [PILOT_SUSPENSION](PILOT_SUSPENSION.md#conta-gmail-do-auth-bloqueada).
 
 ## Teste da porta 465 (2026-11-24, cerca de 15 minutos)
+
+**Resultado (2026-11-24, feito pelo responsável):** `{"tls":true,"code":"220","error":null,"ms":1177,"open":true}`. A porta está aberta. A `smtp-probe` foi apagada do projeto (`functions delete` confirmado) e removida do repositório. Os passos abaixo ficam como registro.
 
 A [documentação das Edge Functions](https://supabase.com/docs/guides/functions/limits) bloqueia a saída pelas portas 25 e 587 e não cita a 465. O teste verifica se a função consegue abrir TLS em `smtp.gmail.com:465` e receber a saudação `220`.
 
@@ -93,20 +95,100 @@ Se o `production-smoke` rodar durante o teste, nada muda: ele não chama a `smtp
 - **Logs:** só `id` da linha, `kind`, resultado e tempo. Nunca e-mail, nome, protocolo, texto do servidor SMTP ou a senha.
 - **Opt-out do trabalhador** em Meu perfil (ADR-0020 D8). A linha nasce `suppressed`.
 
-### Ordem de publicação
+### Publicação passo a passo (responsável, na máquina dele)
 
-1. ADR-0020 revisada e aceita.
-2. Extensões habilitadas no painel e conferidas.
-3. Migration da fila e dos gatilhos aplicada e conferida. Até a função existir, as linhas só acumulam.
-4. Secrets da função criados pelo responsável: `GMAIL_USER`, `GMAIL_APP_PASSWORD` e `NOTIFY_CRON_SECRET`.
-5. Função publicada e testada com uma conta de teste do próprio responsável.
-6. Segredos no Vault e `cron.schedule` criados por último. É o passo que liga o envio.
+Pré-requisitos, todos marcados antes de começar:
+- [ ] ADR-0020 revisada (2026-11-23) e a parte de dados registrada pelo Back.
+- [ ] Código da `send-notifications` e da migration da fila revisados pelo DevOps. A CI precisa estar verde na `main` com o SHA aprovado. Atualizar o repositório local com `git pull` e conferir `git log -1`.
+- [ ] Horário de pouco uso. Nenhum segredo é colado em chat, task, commit ou arquivo do repositório.
+
+**Passo 1. Extensões (painel).** Database > Extensions: habilitar `pg_cron` e `pg_net`. Conferir que `supabase_vault` está habilitada; o normal é vir habilitada. Se alguma não puder ser habilitada no Free, parar e avisar o DevOps.
+
+**Passo 2. Migration da fila e dos gatilhos (SQL Editor).** Rodar o `aplicar` e o `conferir` que o Back entregar, como nos lotes anteriores. Daqui em diante, as mudanças de situação geram linhas `pending` na fila, mas nada é enviado.
+
+**Passo 3. Gerar o segredo do agendador (PowerShell).** O valor vai direto para a área de transferência, sem aparecer na tela:
+
+```powershell
+$b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); (-join ($b | ForEach-Object { $_.ToString('x2') })) | Set-Clipboard
+```
+
+O mesmo valor vai para dois lugares, nos passos 4 e 6. Guardar no gerenciador de senhas, no item da plataforma, até terminar.
+
+**Passo 4. Secrets da função (painel, de preferência).** Edge Functions > Secrets (ou Project Settings > Edge Functions):
+- `GMAIL_USER`: o endereço do Gmail do Auth;
+- `GMAIL_APP_PASSWORD`: a senha de app atual do SMTP do Auth (ADR-0009). Não gerar outra: a mesma serve. Copiar do gerenciador de senhas;
+- `NOTIFY_CRON_SECRET`: o valor do passo 3.
+
+Por que o painel: `supabase secrets set NOME=valor` no terminal deixa o valor no histórico do PowerShell. Se for pela CLI, usar `--env-file` com um arquivo temporário fora de qualquer repositório e apagá-lo logo depois:
+
+```bash
+npx supabase secrets set --env-file "%TEMP%
+otify.env" --project-ref <ref-de-producao>
+```
+
+**Passo 5. Publicar a função** (preparação e login como no [EDGE_FUNCTION_DEPLOY](EDGE_FUNCTION_DEPLOY.md), passos 1 a 4). Ela vai sem verificação de JWT, porque quem chama é o agendador. A proteção é o `x-cron-secret`:
+
+```bash
+npx supabase functions deploy send-notifications --project-ref <ref-de-producao> --use-api --no-verify-jwt
+```
+
+Conferir sem segredo. Esperado: `401`:
+
+```powershell
+curl.exe -s -o NUL -w "%{http_code}" -X POST https://<ref-de-producao>.supabase.co/functions/v1/send-notifications
+```
+
+**Passo 6. Vault (painel, de preferência).** Integrations > Vault (ou Project Settings > Vault), com o caminho exato "a confirmar":
+- `project_url`: `https://<ref-de-producao>.supabase.co`;
+- `notify_cron_secret`: o valor do passo 3.
+
+Se for pelo SQL Editor com `vault.create_secret`, o texto do segredo fica no histórico do editor. Nesse caso, apagar a consulta salva logo depois.
+
+**Passo 7. Teste controlado, antes de ligar o agendamento.**
+1. Com uma conta de teste do próprio responsável, gerar uma mudança de situação num caso de teste, de modo que exista 1 linha `pending` na fila.
+2. Chamar a função uma vez pelo SQL Editor, com o mesmo comando do agendamento (o `select net.http_post(...)` do passo 8, sem o `cron.schedule`).
+3. Conferir:
+   - a linha passou a `sent`;
+   - o e-mail chegou na caixa de teste, em português, com o link em texto;
+   - os logs da função (Edge Functions > `send-notifications` > Logs) têm só id, tipo e resultado.
+
+**Passo 8. Ligar o agendamento (SQL Editor).** É o último passo, e o que liga o envio. Vale o texto final que o Back entregar. Referência:
+
+```sql
+select cron.schedule(
+  'send-notifications',
+  '*/5 * * * *',
+  $$
+  select net.http_post(
+    url := (select decrypted_secret from vault.decrypted_secrets where name = 'project_url') || '/functions/v1/send-notifications',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'notify_cron_secret')
+    ),
+    body := '{}'::jsonb,
+    timeout_milliseconds := 30000
+  );
+  $$
+);
+```
+
+Conferir em Integrations > Cron (ou `select * from cron.job_run_details order by start_time desc limit 5;`) que as rodadas terminam com `succeeded`.
+
+**Passo 9.** `npx supabase logout` e registro na TASK-0042: data, SHA, versão da função e resultado do passo 7.
 
 ### Rollback
 
-- **Desligar já:** `select cron.unschedule('send-notifications');` no SQL Editor. As linhas continuam na fila.
-- **Contenção total:** apagar a função (`functions delete send-notifications`) e trocar a senha de app (inventário no PILOT_SUSPENSION).
-- A fila e os gatilhos saem por migration de reversão do Back.
+- **Parar o envio já** (SQL Editor). As linhas continuam na fila, e nada se perde:
+
+  ```sql
+  select cron.unschedule('send-notifications');
+  ```
+
+- **Contenção total:**
+  - `npx supabase functions delete send-notifications --project-ref <ref-de-producao>`;
+  - se houver suspeita sobre a senha de app, trocá-la (inventário no [PILOT_SUSPENSION](PILOT_SUSPENSION.md)). O SMTP do Auth também precisa da senha nova.
+- **Remover a fila e os gatilhos:** pela migration de reversão do Back.
+- **Conta Gmail bloqueada:** seguir [conta bloqueada](PILOT_SUSPENSION.md#conta-gmail-do-auth-bloqueada) e rodar o `cron.unschedule` primeiro.
 
 ### Custo e consumo
 

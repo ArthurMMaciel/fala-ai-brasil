@@ -50,5 +50,9 @@ Contagem por status na Operação. Linhas `failed` visíveis para a equipe. O al
 ## Testes necessários
 Ver ADR-0020, seção "Testes necessários".
 
+## Registro
+
+- **2026-11-24, teste da porta 465 (ADR-0020 D2), feito pelo responsável em produção:** a função descartável `smtp-probe` abriu TLS em `smtp.gmail.com:465` e recebeu a saudação `220` em 1.177 ms (`"open":true`). A porta está **aberta**. A função foi apagada do projeto logo depois (`functions delete` confirmado) e removida do repositório. Segue o plano da `send-notifications` ([EMAIL_NOTIFICATIONS](../runbooks/EMAIL_NOTIFICATIONS.md)).
+
 ## Definição de pronto
 Envio manual em uso, porta 465 testada e envio automático ao trabalhador em produção. O lembrete automático à empresa só liga depois da ADR-0012.
