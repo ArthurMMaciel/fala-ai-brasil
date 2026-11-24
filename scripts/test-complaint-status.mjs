@@ -100,3 +100,18 @@ test('data.ts ordena a linha do tempo do trabalhador pelo comparador e lê o id 
   assert.match(data, /from\("complaint_events"\)\.select\("id, /);
   assert.match(data, /from\("company_responses"\)\.select\("id, /);
 });
+
+// Lote 3 do Back (2026-11-23): a empresa recebe "Manifestação EAB-…" no título; a tela não repete o protocolo.
+test('título da empresa: esconde quando só repete o protocolo; mantém título de verdade', () => {
+  assert.equal(domain.companyFacingTitle('Manifestação EAB-2026-1004', 'EAB-2026-1004'), null);
+  assert.equal(domain.companyFacingTitle('  manifestacao   eab-2026-1004 ', 'EAB-2026-1004'), null);
+  assert.equal(domain.companyFacingTitle('EAB-2026-1004', 'EAB-2026-1004'), null);
+  assert.equal(domain.companyFacingTitle('Sobrecarga na equipe', 'EAB-2026-1004'), 'Sobrecarga na equipe');
+  assert.equal(domain.companyFacingTitle('Manifestação EAB-2026-1005', 'EAB-2026-1004'), 'Manifestação EAB-2026-1005');
+  assert.equal(domain.companyFacingTitle('', 'EAB-2026-1004'), null);
+  assert.equal(domain.companyFacingTitle('Título', null), 'Título');
+  const portal = readFileSync('src/portals/portal-live.tsx', 'utf8');
+  assert.equal((portal.match(/\[item\.protocol, companyFacingTitle\(item\.title, item\.protocol\)\]\.filter\(Boolean\)\.join\(' · '\)/g) ?? []).length, 2);
+  assert.match(portal, /<h1>\{companyFacingTitle\(item\.title, item\.protocol\) \?\? item\.category\}<\/h1>/);
+  assert.doesNotMatch(portal, /\{item\.protocol\} · \{item\.title\}/);
+});

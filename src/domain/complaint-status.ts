@@ -27,3 +27,16 @@ export function compareTimeline(a: TimelineSortable, b: TimelineSortable): numbe
   const idA = a.id ?? "", idB = b.id ?? "";
   return idA === idB ? 0 : idA < idB ? -1 : 1; // mesma ordem do uuid no Postgres (hex minúsculo)
 }
+
+/**
+ * Título que a empresa vê, sem repetir o protocolo. Com o lote 3 do Back (2026-11-23) a empresa recebe
+ * "Manifestação EAB-…" no título; quando ele só repete o protocolo, a tela mostra o protocolo uma vez. O contrato não muda.
+ */
+export function companyFacingTitle(title: string | null | undefined, protocol: string | null | undefined): string | null {
+  const text = String(title ?? "").trim();
+  if (!text) return null;
+  const norm = (value: string) => value.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+  const code = norm(String(protocol ?? ""));
+  const value = norm(text);
+  return code && (value === code || value === `manifestacao ${code}`) ? null : text;
+}
