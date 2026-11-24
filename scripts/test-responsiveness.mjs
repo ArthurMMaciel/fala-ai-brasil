@@ -171,3 +171,7 @@ test('menus: cada item com ícone próprio (Contratados e Manifestações do tra
   assert.match(readFileSync('src/styles/system.css', 'utf8'), /\.side-link\[data-worker-view="manifestations"\]::before \{ -webkit-mask-image: var\(--sys-i-inbox\);/);
   assert.match(readFileSync('src/portals/worker-portal-live.tsx', 'utf8'), /icon: 'inbox', label: 'Minhas manifestações'/);
 });
+// Correção do P2.8 (2026-11-24): em até 480 px, atalhos sempre em 2 colunas (3 colunas estouravam o rótulo).
+test('atalhos no celular: até 480 px, duas colunas', () => {
+  assert.match(readFileSync('src/styles/system.css', 'utf8'), /@media \(max-width: 480px\) \{ \.sys-quick \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); \} \}/);
+});

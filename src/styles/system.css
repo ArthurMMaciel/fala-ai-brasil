@@ -578,3 +578,8 @@ body.confirm-open { overflow: hidden; }
    trabalhador usa a caixa de entrada (como na Operação e na empresa), em vez do ícone genérico de lista. */
 :root { --sys-i-inbox: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%20fill%3D'none'%20stroke%3D'black'%20stroke-width%3D'1.8'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%3Cpath%20d%3D'M22%2012h-6l-2%203h-4l-2-3H2M5.5%205h13L22%2012v6a2%202%200%200%201-2%202H4a2%202%200%200%201-2-2v-6z'%2F%3E%3C%2Fsvg%3E"); }
 .legacy-editorial .side-link[data-worker-view="manifestations"]::before { -webkit-mask-image: var(--sys-i-inbox); mask-image: var(--sys-i-inbox); }
+
+/* Correção do P2.8 (2026-11-24): em telas de até 480 px, 3 colunas deixam ~100 px por atalho e o rótulo estoura
+   ("Responsividad…"). Até 480 px, sempre 2 colunas; o rótulo quebra só entre palavras. */
+@media (max-width: 480px) { .sys-quick { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.sys-quick-label { overflow-wrap: normal; hyphens: manual; }
