@@ -20,6 +20,7 @@ const ui = compile('src/editorial/editorial-ui.tsx');
 const stories = compile('src/editorial/editorial-landing.tsx', '', name => name === './editorial-ui' ? ui : require(name));
 const accountRules = compile('src/domain/account-rules.ts');
 const htmlSafety = compile('src/domain/html-safety.ts');
+const userMenu = compile('src/app/user-menu.ts', '', name => name === '../domain/html-safety' ? htmlSafety : require(name));
 const contactService = compile('src/services/contact-solicitations.ts', '', name => name === './account' ? { isAccountServiceConfigured: () => false } : name === '../domain/account-rules' ? accountRules : require(name));
 const tracking = compile('src/editorial/editorial-tracking.tsx', '', name => name === './editorial-ui' ? ui : name === './editorial-model' ? model : require(name));
 const legalDocs = compile('src/domain/legal-docs.ts');
@@ -55,7 +56,7 @@ function app() {
     registerAccount: async () => ({ ok: false, message: 'indisponível' }), resendConfirmation: async () => ({ ok: true, value: null }),
     signIn: async () => ({ ok: false, message: 'indisponível' }), signOut: async () => {}, watchSession: () => () => {}, sessionChange: () => null, sessionChangeMessages: {}, legalRouteFromHash: () => null, authEntryFromHash: () => null, bindPasswordRecovery() {}, forgotPasswordMarkup: notice => `<main data-screen="forgot">${notice?.recoverySent ? "enviado" : "pedido"}</main>`, resetPasswordMarkup: () => '<main data-screen="reset"></main>', consumeRecoveryArrival: async () => null, recoverySavedMessage: '', authEntryState: () => ({}), isVisibleAudience: audience => !['intelligence', 'sponsor'].includes(audience), visibleRegisterAudience: audience => audience === 'intelligence' ? 'company' : 'worker', location: { hash: '', pathname: '/', search: '' }, loadPartnerPhoto: async () => ({ url: null }), uploadPartnerPhoto: async () => ({ ok: false, message: 'indisponível' }),
     isDemoEmail: email => email.endsWith('@escutaai.demo'), listPublicSponsors: async () => [], minPasswordLength: 8, validateRegistration: () => null,
-    escapeHtml: htmlSafety.escapeHtml, safeHttpUrl: htmlSafety.safeHttpUrl,
+    userMenuMarkup: userMenu.userMenuMarkup, escapeHtml: htmlSafety.escapeHtml, safeHttpUrl: htmlSafety.safeHttpUrl,
     brazilianStates: ['SP'], showToast() {}, createCampaign: async () => ({ ok: false, message: 'indisponível' }), deleteCampaignDraft: async () => ({ ok: true }), listCampaigns: async () => [], submitCampaign: async () => ({ ok: true }), campaignKindForPlan: () => null, campaignKindLabels: {}, campaignStatusLabels: {}, isActiveCampaign: () => false, validateCampaign: () => null, profileLabels: {}, splitStreet: () => null, streetTypeLabels: { street: 'Rua' },
     document: { createElement() { return { relList: { supports: () => true } }; }, querySelector: () => element },
     window: { scrollTo() {}, matchMedia: () => ({ matches: true }) },
@@ -338,4 +339,33 @@ test('login tem "Esqueci minha senha", que abre a tela de pedido e depois a resp
   assert.match(screen.html, /data-screen="forgot">enviado/);
   screen.api.route('reset-password', { authNotice: null });
   assert.match(screen.html, /data-screen="reset"/);
+});
+
+// Menu da conta (pedido do responsável, 2026-11-23): avatar no topo com "Meu perfil" e "Sair"; saem "Minha área" e "Sair" soltos.
+test('menu da conta: iniciais, Meu perfil só para quem tem perfil, Sair em vermelho; nome escapado', () => {
+  assert.equal(userMenu.userInitials('Ana Maria Souza'), 'AS');
+  assert.equal(userMenu.userInitials('ana'), 'AN');
+  assert.equal(userMenu.userInitials(''), '?');
+  const worker = userMenu.userMenuMarkup({ name: 'Ana Souza', roleLabel: 'Trabalhador', hasProfile: true });
+  assert.match(worker, /aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu-list"/);
+  assert.match(worker, /data-action="open-profile">Meu perfil<\/button><button class="user-menu-item danger" type="button" role="menuitem" data-action="logout">Sair<\/button>/);
+  const ops = userMenu.userMenuMarkup({ name: '<img src=x onerror=alert(1)>', roleLabel: 'Equipe', hasProfile: false });
+  assert.doesNotMatch(ops, /Meu perfil|<img/);
+  assert.match(ops, /data-action="logout">Sair/);
+});
+
+test('topo logado: avatar no lugar de Minha área, Área da empresa, Hub do parceiro, Operação e Sair; Meu perfil fora da barra lateral', () => {
+  const screen = app();
+  screen.api.route('worker', { user: { id: 'w1', name: 'TESTE Trabalhador', role: 'worker', profile: { type: 'worker', id: 'w1' } } });
+  assert.match(screen.html, /class="user-avatar"[^>]*>TT<\/button>/);
+  assert.doesNotMatch(screen.html, />Minha área<|data-action="logout">Sair<\/button><\/nav>|class="btn" data-action="logout"/);
+  screen.button('logout');
+  const main = readFileSync('src/app/main.js', 'utf8');
+  assert.doesNotMatch(main, /data-persona="company">Área da empresa<|data-persona="partner">Hub do parceiro<|data-route="ops">Operação<\/button>/);
+  assert.match(main, /if\(c==="open-profile"\)return acctOpenProfile\(\);/);
+  const portals = readFileSync('src/portals/portal-live.tsx', 'utf8');
+  assert.doesNotMatch(portals, /\['profile', 'Meu perfil'\]/);
+  assert.match(portals, /useEffect\(\(\) => \{ if \(profileRequest\) setView\('profile'\); \}, \[profileRequest\]\);/);
+  assert.doesNotMatch(readFileSync('src/app/worker-portal-bridge.tsx', 'utf8'), /textContent = 'Meu perfil'/);
+  assert.match(readFileSync('src/app/commercial-portal-bridge.tsx', 'utf8'), /addEventListener\('escuta:open-profile'/);
 });

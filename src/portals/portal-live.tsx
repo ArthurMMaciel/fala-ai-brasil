@@ -161,8 +161,10 @@ function VerificationPending({ status, companyName, onView }: { status: Verifica
   <section className="commercial-panel company-verification" role="status"><p>{text}</p><p className="muted small">Enquanto isso, você pode completar o perfil da empresa e conhecer os parceiros.</p><div className="ops-decision-actions"><button className="btn" onClick={() => onView('profile')}>Completar perfil</button><button className="btn" onClick={() => onView('partners')}>Ver parceiros</button></div></section></>;
 }
 
-export function CompanyPortalLive({ companyId }: { companyId: string }) {
- const [view, setView] = useState<CompanyView>('dashboard');
+export function CompanyPortalLive({ companyId, profileRequest = 0 }: { companyId: string; profileRequest?: number }) {
+ const [view, setView] = useState<CompanyView>(profileRequest ? 'profile' : 'dashboard');
+ // Meu perfil abre pelo menu da conta no topo (saiu da barra lateral).
+ useEffect(() => { if (profileRequest) setView('profile'); }, [profileRequest]);
  const [company, setCompany] = useState<CompanyContext | null | undefined>(undefined);
  const [complaints, setComplaints] = useState<CompanyComplaint[] | null>(null);
  const [ranking, setRanking] = useState<ResponsivenessRow[] | null>(null);
@@ -177,7 +179,7 @@ export function CompanyPortalLive({ companyId }: { companyId: string }) {
  useEffect(() => { let active = true; Promise.all([listCompanyComplaints(), listCompanyResponsiveness(), loadMyCompanyResponsiveness()]).then(([rows, rank, own]) => { if (active) { setComplaints(rows); setRanking(rank); setMyStats(own); } }); loadMyCompanySatisfaction().then(rows => { if (active) setSatisfaction(rows); }).catch(() => undefined); return () => { active = false; }; }, [companyId, version]);
  const mine = useMemo(() => myStats?.find(row => row.companyId === companyId), [myStats, companyId]);
  const open = (id: string | null) => { setOpenId(id); setView('complaints'); };
- const items: [CompanyView, string][] = [['dashboard', 'Dashboard'], ['complaints', 'Manifestações'], ['ranking', 'Responsividade'], ['partners', 'Parceiros'], ['contracted', 'Contratados'], ['profile', 'Meu perfil']];
+ const items: [CompanyView, string][] = [['dashboard', 'Dashboard'], ['complaints', 'Manifestações'], ['ranking', 'Responsividade'], ['partners', 'Parceiros'], ['contracted', 'Contratados']];
  return <main className="commercial-portal-content"><Sidebar eyebrow="Área da empresa" name={company?.name ?? 'Carregando…'} items={items} view={view} onView={next => { setView(next); setOpenId(null); }} /><section className="commercial-portal-main">
   {company === undefined || complaints === null || verification === undefined ? <p className="muted">Carregando dados da empresa…</p> : company === null ? <section className="commercial-panel"><h2>Não foi possível carregar sua empresa</h2><p>Saia e entre novamente. Se continuar, fale com o suporte.</p></section> :
    companyAccessPending(verification) && view !== 'partners' && view !== 'profile' ? <VerificationPending status={verification as VerificationStatus} companyName={company.name} onView={setView} /> :
@@ -273,8 +275,10 @@ function PartnerCompanyRows({ rows, actions, onChanged }: { rows: PartnerCompany
  return <>{rows.map(company => <article className="partner-company-row" key={company.id}><div><strong>{company.name}</strong><span>{company.legalName}</span><small>{company.city}/{company.state}{company.stage === 'company_interest' ? ' · demonstrou interesse no seu perfil' : company.stage === 'partner_contacted' ? ' · contato iniciado' : ''}</small></div><div className="partner-company-actions">{company.contactEmail && <a className="btn" href={`mailto:${company.contactEmail}`}>Entrar em contato</a>}{company.contactPhone && <a className="btn" href={whatsappLink(company.contactPhone)} target="_blank" rel="noopener noreferrer">WhatsApp</a>}{company.stage === 'client' && !company.contactEmail && !company.contactPhone && <span className="muted small">A empresa ainda não cadastrou um contato.</span>}{actions && company.stage !== 'client' && !company.contactEmail && !company.contactPhone && <button className="btn" disabled={company.stage === 'partner_contacted'} onClick={() => update(company, 'partner_contacted')}>{company.stage === 'partner_contacted' ? 'Contato iniciado' : 'Entrar em contato'}</button>}{actions && company.stage !== 'client' && <button className="btn primary" onClick={() => update(company, 'client')}>Marcar como cliente</button>}</div></article>)}</>;
 }
 
-export function PartnerPortalLive({ partnerId }: { partnerId: string }) {
- const [view, setView] = useState<PartnerView>('dashboard');
+export function PartnerPortalLive({ partnerId, profileRequest = 0 }: { partnerId: string; profileRequest?: number }) {
+ const [view, setView] = useState<PartnerView>(profileRequest ? 'profile' : 'dashboard');
+ // Meu perfil abre pelo menu da conta no topo (saiu da barra lateral).
+ useEffect(() => { if (profileRequest) setView('profile'); }, [profileRequest]);
  const [profile, setProfile] = useState<PartnerProfileData | null | undefined>(undefined);
  const [companies, setCompanies] = useState<PartnerCompany[] | null>(null);
  const [planId, setPlanId] = useState<string | null>(null);
@@ -285,7 +289,7 @@ export function PartnerPortalLive({ partnerId }: { partnerId: string }) {
  const leads = (companies ?? []).filter(company => company.stage === 'company_interest');
  const clients = (companies ?? []).filter(company => company.stage === 'client');
  const contacted = (companies ?? []).filter(company => company.stage === 'partner_contacted');
- const items: [PartnerView, string][] = [['dashboard', 'Dashboard'], ['profile', 'Meu perfil'], ['content', 'Meus conteúdos'], ['companies', 'Empresas'], ['leads', 'Possíveis clientes'], ['clients', 'Clientes']];
+ const items: [PartnerView, string][] = [['dashboard', 'Dashboard'], ['content', 'Meus conteúdos'], ['companies', 'Empresas'], ['leads', 'Possíveis clientes'], ['clients', 'Clientes']];
  const reload = () => setVersion(value => value + 1);
  const head = (eyebrow: string, title: string, text: string) => <div className="commercial-page-head"><div><span className="editorial-eyebrow">{eyebrow}</span><h1>{title}</h1><p>{text}</p></div></div>;
  return <main className="commercial-portal-content"><Sidebar eyebrow="Hub de parceiros" name={profile?.displayName ?? 'Carregando…'} items={items} view={view} onView={setView} /><section className="commercial-portal-main">
