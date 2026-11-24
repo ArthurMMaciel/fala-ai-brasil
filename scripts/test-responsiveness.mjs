@@ -83,3 +83,15 @@ test('abas: seção com sublinhado e filtro de situação segmentado', () => {
   assert.match(css, /\.ops-response-tabs \{ display: inline-flex; flex-wrap: wrap;[^}]*border-radius: 12px; background: #eef1f6; \}/);
   assert.match(css, /\.ops-response-tabs \.account-tab\[aria-selected="true"\] \{ background: #fff;/);
 });
+// Design P1.3 (2026-11-23): tabelas com CNPJ mascarado, cabeçalho AA, linha clicável com seta e números à direita.
+test('tabelas: CNPJ com máscara, cabeçalho legível, seta nas linhas clicáveis e números à direita', () => {
+  const reps = readFileSync('src/portals/representatives.tsx', 'utf8');
+  assert.doesNotMatch(reps, /CNPJ \{(item|row)\.cnpj\}/);
+  assert.match(reps, /<small>CNPJ \{maskCnpj\(row\.cnpj\)\}<\/small>/);
+  assert.match(readFileSync('src/portals/ops-portal-live.tsx', 'utf8'), /<td className="num">\{row\.users\}<\/td><td className="num">\{row\.complaints\}<\/td>/);
+  const css = readFileSync('src/styles/system.css', 'utf8');
+  assert.match(css, /\.legacy-editorial \.contact-admin-table th \{ color: #3f4759; \}/);
+  assert.match(css, /tbody tr\[tabindex="0"\] > td:last-child::after \{ content: "";/);
+  assert.match(css, /tbody tr\[tabindex="0"\]:focus-visible \{ outline: 3px solid var\(--deep\);/);
+  assert.match(css, /:is\(th, td\)\.num \{ text-align: right; font-variant-numeric: tabular-nums; \}/);
+});

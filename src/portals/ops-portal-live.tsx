@@ -158,8 +158,8 @@ function ComplaintDetail({ complaint, delivery, onBack, onChanged, onGo }: { com
 
 function Companies({ rows }: { rows: OpsCompany[] | null }) {
  return <>{head('Operação', 'Empresas', 'Empresas cadastradas, volume e resposta. Representantes, empresas a conferir e avisos ficam nas abas ao lado.')}
-  {rows === null ? <p className="muted">Carregando…</p> : <div className="commercial-table-wrap"><table className="commercial-table"><thead><tr><th>Empresa</th><th>Cidade</th><th>Usuários</th><th>Manifestações</th><th>Liberadas</th><th>Respondidas</th><th>Contato</th><th>Cadastro</th></tr></thead>
-   <tbody>{rows.map(row => <tr key={row.id}><td>{row.name}<small>{row.legalName}</small></td><td>{row.city}/{row.state}</td><td>{row.users}</td><td>{row.complaints}</td><td>{row.released}</td><td>{row.answered}</td><td>{row.hasContact ? 'Sim' : '—'}</td><td>{when(row.createdAt)}</td></tr>)}</tbody></table></div>}</>;
+  {rows === null ? <p className="muted">Carregando…</p> : <div className="commercial-table-wrap"><table className="commercial-table"><thead><tr><th>Empresa</th><th>Cidade</th><th className="num">Usuários</th><th className="num">Manifestações</th><th className="num">Liberadas</th><th className="num">Respondidas</th><th>Contato</th><th>Cadastro</th></tr></thead>
+   <tbody>{rows.map(row => <tr key={row.id}><td>{row.name}<small>{row.legalName}</small></td><td>{row.city}/{row.state}</td><td className="num">{row.users}</td><td className="num">{row.complaints}</td><td className="num">{row.released}</td><td className="num">{row.answered}</td><td>{row.hasContact ? 'Sim' : '—'}</td><td>{when(row.createdAt)}</td></tr>)}</tbody></table></div>}</>;
 }
 
 export function OpsPortalLive() {

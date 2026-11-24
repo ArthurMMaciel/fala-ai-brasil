@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { showToast } from '../app/toast';
+import { maskCnpj } from '../domain/account-rules';
 import { allowedDecisions, validateVerification, verificationDecisionLabels, verificationMethodLabels, verificationStatusLabels, type VerificationDecision, type VerificationMethod, type VerificationStatus } from '../domain/representatives';
 import { listOpsRepresentatives, loadRepresentativeHistory, verifyOpsRepresentative, type OpsRepresentative, type RepresentativeHistoryItem } from '../services/ops';
 
@@ -36,7 +37,7 @@ function RepresentativeDetail({ item, onBack, onChanged }: { item: OpsRepresenta
   showToast('success', decision === 'verified' ? 'Representante verificado.' : decision === 'revoked' ? 'Acesso revogado.' : 'Representante recusado.'); onChanged();
  }
  return <><button className="text-action worker-back" onClick={onBack}>← Voltar</button>
-  <div className="worker-detail-heading"><div><span className="editorial-eyebrow">Representante · {verificationStatusLabels[item.status]}</span><h2>{item.companyName}</h2><p className="muted">CNPJ {item.cnpj} · {item.email} · {roleLabel(item.role)} · vínculo em {dateLabel(item.linkedAt)}</p></div></div>
+  <div className="worker-detail-heading"><div><span className="editorial-eyebrow">Representante · {verificationStatusLabels[item.status]}</span><h2>{item.companyName}</h2><p className="muted">CNPJ {maskCnpj(item.cnpj)} · {item.email} · {roleLabel(item.role)} · vínculo em {dateLabel(item.linkedAt)}</p></div></div>
   <div className="worker-detail-grid"><div>
    <form className="worker-detail-section ops-decision" onSubmit={submit} noValidate><h3>Decisão da equipe</h3>
     <fieldset className="response-rating"><legend>O que fazer</legend>{decisions.map(value => <label key={value} className="check-row"><input type="radio" name="decision" value={value} checked={decision === value} onChange={() => setDecision(value)} /> <span>{verificationDecisionLabels[value]}</span></label>)}</fieldset>
@@ -65,5 +66,5 @@ export function OpsRepresentatives({ onChanged }: { onChanged?: () => void }) {
   <div className="account-tabs ops-response-tabs" role="tablist" aria-label="Situação do representante">{tabs.map(([value, label]) => <button key={value} role="tab" aria-selected={tab === value} className={`account-tab${tab === value ? ' active' : ''}`} onClick={() => { setTab(value); setOpenKey(null); }}>{label}</button>)}</div>
   {failure ? <section className="commercial-panel"><p>{failure}</p></section> : rows === null ? <p className="muted">Carregando…</p> : !rows.length ? <section className="commercial-panel"><p className="muted">{tab === 'pending' ? 'Nenhum representante aguardando verificação.' : 'Nada por aqui.'}</p></section> :
   <div className="commercial-table-wrap"><table className="commercial-table"><thead><tr><th>Empresa</th><th>Representante</th><th>Vínculo</th><th>{tab === 'pending' ? 'Cadastro em' : 'Situação'}</th></tr></thead>
-   <tbody>{rows.map(row => <tr key={key(row)} tabIndex={0} onClick={() => setOpenKey(key(row))} onKeyDown={event => event.key === 'Enter' && setOpenKey(key(row))}><td>{row.companyName}<small>CNPJ {row.cnpj}</small></td><td>{row.email}</td><td>{roleLabel(row.role)}</td><td>{tab === 'pending' ? dateLabel(row.linkedAt) : verificationStatusLabels[row.status]}</td></tr>)}</tbody></table></div>}</>}</>;
+   <tbody>{rows.map(row => <tr key={key(row)} tabIndex={0} onClick={() => setOpenKey(key(row))} onKeyDown={event => event.key === 'Enter' && setOpenKey(key(row))}><td>{row.companyName}<small>CNPJ {maskCnpj(row.cnpj)}</small></td><td>{row.email}</td><td>{roleLabel(row.role)}</td><td>{tab === 'pending' ? dateLabel(row.linkedAt) : verificationStatusLabels[row.status]}</td></tr>)}</tbody></table></div>}</>}</>;
 }
