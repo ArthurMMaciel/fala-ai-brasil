@@ -76,3 +76,10 @@ test('tipografia: nenhuma regra usa Lora; Outfit declarada e usada nos títulos'
   assert.match(editorial, /\.legacy-editorial h2, \.legacy-editorial h3 \{ font-family: Outfit, Arial, sans-serif; font-weight: 600;/);
   assert.match(readFileSync('src/styles/system.css', 'utf8'), /\.commercial-page-head h1 \{ font-family: Outfit, Arial, sans-serif; font-weight: 600;/);
 });
+// Design P1.2 (2026-11-23): abas de seção sublinhadas; filtros de situação como controle segmentado.
+test('abas: seção com sublinhado e filtro de situação segmentado', () => {
+  const css = readFileSync('src/styles/system.css', 'utf8');
+  assert.match(css, /\.ops-section-tabs \.account-tab\[aria-selected="true"\] \{ color: var\(--deep\); border-bottom-color: var\(--deep\); \}/);
+  assert.match(css, /\.ops-response-tabs \{ display: inline-flex; flex-wrap: wrap;[^}]*border-radius: 12px; background: #eef1f6; \}/);
+  assert.match(css, /\.ops-response-tabs \.account-tab\[aria-selected="true"\] \{ background: #fff;/);
+});

@@ -408,8 +408,12 @@
 .response-rating textarea { width: 100%; }
 .response-rating .btn { justify-self: start; }
 .worker-timeline-review strong { color: var(--deep); }
-.ops-response-tabs { margin: 0 0 16px; }
-.ops-response-tabs .account-tab[aria-selected="true"] { color: var(--deep); border-bottom-color: var(--deep); }
+/* Design P1.2 (2026-11-23): filtros de situação (Representantes, Respostas, Avisos) como controle segmentado,
+   para não se confundir com as abas de seção, que ficam sublinhadas. */
+.ops-response-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; max-width: 100%; margin: 0 0 16px; padding: 4px; border: 0; border-radius: 12px; background: #eef1f6; }
+.ops-response-tabs .account-tab { padding: 8px 14px; border: 0; border-radius: 9px; color: var(--muted); font-size: 14px; }
+.ops-response-tabs .account-tab:hover { color: var(--deep); }
+.ops-response-tabs .account-tab[aria-selected="true"] { background: #fff; color: var(--deep); box-shadow: 0 1px 3px rgba(22, 33, 58, .16); }
 .ops-overdue { font-weight: 700; color: var(--red); }
 .commercial-table tbody tr[tabindex] { cursor: pointer; }
 .ops-decision textarea { width: 100%; }
@@ -452,6 +456,9 @@
 
 /* Operação: abas das seções Manifestações e Empresas, com contador de pendências. */
 .ops-section-tabs { margin: 0 0 18px; flex-wrap: wrap; }
+/* Abas de seção da Operação: sublinhado forte na aba atual. */
+.ops-section-tabs .account-tab[aria-selected="true"] { color: var(--deep); border-bottom-color: var(--deep); }
+.ops-section-tabs .account-tab:hover { color: var(--deep); }
 .ops-tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; margin-left: 8px; padding: 0 7px; border-radius: 999px; background: var(--amber); color: var(--ink); font-size: 12px; font-weight: 700; line-height: 1; }
 
 /* Telas de um cartão só (Esqueci minha senha, Confira seu e-mail, Criar nova senha): o .form-shell é uma grade de duas
