@@ -37,7 +37,7 @@
 .auth-art { position: sticky; top: 24px; height: calc(100vh - 168px); min-height: 520px; overflow: hidden; border-radius: var(--sys-radius-lg); padding: 36px; display: flex; flex-direction: column; justify-content: space-between; color: #fff;
   background: radial-gradient(120% 90% at 85% 10%, #3155a6 0%, transparent 55%), radial-gradient(90% 70% at 10% 100%, #17295a 0%, transparent 60%), linear-gradient(160deg, #26458f 0%, #1f3a7a 45%, #142650 100%); }
 .auth-art-logo { width: 150px; height: auto; filter: brightness(0) invert(1); opacity: .95; position: relative; z-index: 1; }
-.auth-art-quote { position: relative; z-index: 1; max-width: 340px; margin: 0; font-family: Lora, serif; font-size: clamp(24px, 2.4vw, 32px); line-height: 1.25; }
+.auth-art-quote { position: relative; z-index: 1; max-width: 340px; margin: 0; font-family: Outfit, Arial, sans-serif; font-weight: 500; font-size: clamp(24px, 2.4vw, 32px); line-height: 1.25; }
 .auth-art-shapes { position: absolute; inset: 0; pointer-events: none; }
 .auth-art-shapes i { position: absolute; left: -18%; width: 120%; height: 34%; border-radius: 50% 50% 46% 54% / 60% 60% 40% 40%; border: 1px solid rgba(255, 255, 255, .22);
   background: linear-gradient(100deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .02) 60%); transform-origin: 0 50%; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25); }
@@ -122,10 +122,10 @@
 .legacy-editorial .commercial-portal-main { padding: clamp(24px, 3.4vw, 44px); border-radius: var(--sys-radius-lg); background: var(--sys-canvas); box-shadow: 0 30px 60px rgba(0, 0, 0, .18); }
 
 /* Títulos em sans, mais leves, como na referência. */
-.legacy-editorial .worker-portal-heading h2, .legacy-editorial .worker-detail-heading h2, .legacy-editorial .commercial-page-head h1 { font-family: Inter, sans-serif; font-weight: 500; font-size: clamp(28px, 2.6vw, 36px); letter-spacing: -.02em; color: var(--ink); line-height: 1.15; }
+.legacy-editorial .worker-portal-heading h2, .legacy-editorial .worker-detail-heading h2, .legacy-editorial .commercial-page-head h1 { font-family: Outfit, Arial, sans-serif; font-weight: 600; font-size: clamp(28px, 2.6vw, 36px); letter-spacing: -.02em; color: var(--ink); line-height: 1.15; }
 .legacy-editorial .commercial-page-head p, .legacy-editorial .worker-portal-heading .muted { font-size: 15px; }
 .legacy-editorial .commercial-page-head { align-items: flex-end; margin-bottom: 24px; }
-.legacy-editorial .commercial-panel h2, .legacy-editorial .worker-section-heading h3, .legacy-editorial .worker-dashboard-note h3, .legacy-editorial .worker-detail-section h3 { font-family: Inter, sans-serif; font-weight: 600; font-size: 18px; color: var(--ink); letter-spacing: -.01em; }
+.legacy-editorial .commercial-panel h2, .legacy-editorial .worker-section-heading h3, .legacy-editorial .worker-dashboard-note h3, .legacy-editorial .worker-detail-section h3 { font-family: Outfit, Arial, sans-serif; font-weight: 600; font-size: 18px; color: var(--ink); letter-spacing: -.01em; }
 
 /* Atalhos rápidos. */
 .sys-quick { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 12px; margin: 4px 0 24px; }
@@ -212,7 +212,7 @@
 .legacy-editorial .worker-company-row::before { content: ""; position: absolute; left: 0; top: 50%; width: 38px; height: 38px; margin-top: -19px; border-radius: 50%; background: var(--soft); }
 .legacy-editorial .worker-company-row::after { content: ""; position: absolute; left: 10px; top: 50%; width: 18px; height: 18px; margin-top: -9px; background: var(--deep); -webkit-mask: var(--sys-i-building) center / contain no-repeat; mask: var(--sys-i-building) center / contain no-repeat; }
 .legacy-editorial .worker-company-row strong { font-size: 15px; font-weight: 600; }
-.legacy-editorial .worker-companies h3 { font-family: Inter, sans-serif; font-weight: 600; font-size: 18px; color: var(--ink); margin-top: 8px; }
+.legacy-editorial .worker-companies h3 { font-family: Outfit, Arial, sans-serif; font-weight: 600; font-size: 18px; color: var(--ink); margin-top: 8px; }
 .legacy-editorial .worker-company-search { max-width: 420px; }
 
 /* Planos da landing em grade: lado a lado enquanto couber (mínimo de 190px por cartão), uma coluna só no celular. */
@@ -373,7 +373,7 @@
   .print-document { color: #111; font: 10.5pt/1.5 Inter, system-ui, sans-serif; }
   .print-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid #ccc; }
   .print-header span { font-size: 9pt; letter-spacing: .08em; text-transform: uppercase; color: #1f3a7a; }
-  .print-document h1 { margin: 14px 0 10px; font: 600 17pt/1.25 Lora, Georgia, serif; color: #1f3a7a; }
+  .print-document h1 { margin: 14px 0 10px; font: 600 17pt/1.25 Outfit, Arial, sans-serif; color: #1f3a7a; }
   .print-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 18px; margin: 0 0 12px; }
   .print-meta div { display: flex; gap: 6px; }
   .print-meta dt { color: #555; }

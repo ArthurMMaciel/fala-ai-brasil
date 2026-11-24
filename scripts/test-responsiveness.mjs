@@ -64,3 +64,15 @@ test('nenhum código chama company_ranking nem mostra coluna de posição', () =
   }
   assert.match(readFileSync('src/services/data.ts', 'utf8'), /rpc\("company_responsiveness"\)/);
 });
+
+// Design P1.1 (2026-11-23): uma voz tipográfica. Títulos em Outfit, corpo em Inter; a Lora saiu do sistema.
+test('tipografia: nenhuma regra usa Lora; Outfit declarada e usada nos títulos', () => {
+  for (const file of ['src/styles/styles.css', 'src/styles/editorial.css', 'src/styles/system.css']) {
+    const css = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.doesNotMatch(css, /Lora/, file);
+  }
+  const editorial = readFileSync('src/styles/editorial.css', 'utf8');
+  assert.match(editorial, /@font-face \{ font-family: Outfit; src: url\('\/fonts\/outfit\.ttf'\)/);
+  assert.match(editorial, /\.legacy-editorial h2, \.legacy-editorial h3 \{ font-family: Outfit, Arial, sans-serif; font-weight: 600;/);
+  assert.match(readFileSync('src/styles/system.css', 'utf8'), /\.commercial-page-head h1 \{ font-family: Outfit, Arial, sans-serif; font-weight: 600;/);
+});
