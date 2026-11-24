@@ -41,7 +41,8 @@ const decisionLabels: Record<ReviewDecision, string> = { released: 'Liberar para
 function when(value: string) { return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(value)); }
 function hours(value: number | null) { return value === null ? '—' : value < 48 ? `${String(value).replace('.', ',')} h` : `${(value / 24).toFixed(1).replace('.', ',')} dias`; }
 function Status({ status }: { status: ComplaintStatusDb }) { return <span className={`worker-status ${statusLabel(statusTone, status, 'em-aberto')}`}>{statusLabel(statusLabels, status)}</span>; }
-const head = (eyebrow: string, title: string, text: string) => <div className="commercial-page-head"><div><span className="editorial-eyebrow">{eyebrow}</span><h1>{title}</h1><p>{text}</p></div></div>;
+// Design P3.10: sobretítulo que só repete a área (o menu já mostra onde a pessoa está) não aparece.
+const head = (eyebrow: string, title: string, text: string) => <div className="commercial-page-head"><div>{['Operação', 'Hub de parceiros', 'Área do trabalhador', 'Área da empresa'].includes(eyebrow) ? null : <span className="editorial-eyebrow">{eyebrow}</span>}<h1>{title}</h1><p>{text}</p></div></div>;
 
 // Cartão "E-mails da plataforma" (ADR-0020): contagens da fila; vermelho com senha recusada, amarelo com cota ou falha.
 function EmailStatsCard({ stats }: { stats: NotificationStats }) {
@@ -60,7 +61,7 @@ function Overview({ metrics, counts, emailStats, onView }: { metrics: OpsMetrics
  const badge = (value: number | null) => value ?? undefined;
  return <>{head('Operação', 'Visão geral', 'O que espera a equipe agora e os números agregados da plataforma. Nenhum dado individual aparece aqui.')}
   <QuickActions label="O que espera a equipe" items={[
-   { icon: 'inbox', label: 'Relatos para revisar', badge: counts.queue, onClick: () => onView('queue') },
+   { icon: 'inbox', label: 'Manifestações para revisar', badge: counts.queue, onClick: () => onView('queue') },
    { icon: 'briefcase', label: 'Respostas da empresa para revisar', badge: counts.responses, onClick: () => onView('responses') },
    { icon: 'user', label: 'Representantes a verificar', badge: badge(counts.representatives), onClick: () => onView('representatives') },
    { icon: 'building', label: 'Empresas a conferir', badge: badge(counts.pendingCompanies), onClick: () => onView('pending-companies') },

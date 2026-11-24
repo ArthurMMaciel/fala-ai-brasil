@@ -99,7 +99,7 @@ export function WorkerProfile() {
   showToast('success', 'Perfil atualizado.');
  }
  return <>
-  <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Área do trabalhador</span><h2>Meu perfil</h2><p className="muted">Seus dados de cadastro. A empresa nunca vê seu nome, telefone ou endereço.</p></div></div>
+  <div className="worker-portal-heading"><div><h2>Meu perfil</h2><p className="muted">Seus dados de cadastro. A empresa nunca vê seu nome, telefone ou endereço.</p></div></div>
   {data === undefined ? <p className="muted">Carregando seu perfil…</p> : data === null || !form ? <section className="commercial-panel"><h2>Não foi possível carregar seu perfil</h2><p>Saia e entre novamente. Se continuar, fale com a equipe.</p></section> :
   <div className="commercial-grid-two profile-layout">
    <section className="commercial-panel"><h2>Dados pessoais</h2><form className="partner-profile-form" onSubmit={save}>
@@ -137,7 +137,7 @@ export function CompanyProfile({ companyId, onSaved }: { companyId: string; onSa
   setData(next); setForm(companyForm(next)); onSaved?.();
   showToast('success', 'Dados da empresa atualizados.');
  }
- const head = <div className="commercial-page-head"><div><span className="editorial-eyebrow">Área da empresa</span><h1>Meu perfil</h1><p>Dados da empresa na plataforma. O nome fantasia aparece no diretório e no ranking.</p></div></div>;
+ const head = <div className="commercial-page-head"><div><h1>Meu perfil</h1><p>Dados da empresa na plataforma. O nome fantasia aparece no diretório e no ranking.</p></div></div>;
  if (data === undefined) return <>{head}<p className="muted">Carregando dados da empresa…</p></>;
  if (data === null || !form) return <>{head}<section className="commercial-panel"><h2>Não foi possível carregar os dados da empresa</h2><p>Saia e entre novamente. Se continuar, fale com a equipe.</p></section></>;
  const locked = <LockedFacts facts={[['Razão social', data.legalName], ['CNPJ', maskCnpj(data.cnpj)]]} />;

@@ -30,3 +30,20 @@ test('assistente de manifestação mostra os canais de emergência e diz que nã
   const fixed = wizard.match(/Etapa \{step \+ 1\} de \{total\}[\s\S]{0,200}?Em caso de risco imediato/);
   assert.ok(fixed, 'a frase fixa fica no cabeçalho, visível em todas as etapas');
 });
+
+// Design P3.10 (2026-11-24): glossário. "Manifestação" é o caso; "relato" é o texto do trabalhador. Sem sobretítulo repetido.
+test('glossário: manifestação para o caso, relato para o texto; sobretítulos que só repetem a área saem', () => {
+  const main = readFileSync('src/app/main.js', 'utf8');
+  for (const old of ['acompanhar seus relatos', 'Acompanhe seus relatos', 'Seus últimos relatos']) assert.ok(!main.includes(old), old);
+  assert.match(readFileSync('src/portals/ops-portal-live.tsx', 'utf8'), /label: 'Manifestações para revisar'/);
+  assert.match(readFileSync('src/portals/worker-portal-live.tsx', 'utf8'), /Quantas manifestações você registrou no período\./);
+  const notices = readFileSync('src/portals/company-notices.tsx', 'utf8');
+  assert.match(notices, /<th>Manifestações<\/th><\/tr>/);
+  for (const file of ['company-notices', 'response-review', 'representatives', 'profile-live', 'worker-portal-live', 'portal-live', 'ops-portal-live']) {
+    assert.doesNotMatch(readFileSync(`src/portals/${file}.tsx`, 'utf8'), /<span className="editorial-eyebrow">(Operação|Hub de parceiros|Área do trabalhador|Área da empresa)<\/span>/, file);
+  }
+  // Textos em revisão jurídica (aviso à empresa e consentimento) não mudam.
+  const legal = readFileSync('src/domain/company-notice.ts', 'utf8');
+  assert.match(legal, /existe um relato sobre a sua empresa/);
+  assert.match(readFileSync('src/domain/site-pages.ts', 'utf8'), /description: 'Receba manifestações liberadas pelos trabalhadores, organize a atuação e dê retorno\.'/);
+});

@@ -12,7 +12,7 @@ const registryEmailBadge = 'E-mail da Receita: confira antes (pode ser do contad
 // Sem as migrations 20261118120000/130000 as telas avisam e não quebram.
 const dateLabel = (value: string | null) => value ? new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value)) : '—';
 const notActive = (what: string) => <section className="commercial-panel"><p>{what} ainda não está ativa no banco. A tela passa a funcionar assim que a atualização for aplicada.</p></section>;
-const heading = (title: string, text: string) => <div className="commercial-page-head"><div><span className="editorial-eyebrow">Operação</span><h1>{title}</h1><p>{text}</p></div></div>;
+const heading = (title: string, text: string) => <div className="commercial-page-head"><div><h1>{title}</h1><p>{text}</p></div></div>;
 
 function useRows<T>(load: () => Promise<{ missing: true } | { missing: false; rows: T[] }>, version: number) {
  const [rows, setRows] = useState<T[] | null>(null);
@@ -64,9 +64,9 @@ export function OpsPendingCompanies() {
  const { rows, missing, failure } = useRows(listPendingCompanies, version);
  const opened = rows?.find(row => row.companyId === openId);
  if (opened) return <CompanyReview key={opened.companyId + opened.registrationStatus + (opened.reviewDecision ?? '')} item={opened} onBack={() => setOpenId(null)} onChanged={() => { setOpenId(null); setVersion(value => value + 1); }} />;
- return <>{heading('Empresas a conferir', 'Empresas que entraram por um relato e ainda não têm conta. Confira na Receita Federal antes de qualquer aviso. Elas não aparecem no diretório nem no ranking.')}
+ return <>{heading('Empresas a conferir', 'Empresas que entraram por uma manifestação e ainda não têm conta. Confira na Receita Federal antes de qualquer aviso. Elas não aparecem no diretório nem no ranking.')}
   {missing ? notActive('A conferência de empresas') : failure ? <section className="commercial-panel"><p>{failure}</p></section> : rows === null ? <p className="muted">Carregando…</p> : !rows.length ? <EmptyState icon="building" text="Nenhuma empresa fora do cadastro." hint="Empresas informadas pelo CNPJ numa manifestação, ainda sem conta, aparecem aqui para conferência." /> :
-  <div className="commercial-table-wrap"><table className="commercial-table"><thead><tr><th>Empresa</th><th>Município</th><th>Origem</th><th>Situação</th><th>Relatos</th></tr></thead>
+  <div className="commercial-table-wrap"><table className="commercial-table"><thead><tr><th>Empresa</th><th>Município</th><th>Origem</th><th>Situação</th><th>Manifestações</th></tr></thead>
    <tbody>{rows.map(row => <tr key={row.companyId} tabIndex={0} onClick={() => setOpenId(row.companyId)} onKeyDown={event => event.key === 'Enter' && setOpenId(row.companyId)}><td>{row.name}<small>CNPJ {maskCnpj(row.cnpj)}</small></td><td>{row.city}/{row.state}</td><td>{dataSourceLabels[row.dataSource] ?? row.dataSource}</td><td>{row.reviewDecision === 'blocked' ? 'Bloqueada' : registrationLabels[row.registrationStatus] ?? row.registrationStatus}{row.naturalPerson ? ' · pessoa física' : ''}</td><td>{row.complaints}</td></tr>)}</tbody></table></div>}</>;
 }
 

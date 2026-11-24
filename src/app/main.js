@@ -114,8 +114,8 @@ function u(e,a){return`<article class="card"><h3>${e}</h3><p class="muted">${a}<
       </aside>
       <section class="auth-box">
         <span class="eyebrow">Portal · ${i?E[o.authAudience].short:"Trabalhador"}</span>
-        <h2>${a?i?"Acesse sua conta.":"Entre para acompanhar seus relatos.":i?"Cadastre sua conta e escolha seu plano.":"Crie uma conta para acompanhar seus relatos."}</h2>
-        <p class="muted">${i?"Selecione seu primeiro plano para iniciar o período gratuito ou seguir com o pagamento.":"Seu cadastro é usado para você acompanhar seus relatos. Seus dados de identificação não são enviados à empresa relacionada."}</p>
+        <h2>${a?i?"Acesse sua conta.":"Entre para acompanhar suas manifestações.":i?"Cadastre sua conta e escolha seu plano.":"Crie uma conta para acompanhar suas manifestações."}</h2>
+        <p class="muted">${i?"Selecione seu primeiro plano para iniciar o período gratuito ou seguir com o pagamento.":"Seu cadastro é usado para você acompanhar suas manifestações. Seus dados de identificação não são enviados à empresa relacionada."}</p>
         ${a?"":`<div class="field"><label for="register-persona">Tipo de conta</label><select id="register-persona" data-input="register-persona"><option value="worker" ${i?"":"selected"}>Trabalhador · gratuito</option>${Object.keys(E).filter(s=>s!=="studies"&&s!=="intelligence"&&isVisibleAudience(s)).map(s=>`<option value="${s}" ${o.authAudience===s?"selected":""}>${E[s].short}</option>`).join("")}</select></div>`}
         <form data-form="auth"${a?"":' class="auth-steps-form"'}>
           ${a?`<div class="field"><label for="auth-email">E-mail</label><input id="auth-email" name="email" type="email" autocomplete="email" value="${h(o.authNotice?.email??"")}" required /></div>
@@ -203,7 +203,7 @@ function u(e,a){return`<article class="card"><h3>${e}</h3><p class="muted">${a}<
     </main>
   `}function A(e,a){return`<button class="side-link ${o.route===e?"active":""}" data-route="${e}">${a}</button>`}function Me(){var a;const e=he();return`
     <div class="page-head">
-      <div><h2>Olá, ${h(((a=o.user)==null?void 0:a.name)??"Ana")}. Como podemos ajudar hoje?</h2><p class="muted">Acompanhe seus relatos e comece uma nova escuta quando precisar.</p></div>
+      <div><h2>Olá, ${h(((a=o.user)==null?void 0:a.name)??"Ana")}. Como podemos ajudar hoje?</h2><p class="muted">Acompanhe suas manifestações e comece uma nova quando precisar.</p></div>
       <button class="btn primary" data-route="companies">Fazer uma nova manifestação</button>
     </div>
     <div class="grid four">
@@ -213,7 +213,7 @@ function u(e,a){return`<article class="card"><h3>${e}</h3><p class="muted">${a}<
       ${l("Finalizadas",e.filter(t=>t.status==="Finalizada").length)}
     </div>
     <section style="margin-top:24px">
-      <h3>Seus últimos relatos</h3>
+      <h3>Suas últimas manifestações</h3>
       <div class="grid two">
         ${e.slice(0,4).map(t=>Te(t)).join("")}
       </div>
