@@ -31,3 +31,24 @@ test('motivo da decisão: até 469 caracteres, mínimo de 10 fora da liberação
   assert.equal('Ajuste solicitado pela equipe: '.length + queue.opsReasonMax, 500);
   assert.ok(readFileSync('src/portals/ops-portal-live.tsx', 'utf8').includes('<textarea rows={3} maxLength={opsReasonMax}'));
 });
+
+// Próximo passo depois de liberar (pedido do responsável, 2026-11-23).
+test('próximo passo da liberação: empresa verificada, sem verificado, sem conta e sem dados', () => {
+  const verified = new Set(['c1']), pending = new Set(['c2']);
+  assert.equal(queue.releaseDelivery('c1', verified, pending), 'verified');
+  assert.equal(queue.releaseDelivery('c2', verified, pending), 'unregistered');
+  assert.equal(queue.releaseDelivery('c3', verified, pending), 'unverified');
+  assert.equal(queue.releaseDelivery('c2', null, pending), 'unregistered');
+  assert.equal(queue.releaseDelivery('c3', null, null), 'unknown');
+  assert.equal(queue.releaseNextStep('verified').text, 'Chegou à empresa; a resposta volta em Manifestações → Respostas da empresa.');
+  assert.equal(queue.releaseNextStep('verified', true).text, 'Vai chegar à empresa; a resposta volta em Manifestações → Respostas da empresa.');
+  assert.deepEqual(queue.releaseNextStep('verified').links.map(link => link.view), ['responses']);
+  assert.equal(queue.releaseNextStep('unverified').text, 'A empresa ainda não tem representante verificado: veja Empresas → Representantes.');
+  assert.deepEqual(queue.releaseNextStep('unverified').links.map(link => link.view), ['representatives']);
+  assert.equal(queue.releaseNextStep('unregistered').text, 'Empresa sem conta: confira em Empresas → A conferir e decida o aviso em Empresas → Avisos.');
+  assert.deepEqual(queue.releaseNextStep('unregistered').links.map(link => link.view), ['pending-companies', 'notices']);
+  assert.deepEqual(queue.releaseNextStep('unknown').links.map(link => link.view), ['companies']);
+  const portal = readFileSync('src/portals/ops-portal-live.tsx', 'utf8');
+  assert.match(portal, /showToast\('success', decision === 'released' \? `Manifestação liberada\. \$\{releaseNextStep\(delivery\)\.text\}`/);
+  assert.match(portal, /listOpsRepresentatives\('verified'\)/);
+});

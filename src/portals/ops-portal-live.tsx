@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { decideOpsComplaint, listOpsComplaints, listOpsCompanies, listOpsRepresentatives, loadOpsMetrics, loadOpsTimeline, readOpsOriginal, type OpsComplaint, type OpsCompany, type OpsMetrics, type OpsTimelineItem, type ReviewDecision } from '../services/ops';
 import type { ComplaintStatusDb } from '../services/data';
 import { statusLabel } from '../domain/complaint-status';
-import { oldestFirst, opsReasonMax, validateOpsReason, waitingLabel } from '../domain/ops-queue';
+import { oldestFirst, opsReasonMax, releaseDelivery, releaseNextStep, validateOpsReason, waitingLabel, type ReleaseDelivery, type ReleaseView } from '../domain/ops-queue';
 import { showToast } from '../app/toast';
 import { Metric, Sidebar } from './portal-live';
 import { QuickActions } from './ui';
@@ -103,7 +103,14 @@ function ComplaintContact({ complaintId }: { complaintId: string }) {
    <li><span className="muted small">Possível envolvimento</span><strong>{contact.possiblyInvolved ? 'Sim ou não sabe: não usar' : 'Não'}</strong></li></ul></section>;
 }
 
-function ComplaintDetail({ complaint, onBack, onChanged }: { complaint: OpsComplaint; onBack: () => void; onChanged: () => void }) {
+// Para onde a manifestação vai depois da liberação: chegou à empresa, falta representante verificado ou empresa sem conta.
+function NextStep({ delivery, before, onGo }: { delivery: ReleaseDelivery; before: boolean; onGo: (view: ReleaseView) => void }) {
+ const step = releaseNextStep(delivery, before);
+ return <section className="worker-detail-section ops-next-step" aria-live="polite"><h3>{before ? 'Depois de liberar' : 'Próximo passo'}</h3><p>{step.text}</p>
+  <div className="ops-decision-actions">{step.links.map(link => <button key={link.view} className="btn" type="button" onClick={() => onGo(link.view)}>{link.label}</button>)}</div></section>;
+}
+
+function ComplaintDetail({ complaint, delivery, onBack, onChanged, onGo }: { complaint: OpsComplaint; delivery: ReleaseDelivery; onBack: () => void; onChanged: () => void; onGo: (view: ReleaseView) => void }) {
  const [timeline, setTimeline] = useState<OpsTimelineItem[] | null>(null);
  const [reason, setReason] = useState('');
  const [busy, setBusy] = useState(false);
@@ -119,7 +126,7 @@ function ComplaintDetail({ complaint, onBack, onChanged }: { complaint: OpsCompl
   if (decision === 'released' && !window.confirm('Liberar esta versão para a empresa? Ela passará a ver o texto compartilhável.')) return;
   setBusy(true); const result = await decideOpsComplaint(complaint.id, decision, reason); setBusy(false);
   if (!result.ok) return showToast('error', result.message);
-  showToast('success', decision === 'released' ? 'Manifestação liberada para a empresa.' : decision === 'held' ? 'Manifestação retida para análise.' : 'Ajuste solicitado ao trabalhador.');
+  showToast('success', decision === 'released' ? `Manifestação liberada. ${releaseNextStep(delivery).text}` : decision === 'held' ? 'Manifestação retida para análise.' : 'Ajuste solicitado ao trabalhador.');
   setReason(''); onChanged();
  }
  async function openOriginal() {
@@ -134,6 +141,8 @@ function ComplaintDetail({ complaint, onBack, onChanged }: { complaint: OpsCompl
   <div className="worker-detail-grid"><div>
    <section className="worker-detail-section"><h3>Versão compartilhável</h3><p className="muted small">É o único texto que a empresa pode receber. Confira se não há nomes, locais, datas ou detalhes que identifiquem pessoas.</p>{complaint.shared ? <p className="worker-original">{complaint.shared}</p> : <p className="muted">O trabalhador ainda não escreveu a versão compartilhável.</p>}</section>
    <section className="worker-detail-section"><h3>Contexto</h3><dl><div><dt>Quando aconteceu</dt><dd>{complaint.incidentPeriod ?? '—'}</dd></div><div><dt>Recorrência</dt><dd>{complaint.recurrence ?? '—'}</dd></div><div><dt>O que espera</dt><dd>{complaint.expectedOutcomes.length ? complaint.expectedOutcomes.join(', ') : '—'}</dd></div><div><dt>Respostas da empresa</dt><dd>{complaint.responses}</dd></div></dl></section>
+   {complaint.status === 'shared' && <NextStep delivery={delivery} before={false} onGo={onGo} />}
+   {canDecide && <NextStep delivery={delivery} before onGo={onGo} />}
    {canDecide && <section className="worker-detail-section ops-decision"><h3>Decisão da equipe</h3>
     <label className="field">Motivo (obrigatório para ajuste ou retenção)<textarea rows={3} maxLength={opsReasonMax} aria-describedby="ops-reason-count" value={reason} onChange={event => setReason(event.target.value)} placeholder="Ex.: a versão cita o nome do gestor; retire antes da liberação." /><small className="muted">No pedido de ajuste, o motivo aparece para o trabalhador. Na retenção, fica só na trilha da equipe.</small><small id="ops-reason-count" className={`muted ops-reason-count${reason.trim().length > opsReasonMax - 30 ? ' near-limit' : ''}`}>{reason.trim().length}/{opsReasonMax} caracteres</small></label>
     <div className="ops-decision-actions"><button className="btn primary" disabled={busy || !complaint.shared} onClick={() => decide('released')}>{decisionLabels.released}</button><button className="btn" disabled={busy} onClick={() => decide('adjustment_requested')}>{decisionLabels.adjustment_requested}</button>{complaint.status !== 'held' && <button className="btn" disabled={busy} onClick={() => decide('held')}>{decisionLabels.held}</button>}</div></section>}
@@ -163,6 +172,7 @@ export function OpsPortalLive() {
  const [search, setSearch] = useState('');
  const [version, setVersion] = useState(0);
  const [failure, setFailure] = useState('');
+ const [delivery, setDelivery] = useState<{ verified: Set<string> | null; pending: Set<string> | null }>({ verified: null, pending: null });
  const [pendingCounts, setPendingCounts] = useState<{ representatives: number | null; pendingCompanies: number | null; notices: number | null }>({ representatives: null, pendingCompanies: null, notices: null });
  useEffect(() => {
   let active = true;
@@ -170,8 +180,12 @@ export function OpsPortalLive() {
    .then(([m, c, co]) => { if (active) { setMetrics(m); setComplaints(c); setCompanies(co); setFailure(''); } })
    .catch(error => { if (active) setFailure(error instanceof Error ? error.message : 'Não foi possível carregar a área da equipe.'); });
   // Contadores das abas: sem a função no banco ou com erro, a aba fica sem número.
-  Promise.allSettled([listOpsRepresentatives('pending'), listPendingCompanies(), listNoticeCandidates()]).then(([reps, pending, notices]) => {
+  Promise.allSettled([listOpsRepresentatives('pending'), listPendingCompanies(), listNoticeCandidates(), listOpsRepresentatives('verified')]).then(([reps, pending, notices, verified]) => {
    if (!active) return;
+   setDelivery({
+    verified: verified.status === 'fulfilled' && !verified.value.missing ? new Set(verified.value.rows.map(row => row.companyId)) : null,
+    pending: pending.status === 'fulfilled' && !pending.value.missing ? new Set(pending.value.rows.map(row => row.companyId)) : null,
+   });
    setPendingCounts({
     representatives: reps.status === 'fulfilled' && !reps.value.missing ? reps.value.rows.length : null,
     pendingCompanies: pending.status === 'fulfilled' && !pending.value.missing ? pending.value.rows.filter(row => row.registrationStatus === 'pending_check' && !row.reviewDecision).length : null,
@@ -197,7 +211,7 @@ export function OpsPortalLive() {
  return <main className="commercial-portal-content"><Sidebar eyebrow="Operação" name="Equipe Escuta Aí Brasil" items={items} view={section} onView={next => go(firstTab[next])} /><section className="commercial-portal-main">
   {!opened && <SectionTabs section={section} view={view} counts={tabCounts} onView={go} />}
   {failure ? <section className="commercial-panel"><h2>Não foi possível carregar</h2><p>{failure}</p></section> :
-   opened ? <ComplaintDetail key={opened.id + opened.status} complaint={opened} onBack={() => setOpenId(null)} onChanged={() => setVersion(value => value + 1)} /> :
+   opened ? <ComplaintDetail key={opened.id + opened.status} complaint={opened} delivery={releaseDelivery(opened.companyId, delivery.verified, delivery.pending)} onBack={() => setOpenId(null)} onChanged={() => setVersion(value => value + 1)} onGo={go} /> :
    view === 'overview' ? <Overview metrics={metrics} counts={counts} onView={go} /> :
    view === 'queue' ? <>{head('Operação', 'Fila de revisão', 'Confira a versão compartilhável e decida: liberar para a empresa, pedir ajuste ao trabalhador ou reter para análise.')}
     {complaints === null ? <p className="muted">Carregando…</p> : <ComplaintList rows={queue} waiting onOpen={row => setOpenId(row.id)} empty="Nenhuma manifestação aguardando revisão." />}</> :

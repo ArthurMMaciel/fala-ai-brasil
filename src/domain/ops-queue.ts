@@ -24,3 +24,22 @@ export function validateOpsReason(decision: "released" | "adjustment_requested" 
   if (decision !== "released" && length < 10) return "Explique o motivo com pelo menos 10 caracteres.";
   return null;
 }
+
+// Próximo passo depois de "Liberar para a empresa" (pedido do responsável, 2026-11-23), com os dados que a Operação
+// já carrega: empresas a conferir (sem conta) e representantes verificados. Sem a função no banco, o caso fica "unknown".
+export type ReleaseDelivery = "verified" | "unverified" | "unregistered" | "unknown";
+export type ReleaseView = "responses" | "representatives" | "pending-companies" | "notices" | "companies";
+
+export function releaseDelivery(companyId: string, verifiedCompanyIds: ReadonlySet<string> | null, pendingCompanyIds: ReadonlySet<string> | null): ReleaseDelivery {
+  if (pendingCompanyIds?.has(companyId)) return "unregistered";
+  if (!verifiedCompanyIds) return "unknown";
+  return verifiedCompanyIds.has(companyId) ? "verified" : "unverified";
+}
+
+// before: texto mostrado antes da liberação ("Depois de liberar"); sem before, o que já aconteceu ("Próximo passo").
+export function releaseNextStep(delivery: ReleaseDelivery, before = false): { text: string; links: { view: ReleaseView; label: string }[] } {
+  if (delivery === "verified") return { text: `${before ? "Vai chegar" : "Chegou"} à empresa; a resposta volta em Manifestações → Respostas da empresa.`, links: [{ view: "responses", label: "Abrir Respostas da empresa" }] };
+  if (delivery === "unverified") return { text: "A empresa ainda não tem representante verificado: veja Empresas → Representantes.", links: [{ view: "representatives", label: "Abrir Representantes" }] };
+  if (delivery === "unregistered") return { text: "Empresa sem conta: confira em Empresas → A conferir e decida o aviso em Empresas → Avisos.", links: [{ view: "pending-companies", label: "Abrir A conferir" }, { view: "notices", label: "Abrir Avisos" }] };
+  return { text: "Confira a situação da empresa em Empresas.", links: [{ view: "companies", label: "Abrir Empresas" }] };
+}
