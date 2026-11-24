@@ -1,0 +1,76 @@
+-- MANUTENÇÃO 01: PRÉVIA de "zerar o banco". SÓ LEITURA: não apaga nada.
+-- Mostra, por tabela, quantas linhas o 02_zerar_banco.sql apagaria e quantas ficam. Ficam: as contas da equipe
+-- (private.platform_admins), os perfis delas, se houver, e as tabelas de configuração (planos, documentos legais,
+-- estado do piloto, histórico de migrations). Tabela que ainda não existe aparece com "não existe".
+with
+admins as (select user_id from private.platform_admins),
+t(ordem, tabela, apagar, manter) as (values
+  (1,  'public.complaints', 'select count(*) as n from public.complaints', null),
+  (2,  'public.complaint_originals', 'select count(*) as n from public.complaint_originals', null),
+  (3,  'public.complaint_shared_versions', 'select count(*) as n from public.complaint_shared_versions', null),
+  (4,  'public.complaint_events', 'select count(*) as n from public.complaint_events', null),
+  (5,  'public.complaint_reviews', 'select count(*) as n from public.complaint_reviews', null),
+  (6,  'public.company_responses', 'select count(*) as n from public.company_responses', null),
+  (7,  'public.company_response_reviews', 'select count(*) as n from public.company_response_reviews', null),
+  (8,  'public.response_ratings', 'select count(*) as n from public.response_ratings', null),
+  (9,  'public.original_access_log', 'select count(*) as n from public.original_access_log', null),
+  (10, 'public.complaint_contacts', 'select count(*) as n from public.complaint_contacts', null),
+  (11, 'private.complaint_notice_consents', 'select count(*) as n from private.complaint_notice_consents', null),
+  (12, 'public.company_notices', 'select count(*) as n from public.company_notices', null),
+  (13, 'private.notice_opt_outs', 'select count(*) as n from private.notice_opt_outs', null),
+  (14, 'private.notification_outbox', 'select count(*) as n from private.notification_outbox', null),
+  (15, 'private.cnpj_cache', 'select count(*) as n from private.cnpj_cache', null),
+  (16, 'private.cnpj_lookup_quota', 'select count(*) as n from private.cnpj_lookup_quota', null),
+  (17, 'private.company_preregistrations', 'select count(*) as n from private.company_preregistrations', null),
+  (18, 'public.representative_verifications', 'select count(*) as n from public.representative_verifications', null),
+  (19, 'public.partner_connections', 'select count(*) as n from public.partner_connections', null),
+  (20, 'public.campaigns', 'select count(*) as n from public.campaigns', null),
+  (21, 'public.contact_solicitations', 'select count(*) as n from public.contact_solicitations', null),
+  (22, 'public.legal_acceptances', 'select count(*) as n from public.legal_acceptances', null),
+  (23, 'public.pilot_state_log', 'select count(*) as n from public.pilot_state_log', null),
+  (24, 'public.profile_change_log', 'select count(*) as n from public.profile_change_log', null),
+  (25, 'public.company_users',
+       'select count(*) as n from public.company_users where user_id not in (select user_id from private.platform_admins)',
+       'select count(*) as n from public.company_users where user_id in (select user_id from private.platform_admins)'),
+  (26, 'public.companies',
+       'select count(*) as n from public.companies c where not exists (select 1 from public.company_users cu join private.platform_admins a on a.user_id = cu.user_id where cu.company_id = c.id)',
+       'select count(*) as n from public.companies c where exists (select 1 from public.company_users cu join private.platform_admins a on a.user_id = cu.user_id where cu.company_id = c.id)'),
+  (27, 'public.workers',
+       'select count(*) as n from public.workers where user_id not in (select user_id from private.platform_admins)',
+       'select count(*) as n from public.workers where user_id in (select user_id from private.platform_admins)'),
+  (28, 'public.partners',
+       'select count(*) as n from public.partners where user_id not in (select user_id from private.platform_admins)',
+       'select count(*) as n from public.partners where user_id in (select user_id from private.platform_admins)'),
+  (29, 'public.sponsors',
+       'select count(*) as n from public.sponsors where user_id not in (select user_id from private.platform_admins)',
+       'select count(*) as n from public.sponsors where user_id in (select user_id from private.platform_admins)'),
+  (30, 'public.media',
+       'select count(*) as n from public.media m where not exists (select 1 from public.partners p join private.platform_admins a on a.user_id = p.user_id where p.id = m.partner_id)',
+       'select count(*) as n from public.media m where exists (select 1 from public.partners p join private.platform_admins a on a.user_id = p.user_id where p.id = m.partner_id)'),
+  (31, 'public.subscriptions',
+       'select count(*) as n from public.subscriptions where not (company_id in (select c.id from public.companies c where exists (select 1 from public.company_users cu join private.platform_admins a on a.user_id = cu.user_id where cu.company_id = c.id)) or partner_id in (select p.id from public.partners p join private.platform_admins a on a.user_id = p.user_id) or sponsor_id in (select s.id from public.sponsors s join private.platform_admins a on a.user_id = s.user_id))',
+       'select count(*) as n from public.subscriptions where (company_id in (select c.id from public.companies c where exists (select 1 from public.company_users cu join private.platform_admins a on a.user_id = cu.user_id where cu.company_id = c.id)) or partner_id in (select p.id from public.partners p join private.platform_admins a on a.user_id = p.user_id) or sponsor_id in (select s.id from public.sponsors s join private.platform_admins a on a.user_id = s.user_id))'),
+  (32, 'public.addresses',
+       'select count(*) as n from public.addresses where not (id in (select w.address_id from public.workers w join private.platform_admins a on a.user_id = w.user_id) or id in (select address_id from public.companies where id in (select c.id from public.companies c where exists (select 1 from public.company_users cu join private.platform_admins a on a.user_id = cu.user_id where cu.company_id = c.id))) or id in (select address_id from public.partners where id in (select p.id from public.partners p join private.platform_admins a on a.user_id = p.user_id)) or id in (select address_id from public.sponsors where id in (select s.id from public.sponsors s join private.platform_admins a on a.user_id = s.user_id)))',
+       'select count(*) as n from public.addresses where (id in (select w.address_id from public.workers w join private.platform_admins a on a.user_id = w.user_id) or id in (select address_id from public.companies where id in (select c.id from public.companies c where exists (select 1 from public.company_users cu join private.platform_admins a on a.user_id = cu.user_id where cu.company_id = c.id))) or id in (select address_id from public.partners where id in (select p.id from public.partners p join private.platform_admins a on a.user_id = p.user_id)) or id in (select address_id from public.sponsors where id in (select s.id from public.sponsors s join private.platform_admins a on a.user_id = s.user_id)))'),
+  (33, 'private.document_officers',
+       'select count(*) as n from private.document_officers where user_id not in (select user_id from private.platform_admins)',
+       'select count(*) as n from private.document_officers where user_id in (select user_id from private.platform_admins)'),
+  (34, 'auth.users (contas)',
+       'select count(*) as n from auth.users where id not in (select user_id from private.platform_admins)',
+       'select count(*) as n from auth.users where id in (select user_id from private.platform_admins)'),
+  (90, 'private.platform_admins (equipe: fica)', null, 'select count(*) as n from private.platform_admins'),
+  (91, 'public.plans (catálogo: fica)', null, 'select count(*) as n from public.plans'),
+  (92, 'private.legal_documents (fica)', null, 'select count(*) as n from private.legal_documents'),
+  (93, 'private.platform_settings (estado do piloto: fica)', null, 'select count(*) as n from private.platform_settings'),
+  (94, 'storage.objects (arquivos: limpar pelo painel)', null, 'select count(*) as n from storage.objects')
+)
+select ordem, tabela,
+       case when to_regclass(split_part(tabela, ' ', 1)) is null then 'não existe'
+            when apagar is null then '0'
+            else (xpath('/row/n/text()', query_to_xml(apagar, false, true, '')))[1]::text end as apagaria,
+       case when to_regclass(split_part(tabela, ' ', 1)) is null then 'não existe'
+            when manter is null then '0'
+            else (xpath('/row/n/text()', query_to_xml(manter, false, true, '')))[1]::text end as fica
+from t
+order by ordem;
