@@ -13,7 +13,7 @@ begin
     -- cronômetro começa no DO, que é a instrução de topo; um SET aqui dentro não o rearma.)
     execute 'set local lock_timeout = ''3s''';
 
-    -- 20261123130000_fila_de_avisos_da_plataforma.sql (21 instruções)
+    -- 20261123130000_fila_de_avisos_da_plataforma.sql (24 instruções)
     if exists (select 1 from supabase_migrations.schema_migrations where version = '20261123130000') then
       res := res || jsonb_build_object('20261123130000', 'já aplicada em produção; pulada');
     else
@@ -38,7 +38,8 @@ begin
 -- Rollback (sem dependentes): drop trigger complaint_events_notify on public.complaint_events; drop trigger
 --   company_responses_notify on public.company_responses; drop function private.enqueue_notification(),
 --   private.enqueue_response_returned(), public.notification_claim(integer), public.notification_mark(uuid, text, text, integer),
---   public.set_worker_email_updates(boolean), public.my_email_updates(); drop table private.notification_outbox;
+--   public.set_worker_email_updates(boolean), public.my_email_updates(), public.ops_notification_stats();
+--   drop table private.notification_outbox;
 --   alter table public.workers drop column email_updates.
 
 set local lock_timeout = '5s'$s0$;
@@ -55,6 +56,7 @@ alter table public.workers add column email_updates boolean not null default tru
   attempts integer not null default 0 check (attempts >= 0),
   next_attempt_at timestamptz not null default now(),
   claimed_at timestamptz,
+  last_attempt_at timestamptz,  -- última marcação (sent, retry ou release), para as contagens da Operação
   messages_sent integer not null default 0 check (messages_sent >= 0),  -- e-mails entregues por esta linha (teto diário)
   last_error_code text check (last_error_code is null or last_error_code ~ '^[a-z0-9_]{1,40}$'),  -- código curto, nunca texto do servidor
   sent_at timestamptz,
@@ -168,7 +170,8 @@ declare v_attempts integer; v_code text := case when p_error_code ~ '^[a-z0-9_]{
 begin
   if p_result = 'sent' then
     update private.notification_outbox
-    set status = 'sent', sent_at = now(), messages_sent = greatest(coalesce(p_messages, 0), 0), claimed_at = null, last_error_code = null
+    set status = 'sent', sent_at = now(), messages_sent = greatest(coalesce(p_messages, 0), 0), claimed_at = null, last_error_code = null,
+        last_attempt_at = now()
     where id = p_id and status = 'sending';
   elsif p_result = 'retry' then
     update private.notification_outbox set attempts = attempts + 1 where id = p_id and status = 'sending'
@@ -179,10 +182,10 @@ begin
         next_attempt_at = now() + case v_attempts when 1 then interval '5 minutes' when 2 then interval '30 minutes'
                                                   when 3 then interval '2 hours' when 4 then interval '6 hours'
                                                   else interval '24 hours' end,
-        last_error_code = v_code, claimed_at = null
+        last_error_code = v_code, claimed_at = null, last_attempt_at = now()
     where id = p_id;
   elsif p_result = 'release' then
-    update private.notification_outbox set status = 'pending', claimed_at = null, last_error_code = v_code
+    update private.notification_outbox set status = 'pending', claimed_at = null, last_error_code = v_code, last_attempt_at = now()
     where id = p_id and status = 'sending';
   else
     raise exception 'Resultado inválido.' using errcode = 'P0001';
@@ -192,6 +195,28 @@ $$$s0$;
       execute $s0$revoke all on function public.notification_claim(integer), public.notification_mark(uuid, text, text, integer)
   from public, anon, authenticated$s0$;
       execute $s0$grant execute on function public.notification_claim(integer), public.notification_mark(uuid, text, text, integer) to service_role$s0$;
+      execute $s0$-- Contagens para a Operação (só a equipe; sem e-mail nem destinatário). Parada por senha: smtp_auth; por cota ou
+-- limite do Gmail: smtp_quota e smtp_421 — contadas pela última marcação nas últimas 24 h.
+create function public.ops_notification_stats()
+returns table (pending integer, sending integer, failed integer, sent_24h integer, messages_24h integer,
+               stopped_auth_24h integer, stopped_quota_24h integer, last_sent_at timestamptz)
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  if not public.is_platform_admin() then raise exception 'acesso negado' using errcode = '42501'; end if;
+  return query
+  select (count(*) filter (where o.status = 'pending'))::int,
+         (count(*) filter (where o.status = 'sending'))::int,
+         (count(*) filter (where o.status = 'failed'))::int,
+         (count(*) filter (where o.status = 'sent' and o.sent_at > now() - interval '24 hours'))::int,
+         coalesce(sum(o.messages_sent) filter (where o.status = 'sent' and o.sent_at > now() - interval '24 hours'), 0)::int,
+         (count(*) filter (where o.last_error_code = 'smtp_auth' and o.last_attempt_at > now() - interval '24 hours'))::int,
+         (count(*) filter (where o.last_error_code in ('smtp_quota', 'smtp_421') and o.last_attempt_at > now() - interval '24 hours'))::int,
+         max(o.sent_at)
+  from private.notification_outbox o;
+end;
+$$$s0$;
+      execute $s0$revoke all on function public.ops_notification_stats() from public, anon, service_role$s0$;
+      execute $s0$grant execute on function public.ops_notification_stats() to authenticated$s0$;
       execute $s0$-- Opt-out em Meu perfil (só o próprio trabalhador). Desligado: avisos novos nascem 'suppressed' e os pendentes não saem.
 create function public.set_worker_email_updates(p_enabled boolean)
 returns void language plpgsql security definer set search_path = '' as $$
@@ -363,6 +388,19 @@ $$$s0$;
     select count(*) into n from public.notification_claim(500);
     execute 'reset role';
     if n <> 0 then falhas := falhas || jsonb_build_object('teto diário não respeitado', n); end if;
+    -- Contagens para a Operação: só a equipe; refletem a falha definitiva e a parada por senha nas últimas 24 h.
+    execute 'set local role authenticated';
+    perform set_config('request.jwt.claims', json_build_object('sub', u_w, 'role', 'authenticated')::text, true);
+    begin
+      perform public.ops_notification_stats();
+      falhas := falhas || jsonb_build_object('trabalhador lê contagens da fila', true);
+    exception when others then null; end;
+    perform set_config('request.jwt.claims', json_build_object('sub', u_op, 'role', 'authenticated')::text, true);
+    select * into r from public.ops_notification_stats();
+    if coalesce(r.failed, 0) < 1 or coalesce(r.stopped_auth_24h, 0) < 1 or coalesce(r.sent_24h, 0) < 1 then
+      falhas := falhas || jsonb_build_object('contagens da fila incompletas', jsonb_build_object('failed', r.failed, 'auth', r.stopped_auth_24h, 'sent', r.sent_24h));
+    end if;
+    execute 'reset role';
     res := res || jsonb_build_object('verificações da fila de avisos', 'executadas');
     
 

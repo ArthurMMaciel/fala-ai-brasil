@@ -18,7 +18,10 @@ with c(n, verificacao, ok) as (values
   (6, 'opt-out do trabalhador (coluna e funções)',
       (select count(*) = 1 from information_schema.columns where table_schema = 'public' and table_name = 'workers' and column_name = 'email_updates')
       and to_regprocedure('public.set_worker_email_updates(boolean)') is not null
-      and to_regprocedure('public.my_email_updates()') is not null)
+      and to_regprocedure('public.my_email_updates()') is not null),
+  (7, 'contagens da fila só para a equipe',
+      to_regprocedure('public.ops_notification_stats()') is not null
+      and not coalesce(has_function_privilege('anon', to_regprocedure('public.ops_notification_stats()'), 'execute'), true))
 )
 select n, verificacao, coalesce(ok, false) as ok from c
 union all select 99, 'RESULTADO GERAL', bool_and(coalesce(ok, false)) from c

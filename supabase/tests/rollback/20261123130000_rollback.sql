@@ -24,7 +24,7 @@ drop trigger complaint_events_notify on public.complaint_events;
 drop trigger company_responses_notify on public.company_responses;
 drop function private.enqueue_notification(), private.enqueue_response_returned(),
   public.notification_claim(integer), public.notification_mark(uuid, text, text, integer),
-  public.set_worker_email_updates(boolean), public.my_email_updates();
+  public.set_worker_email_updates(boolean), public.my_email_updates(), public.ops_notification_stats();
 drop table private.notification_outbox;
 alter table public.workers drop column email_updates;
 delete from supabase_migrations.schema_migrations where version = '20261123130000';

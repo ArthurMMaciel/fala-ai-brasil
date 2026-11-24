@@ -81,11 +81,14 @@ test('mensagem: cabeçalhos codificados, corpo em base64 e só o texto fixo', ()
   assert.match(m, /^From: =\?UTF-8\?B\?.+\?= <conta@gmail\.invalid>/);
   assert.match(m, /Subject: =\?UTF-8\?B\?/);
   assert.match(m, /Content-Transfer-Encoding: base64/);
+  assert.match(m, /\r\nAuto-Submitted: auto-generated\r\n/);
   const encoded = m.split('\r\n\r\n')[1].replace(/\r\n/g, '');
   assert.equal(Buffer.from(encoded, 'base64').toString('utf8'), body);
   assert.match(body, /https:\/\/fala-ai-brasil\.vercel\.app/);
   assert.match(body, /Meu perfil/);
   assert.doesNotMatch(body, /EAB-|protocolo|empresa .*respondeu|liberad|retid/i);
+  assert.doesNotMatch(body, /terceiros/i);  // sem promessa de proteção (revisão do DevOps)
+  assert.match(body, /Por segurança, este e-mail não traz detalhes\./);
   assert.doesNotMatch(send.messageBody(new Set(['company_update'])), /Meu perfil/);
 });
 
@@ -108,13 +111,29 @@ function makeDeps({ rows, openError = null, sendErrors = {} }) {
           async quit() { calls.quit += 1; },
         };
       },
-      isAuthError: (e) => Boolean(e && e.auth),
+      stopCode: (e) => (e && e.stop) || (e && e.auth ? 'smtp_auth' : null),
       errorCode: (e) => (e && e.code) || 'send_error',
       log(event) { calls.logs.push(event); },
       now: () => 0,
     },
   };
 }
+
+test('SMTP: 421 e códigos estendidos de cota param o lote; outros erros não', () => {
+  assert.equal(smtp.stopCode(new smtp.SmtpAuthError()), 'smtp_auth');
+  assert.equal(smtp.stopCode(new smtp.SmtpError('421', '4.7.0')), 'smtp_quota');
+  assert.equal(smtp.stopCode(new smtp.SmtpError('550', '5.4.5')), 'smtp_quota');
+  assert.equal(smtp.stopCode(new smtp.SmtpError('421', null)), 'smtp_421');
+  assert.equal(smtp.stopCode(new smtp.SmtpError('550', '5.1.1')), null);
+  assert.equal(smtp.stopCode(new Error('x')), null);
+});
+
+test('SMTP: o código estendido vem da resposta do servidor', async () => {
+  const s = fakeServer({ rcptCode: 550 });
+  const c = await smtp.SmtpClient.open(s.conn, 'a@gmail.invalid', 'x');
+  // o servidor simulado responde "550 rcpt" (sem código estendido)
+  await assert.rejects(c.send('x@y.invalid', 'm'), (e) => e instanceof smtp.SmtpError && e.enhanced === null);
+});
 const row = (id, kind, email, remaining = 300) => ({ outbox_id: id, kind, email, remaining_today: remaining });
 const markOf = (calls, id) => calls.marks.find((m) => m.id === id);
 
@@ -141,7 +160,7 @@ test('rodada: erro de autenticação ao abrir para o lote sem gastar tentativa',
   const t = makeDeps({ rows: [row('a', 'worker_update', 'a@x.invalid'), row('b', 'company_update', 'b@x.invalid')] });
   t.deps.openMailer = async () => { throw t.authErr; };
   const s = await send.runBatch(t.deps);
-  assert.equal(s.authError, true);
+  assert.equal(s.stopped, 'smtp_auth');
   assert.equal(t.calls.sent.length, 0);
   assert.ok(t.calls.marks.every((m) => m.result === 'release' && m.code === 'smtp_auth'));
 });
@@ -157,6 +176,33 @@ test('rodada: erro de autenticação no meio para o resto; outro erro vai para n
   assert.deepEqual(markOf(t.calls, 'a'), { id: 'a', result: 'retry', code: 'smtp_550', messages: 0 });
   assert.equal(markOf(t.calls, 'b').result, 'release');
   assert.equal(markOf(t.calls, 'c').result, 'release');
+});
+
+test('rodada: 421 ao abrir e cota no meio param o lote sem gastar tentativa', async () => {
+  const busy = new Error('421'); busy.stop = 'smtp_421';
+  let t = makeDeps({ rows: [row('a', 'worker_update', 'a@x.invalid')], openError: busy });
+  let s = await send.runBatch(t.deps);
+  assert.equal(s.stopped, 'smtp_421');
+  assert.deepEqual(markOf(t.calls, 'a'), { id: 'a', result: 'release', code: 'smtp_421', messages: 0 });
+  const quota = new Error('5.4.5'); quota.stop = 'smtp_quota';
+  t = makeDeps({ rows: [row('a', 'worker_update', 'a@x.invalid'), row('b', 'worker_update', 'b@x.invalid')] });
+  t.deps.openMailer = async () => ({ async send(to) { if (to === 'a@x.invalid') throw quota; }, async quit() {} });
+  s = await send.runBatch(t.deps);
+  assert.equal(s.stopped, 'smtp_quota');
+  assert.deepEqual(markOf(t.calls, 'a'), { id: 'a', result: 'release', code: 'smtp_quota', messages: 0 });
+  assert.deepEqual(markOf(t.calls, 'b'), { id: 'b', result: 'release', code: 'smtp_quota', messages: 0 });
+});
+
+test('rodada: orçamento de tempo para de enviar e devolve o restante', async () => {
+  let clock = 0;
+  const t = makeDeps({ rows: [row('a', 'worker_update', 'a@x.invalid'), row('b', 'worker_update', 'b@x.invalid')] });
+  t.deps.now = () => clock;
+  t.deps.openMailer = async () => ({ async send() { clock += 25000; }, async quit() {} });
+  await send.runBatch(t.deps);
+  assert.equal(markOf(t.calls, 'a').result, 'sent');
+  assert.deepEqual(markOf(t.calls, 'b'), { id: 'b', result: 'release', code: 'time_budget', messages: 0 });
+  assert.equal(send.DEFAULT_LIMIT, 20);
+  assert.equal(send.TIME_BUDGET_MS, 20000);
 });
 
 test('rodada: falha de conexão (não autenticação) vai para nova tentativa', async () => {
@@ -182,6 +228,8 @@ test('index.ts: segredo do agendador em tempo constante, sem JWT, só as duas RP
   assert.match(src, /SMTP_PORT = 465/);
   assert.deepEqual([...src.matchAll(/rpc\('([a-z_]+)'/g)].map((m) => m[1]).sort(), ['notification_claim', 'notification_mark']);
   assert.equal((src.match(/console\.log/g) ?? []).length, 3);
-  assert.doesNotMatch(src, /console\.log\([^)]*(email|to|gmailUser|password)/i);
+  assert.doesNotMatch(src, /console\.log\([^)]*\b(email|to|gmailUser|password)\b/i);
+  assert.match(src, /clearTimeout\(timer\)/);
+  assert.match(src, /runBatch\(deps, DEFAULT_LIMIT\)/);
   assert.match(src, /pickKey\('SUPABASE_SECRET_KEYS', 'SUPABASE_SERVICE_ROLE_KEY'\)/);
 });

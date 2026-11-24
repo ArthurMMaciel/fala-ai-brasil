@@ -13,7 +13,18 @@ export class SmtpAuthError extends Error {
 }
 export class SmtpError extends Error {
   code: string;
-  constructor(code: string) { super('smtp_' + code); this.code = code; }
+  enhanced: string | null;  // código estendido (RFC 3463), por exemplo 4.7.0 ou 5.4.5
+  constructor(code: string, enhanced: string | null = null) { super('smtp_' + code); this.code = code; this.enhanced = enhanced; }
+}
+
+// Parada do lote sem gastar tentativa (revisão do DevOps): 421 (serviço indisponível, tente depois) e os códigos
+// estendidos de cota ou limite do Gmail (4.7.x, 5.4.5). Devolve o código curto para a fila e o log, ou null.
+export function stopCode(e: unknown): string | null {
+  if (e instanceof SmtpAuthError) return 'smtp_auth';
+  if (!(e instanceof SmtpError)) return null;
+  if (e.enhanced && (/^4\.7\.\d+$/.test(e.enhanced) || e.enhanced === '5.4.5')) return 'smtp_quota';
+  if (e.code === '421') return 'smtp_421';
+  return null;
 }
 
 interface Reply { code: number; lines: string[] }
@@ -31,10 +42,15 @@ async function readReply(conn: SmtpConn): Promise<Reply> {
   return { code, lines };
 }
 
+function enhancedOf(reply: Reply): string | null {
+  const m = /^\d{3}[ -](\d\.\d{1,3}\.\d{1,3})\b/.exec(reply.lines[reply.lines.length - 1]);
+  return m ? m[1] : null;
+}
+
 async function command(conn: SmtpConn, line: string | null, expect: number[]): Promise<Reply> {
   if (line !== null) await conn.write(line + '\r\n');
   const reply = await readReply(conn);
-  if (!expect.includes(reply.code)) throw new SmtpError(String(reply.code));
+  if (!expect.includes(reply.code)) throw new SmtpError(String(reply.code), enhancedOf(reply));
   return reply;
 }
 
@@ -54,6 +70,7 @@ export function buildMessage(from: string, fromName: string, to: string, subject
     `Subject: =?UTF-8?B?${b64(subject)}?=`,
     `Date: ${now.toUTCString()}`,
     `Message-ID: <${id}@escutaai.invalid>`,
+    'Auto-Submitted: auto-generated',
     'MIME-Version: 1.0',
     'Content-Type: text/plain; charset=UTF-8',
     'Content-Transfer-Encoding: base64',
@@ -78,7 +95,7 @@ export class SmtpClient {
       const reply = await readReply(conn);
       if (reply.code !== 235) {
         if ([530, 534, 535].includes(reply.code)) throw new SmtpAuthError();
-        throw new SmtpError(String(reply.code));
+        throw new SmtpError(String(reply.code), enhancedOf(reply));
       }
       return new SmtpClient(conn, user);
     } catch (e) {

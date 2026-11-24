@@ -39,7 +39,7 @@ Destinatário e risco:
 **D6. Envio pela Edge Function `send-notifications`.**
 - O `pg_cron` a chama via `pg_net` a cada 5 minutos, com um segredo próprio do agendador guardado no Vault. Nunca a chave de serviço, porque o valor descriptografado fica em `net.http_request_queue` até o envio.
 - Ela reserva um lote pequeno com `for update skip locked`, marca `sending`, envia e marca `sent`.
-- Em caso de falha, faz nova tentativa com espera crescente (5 min, 30 min, 2 h, 6 h, 24 h). Na quinta falha, a linha fica `failed` e aparece na Operação.
+- Em caso de falha, faz nova tentativa com espera crescente (5 min, 30 min, 2 h, 6 h, 24 h). Na sexta falha (depois da espera de 24 h), a linha fica `failed` (decisão do DevOps, 2026-11-24) e aparece na Operação.
 - Erro de autenticação no SMTP interrompe o lote sem gastar tentativas e gera alerta, porque é a senha revogada ou a conta bloqueada.
 - **Teto diário de 300 avisos**, contados pelos `sent` do dia, deixando folga para o Auth dentro dos 500 do Gmail. O excedente fica para o dia seguinte.
 - SMTP não tem chave de idempotência. Uma queda entre o envio e a marcação pode gerar uma duplicata rara. É aceitável, porque o texto é genérico.
@@ -95,13 +95,20 @@ A porta 465 abriu no teste de 2026-11-24 (`{"tls":true,"code":"220","open":true}
   - testes com SMTP simulado em `scripts/test-send-notifications.mjs`.
 - **Na migration `20261123130000` (fila):**
   - `notification_claim(p_limit)` reserva com `for update skip locked`, resolve os e-mails na hora (trabalhador e vínculos `verified`), aplica o teto do dia (de Brasília), devolve a `pending` a reserva parada há mais de 30 minutos e apaga `sent` e `suppressed` com mais de 90 dias;
-  - `notification_mark(p_id, p_result, p_error_code, p_messages)` grava o resultado. Novas tentativas em 5 min, 30 min, 2 h, 6 h e 24 h; na falha seguinte, a 6ª, a linha fica `failed`. Era o pedido do Gestor ("e depois failed"); o texto da D6 dizia "na quinta falha".
+  - `notification_mark(p_id, p_result, p_error_code, p_messages)` grava o resultado. Novas tentativas em 5 min, 30 min, 2 h, 6 h e 24 h; na falha seguinte, a 6ª, a linha fica `failed`. Decisão do DevOps na revisão de 2026-11-24, já refletida na D6.
 - **Opt-out do trabalhador (D8), no mínimo:**
   - coluna `workers.email_updates` (padrão ligado);
   - `set_worker_email_updates(p_enabled)` e `my_email_updates()` para Meu perfil;
   - com os avisos desligados, a linha nasce `suppressed`.
 
   A base legal e o padrão continuam com o responsável e o advogado (pendência 5).
+- **Revisão do DevOps (2026-11-24), aplicada:**
+  - o e-mail não traz mais a frase "Nenhuma informação foi enviada a terceiros", que era promessa de proteção e não exata, porque o e-mail passa pelo Gmail; fica "Por segurança, este e-mail não traz detalhes.";
+  - orçamento de tempo de cerca de 20 s por rodada, lote de 20 e timeout de 30 s no Cron;
+  - 421 e códigos estendidos de cota (4.7.x, 5.4.5) param o lote sem gastar tentativa (`smtp_421`, `smtp_quota`), como o `smtp_auth`;
+  - prazo de operação com timer limpo e conexão fechada no estouro;
+  - cabeçalho `Auto-Submitted: auto-generated`;
+  - `ops_notification_stats()`, só para a equipe, com as contagens da fila para a Operação.
 - **SQL Editor, lote 4:** extensões, fila, e o agendamento (`cron.schedule` com `net.http_post`, lendo `project_url` e `notify_cron_secret` do Vault pelo nome), mais conferências e o desligamento (`cron.unschedule`).
 
 ## Alternativas consideradas

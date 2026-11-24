@@ -150,4 +150,17 @@ execute 'set local role service_role';
 select count(*) into n from public.notification_claim(500);
 execute 'reset role';
 if n <> 0 then falhas := falhas || jsonb_build_object('teto diário não respeitado', n); end if;
+-- Contagens para a Operação: só a equipe; refletem a falha definitiva e a parada por senha nas últimas 24 h.
+execute 'set local role authenticated';
+perform set_config('request.jwt.claims', json_build_object('sub', u_w, 'role', 'authenticated')::text, true);
+begin
+  perform public.ops_notification_stats();
+  falhas := falhas || jsonb_build_object('trabalhador lê contagens da fila', true);
+exception when others then null; end;
+perform set_config('request.jwt.claims', json_build_object('sub', u_op, 'role', 'authenticated')::text, true);
+select * into r from public.ops_notification_stats();
+if coalesce(r.failed, 0) < 1 or coalesce(r.stopped_auth_24h, 0) < 1 or coalesce(r.sent_24h, 0) < 1 then
+  falhas := falhas || jsonb_build_object('contagens da fila incompletas', jsonb_build_object('failed', r.failed, 'auth', r.stopped_auth_24h, 'sent', r.sent_24h));
+end if;
+execute 'reset role';
 res := res || jsonb_build_object('verificações da fila de avisos', 'executadas');

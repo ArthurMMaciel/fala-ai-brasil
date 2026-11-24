@@ -5,8 +5,8 @@
 // notification_claim e notification_mark, com a chave de serviço injetada pelo Supabase (nova ou, na falta, a legada).
 // Logs: só id da linha, tipo, resultado e tempo. Resposta: só contagens.
 import { createClient } from 'npm:@supabase/supabase-js@2.118.0';
-import { runBatch, type ClaimRow, type MarkResult } from './send.ts';
-import { buildMessage, SmtpAuthError, SmtpClient, SmtpError, type SmtpConn } from './smtp.ts';
+import { DEFAULT_LIMIT, runBatch, type ClaimRow, type MarkResult } from './send.ts';
+import { buildMessage, SmtpClient, SmtpError, stopCode, type SmtpConn } from './smtp.ts';
 
 const SMTP_HOST = 'smtp.gmail.com';
 const SMTP_PORT = 465;
@@ -44,9 +44,14 @@ async function connect(): Promise<SmtpConn> {
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
   let buffer = '';
-  const withTimeout = <T>(p: Promise<T>): Promise<T> => Promise.race([
-    p, new Promise<T>((_, reject) => setTimeout(() => reject(new SmtpError('timeout')), SMTP_TIMEOUT_MS)),
-  ]);
+  // Prazo por operação: o timer é sempre limpo e, no estouro, a conexão é fechada (revisão do DevOps).
+  const withTimeout = <T>(p: Promise<T>): Promise<T> => {
+    let timer: number | undefined;
+    const timeout = new Promise<T>((_, reject) => {
+      timer = setTimeout(() => { try { conn.close(); } catch { /* já fechada */ } reject(new SmtpError('timeout')); }, SMTP_TIMEOUT_MS);
+    });
+    return Promise.race([p, timeout]).finally(() => clearTimeout(timer));
+  };
   return {
     async readLine() {
       for (;;) {
@@ -85,7 +90,7 @@ const deps = {
       quit: () => client.quit(),
     };
   },
-  isAuthError: (e: unknown) => e instanceof SmtpAuthError,
+  stopCode,
   errorCode: (e: unknown) => (e instanceof SmtpError ? `smtp_${e.code}`.toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 40) : 'send_error'),
   log(event: { id: string; kind: string; result: string; ms: number }) {
     console.log(JSON.stringify(event));  // sem e-mail, nome, protocolo, texto do servidor ou senha
@@ -98,8 +103,8 @@ Deno.serve(async (req) => {
   if (!cronSecret || !sameSecret(req.headers.get('x-cron-secret') ?? '', cronSecret)) return new Response(null, { status: 401 });
   if (!gmailUser || !gmailPassword) return Response.json({ status: 'not_configured' }, { status: 500 });
   try {
-    const summary = await runBatch(deps);
-    if (summary.authError) console.log(JSON.stringify({ result: 'smtp_auth_error' }));  // incidente: ver PILOT_SUSPENSION
+    const summary = await runBatch(deps, DEFAULT_LIMIT);
+    if (summary.stopped) console.log(JSON.stringify({ result: 'batch_stopped', code: summary.stopped }));  // smtp_auth: incidente (PILOT_SUSPENSION)
     return Response.json(summary);
   } catch {
     console.log(JSON.stringify({ result: 'batch_error' }));
