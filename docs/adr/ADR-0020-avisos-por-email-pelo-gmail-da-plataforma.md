@@ -1,6 +1,6 @@
 # ADR-0020 — Avisos por e-mail pelo Gmail da plataforma
 
-- Estado: **Proposta**, aguardando o responsável. Nenhuma migration, função ou conta foi criada.
+- Estado: **Aceita em parte** em 2026-11-23 (ver "Revisão de 2026-11-23"): escopo das notificações por mudança de situação e teste da porta 465. Os lembretes de 7 e 15 dias (D5) continuam como proposta. Nenhuma migration, função ou conta foi criada.
 - Data: 2026-11-09
 - Tarefa: [TASK-0042](../tasks/TASK-0042-avisos-por-email.md)
 - Relacionadas: ADR-0010 (revisão humana), ADR-0012 (representante verificado, D7 risco e D12 marcos de 7 e 15 dias), TASK-0023 (SMTP do Gmail), TASK-0007 (base legal e retenção), parecer de plataforma (seção 2 e R4.2, fora do Git)
@@ -97,3 +97,23 @@ Os textos finais passam por produto e jurídico.
 
 ## Rollback
 `cron.unschedule` dos jobs de envio e de lembretes. A outbox continua acumulando, e a Operação assume pelo envio manual (D9). Para remover de vez: apagar a função, a outbox e o gatilho numa migration nova. Nenhum dado de negócio depende dos avisos.
+
+## Revisão de 2026-11-23: escopo aprovado e teste da porta 465
+
+Decisão do responsável, comunicada pelo Gestor ("Aprovo"):
+
+1. **Quem recebe.** Notificação automática por e-mail quando a situação da manifestação muda, **só para contas da plataforma**:
+   - o trabalhador dono do relato, em todo evento que não foi gerado por ele (D4);
+   - os usuários da empresa com vínculo verificado (`is_verified_company_user`, depois da 20261117130000), só nos eventos visíveis à empresa: liberação, devolução da resposta, encerramento pelo trabalhador. Nunca nos eventos de `received`, `in_review`, `held` ou `answer_in_review`.
+2. **Quem não recebe.** O contato indicado pelo trabalhador (`complaint_contacts`) e o e-mail da Receita não recebem nada automático. Motivos:
+   - o contato pode ser a pessoa envolvida;
+   - o consentimento do trabalhador cobre um único aviso revisado pela equipe (ADR-0023);
+   - o AGENTS.md proíbe contato externo automático em caso de alto risco.
+
+   Para esses endereços, vale só o aviso manual da ADR-0023.
+3. **Remetente.** A mesma conta Gmail do Auth (ADR-0009, revisão de 2026-11-18). Isso substitui a D1 (conta dedicada) enquanto a conta da empresa não existir. O teto de 300 por dia (D6) fica mantido para proteger o Auth.
+4. **Teste da porta 465 em 2026-11-24** (D2), com a função descartável `smtp-probe`. Ela não autentica, não envia e-mail e não usa segredo. Roteiro: [EMAIL_NOTIFICATIONS](../runbooks/EMAIL_NOTIFICATIONS.md).
+   - **465 aberta:** segue a função `send-notifications` com fila, Cron, segredo do agendador no Vault, teto diário, novas tentativas e logs sem conteúdo, conforme o runbook.
+   - **465 fechada:** o piloto começa sem notificação automática. A API do Gmail com OAuth volta para decisão, sem prazo.
+5. **Prazo.** Mesmo com a porta aberta, a função entra depois do go/no-go de 25/11 e é tratada como mudança pós-go/no-go.
+6. **Pendências de dados (Back):** fila, gatilho, destinatários verificados e opt-out do trabalhador, a registrar na parte de dados desta ADR e em migration própria.
