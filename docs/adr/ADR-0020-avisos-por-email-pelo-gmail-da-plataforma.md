@@ -60,6 +60,27 @@ Os textos finais passam por produto e jurídico.
 - A Operação mostra, por status, o total de pendentes, enviados no dia e falhas.
 - Linhas `sent` e `suppressed` são apagadas 90 dias depois por um job do `pg_cron`. O prazo é proposta, a definir na TASK-0007.
 
+## Revisão de 2026-11-23: escopo aprovado e fila adiantada
+
+Decisão do responsável ("Aprovo", repassado pelo Gestor):
+- **Destinatários:** os avisos vão só para contas da plataforma, o trabalhador dono do relato e os usuários verificados da empresa.
+- **Texto:** genérico (D7).
+- **Sem contato externo automático:** e-mail fora da plataforma não recebe aviso automático. O aviso à empresa não cadastrada continua manual (ADR-0023).
+
+O que foi feito, em `supabase/pending/20261123130000_fila_de_avisos_da_plataforma.sql`, não aplicado:
+- **A fila:** `private.notification_outbox`, sem e-mail, nome, texto, protocolo, empresa ou categoria, só tipo, destinatário por id e chave de deduplicação.
+- **O gatilho em `complaint_events`:**
+  - `worker_update`: um por evento que não foi feito pelo próprio trabalhador;
+  - `company_new_case`: um por manifestação, quando a equipe a libera à empresa.
+- **Destinatário resolvido no envio:** empresa sem usuário verificado vira `suppressed` no envio.
+- **Teste:** `supabase/tests/tx/avisos_checks.sql`.
+
+O que não foi feito:
+- **A função de envio (D6):** depende do teste da porta 465 (D2), que o DevOps prepara para 2026-11-24. Até ela existir, a fila só acumula linhas `pending` e nada é enviado.
+- **Lembretes de 7 e 15 dias (D5) e opt-out do trabalhador (D8):** ficam para depois.
+- **Retenção (D10):** proposta de 90 dias para `sent` e `suppressed`, a cargo da rotina de envio.
+- **Ordem de aplicação:** a fila pode ser aplicada antes da função, porque só acumula. Recomendo aplicar junto com a função, para a fila não crescer sem consumo.
+
 ## Alternativas consideradas
 - **Provedor transacional (Resend, SES):** tem domínio próprio e idempotência, mas foi descartado pela decisão de custo e pela transferência internacional. Fica na Revisão 3 do parecer como evolução.
 - **Gatilho com `pg_net` chamando o SMTP ou a API direto:** rejeitado. A fila do `pg_net` é *unlogged*, se perde numa queda e não tem nova tentativa, e a credencial ficaria no banco.
