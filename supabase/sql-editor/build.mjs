@@ -44,8 +44,12 @@ const BATCHES = [
     { file: '20261118150000_empresa_contratados.sql', after: '20261118140000' },
   ] },
   // Lote 3: título do relato original fora da lista da empresa (aprovado em 2026-11-23).
-  { out: 'lote3', plan: [
+  { out: 'lote3', applied: true, plan: [
     { file: '20261123120000_titulo_sem_conteudo_para_empresa.sql', after: '20261118150000' },
+  ] },
+  // Lote 4: fila de avisos às contas da plataforma (ADR-0020). O agendamento (pg_cron) é script à parte, não migration.
+  { out: 'lote4', plan: [
+    { file: '20261123130000_fila_de_avisos_da_plataforma.sql', after: '20261123120000' },
   ] },
 ];
 

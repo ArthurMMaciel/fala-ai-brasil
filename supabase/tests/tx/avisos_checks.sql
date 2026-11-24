@@ -1,4 +1,4 @@
--- declare: u_w uuid := 'ffffffff-0000-0000-0000-000000000002'; u_c uuid := 'ffffffff-0000-0000-0000-000000000003'; u_op uuid := 'ffffffff-0000-0000-0000-000000000004'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_c text := '98765007987610'; v_co uuid; v_worker uuid; v_cp uuid; v_resp uuid; n int;
+-- declare: u_w uuid := 'ffffffff-0000-0000-0000-000000000002'; u_c uuid := 'ffffffff-0000-0000-0000-000000000003'; u_op uuid := 'ffffffff-0000-0000-0000-000000000004'; addr jsonb := '{"zip_code":"01310100","street_type":"avenue","street_name":"Paulista","number":"1","city":"São Paulo","state":"SP"}'; cnpj_c text := '98765007987610'; v_co uuid; v_worker uuid; v_cp uuid; v_resp uuid; n int; v_id uuid; i int; r record;
 -- Verificações de 20261123130000 (fila de avisos às contas da plataforma). Só contagens.
 -- CNPJ de teste conferido como inexistente (404 em 2026-11-18); CPF de teste só na transação.
 if exists (select 1 from public.companies where cnpj = cnpj_c) or exists (select 1 from public.workers where cpf = '31415926590') then
@@ -81,4 +81,73 @@ begin
   falhas := falhas || jsonb_build_object('service_role lê a fila direto', n);
 exception when insufficient_privilege then null; end;
 execute 'reset role';
+-- Opt-out do trabalhador: desligado, aviso novo nasce 'suppressed'; religa.
+execute 'set local role authenticated';
+perform set_config('request.jwt.claims', json_build_object('sub', u_w, 'role', 'authenticated')::text, true);
+perform public.set_worker_email_updates(false);
+if public.my_email_updates() is distinct from false then falhas := falhas || jsonb_build_object('opt-out não gravado', true); end if;
+perform set_config('request.jwt.claims', json_build_object('sub', u_c, 'role', 'authenticated')::text, true);
+begin
+  perform public.set_worker_email_updates(false);
+  falhas := falhas || jsonb_build_object('empresa grava opt-out de trabalhador', true);
+exception when others then null; end;
+execute 'reset role';
+insert into public.complaint_events (complaint_id, status, actor, note) values (v_cp, 'answered', 'platform', 'Tx evento da equipe com avisos desligados.');
+if not exists (select 1 from private.notification_outbox where worker_id = v_worker and status = 'suppressed') then
+  falhas := falhas || jsonb_build_object('aviso com opt-out não nasceu suppressed', true);
+end if;
+update public.workers set email_updates = true where id = v_worker;
+
+-- Interface da função de envio: só service_role.
+execute 'set local role authenticated';
+begin
+  perform public.notification_claim(10);
+  falhas := falhas || jsonb_build_object('authenticated reserva a fila', true);
+exception when insufficient_privilege then null; end;
+execute 'reset role';
+execute 'set local role service_role';
+select count(*) as n_rows, count(distinct outbox_id) as n_ids, bool_and(email in ('tx-nw@teste.invalid', 'tx-nc@teste.invalid')) as ok_emails, min(remaining_today) as rem
+  into r from public.notification_claim(500);
+if r.n_rows <> 8 or r.n_ids <> 8 then falhas := falhas || jsonb_build_object('reserva devolveu linhas inesperadas (esperado 8: 5 do trabalhador, 3 da empresa)', r.n_rows); end if;
+if r.ok_emails is distinct from true then falhas := falhas || jsonb_build_object('reserva com e-mail fora dos destinatários previstos', true); end if;
+if coalesce(r.rem, 0) <= 0 then falhas := falhas || jsonb_build_object('saldo do dia não informado', true); end if;
+execute 'reset role';
+if exists (select 1 from private.notification_outbox where (worker_id = v_worker or company_id = v_co) and status = 'pending') then
+  falhas := falhas || jsonb_build_object('linha pendente não reservada', true);
+end if;
+-- Resultados: sent, release (sem gastar tentativa) e retry até 'failed' na 6ª falha.
+select id into v_id from private.notification_outbox where worker_id = v_worker and status = 'sending' order by created_at limit 1;
+execute 'set local role service_role';
+perform public.notification_mark(v_id, 'sent', null, 1);
+execute 'reset role';
+if (select status || '/' || messages_sent from private.notification_outbox where id = v_id) is distinct from 'sent/1' then
+  falhas := falhas || jsonb_build_object('mark sent', true);
+end if;
+select id into v_id from private.notification_outbox where company_id = v_co and status = 'sending' order by created_at limit 1;
+execute 'set local role service_role';
+perform public.notification_mark(v_id, 'release', 'smtp_auth', 0);
+execute 'reset role';
+if (select status || '/' || attempts || '/' || last_error_code from private.notification_outbox where id = v_id) is distinct from 'pending/0/smtp_auth' then
+  falhas := falhas || jsonb_build_object('mark release', true);
+end if;
+select id into v_id from private.notification_outbox where worker_id = v_worker and status = 'sending' order by created_at limit 1;
+for i in 1..6 loop
+  update private.notification_outbox set status = 'sending' where id = v_id;
+  execute 'set local role service_role';
+  perform public.notification_mark(v_id, 'retry', 'smtp_550', 0);
+  execute 'reset role';
+  if i = 1 and (select next_attempt_at between now() + interval '4 minutes' and now() + interval '6 minutes' from private.notification_outbox where id = v_id) is distinct from true then
+    falhas := falhas || jsonb_build_object('primeira nova tentativa fora de 5 min', true);
+  end if;
+end loop;
+if (select status || '/' || attempts from private.notification_outbox where id = v_id) is distinct from 'failed/6' then
+  falhas := falhas || jsonb_build_object('6ª falha não virou failed', (select status || '/' || attempts from private.notification_outbox where id = v_id));
+end if;
+-- Teto do dia: com 300 mensagens enviadas hoje, a reserva não devolve nada.
+update private.notification_outbox set messages_sent = 300 where id = (select id from private.notification_outbox where status = 'sent' and worker_id = v_worker limit 1);
+update private.notification_outbox set status = 'pending', next_attempt_at = now() where company_id = v_co and status = 'sending';
+execute 'set local role service_role';
+select count(*) into n from public.notification_claim(500);
+execute 'reset role';
+if n <> 0 then falhas := falhas || jsonb_build_object('teto diário não respeitado', n); end if;
 res := res || jsonb_build_object('verificações da fila de avisos', 'executadas');

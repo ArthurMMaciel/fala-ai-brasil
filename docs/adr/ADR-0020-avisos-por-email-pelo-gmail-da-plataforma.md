@@ -81,6 +81,29 @@ O que não foi feito:
 - **Retenção (D10):** proposta de 90 dias para `sent` e `suppressed`, a cargo da rotina de envio.
 - **Ordem de aplicação:** a fila pode ser aplicada antes da função, porque só acumula. Recomendo aplicar junto com a função, para a fila não crescer sem consumo.
 
+### Função de envio e opt-out (Back, 2026-11-24, depois do teste da 465)
+
+A porta 465 abriu no teste de 2026-11-24 (`{"tls":true,"code":"220","open":true}`), e a `smtp-probe` foi apagada. O que foi escrito, sem deploy e sem nada aplicado:
+
+- **`supabase/functions/send-notifications`:**
+  - chamada pelo Cron com `x-cron-secret`, comparado em tempo constante com `NOTIFY_CRON_SECRET`, sem JWT;
+  - cliente SMTP próprio, sem dependência, em TLS na porta 465, com `GMAIL_USER` e `GMAIL_APP_PASSWORD`;
+  - um e-mail por destinatário por rodada, com texto fixo e link em texto para https://fala-ai-brasil.vercel.app;
+  - teto de 300 por dia;
+  - erro de autenticação SMTP para o lote sem gastar tentativa;
+  - logs só com id, tipo, resultado e tempo;
+  - testes com SMTP simulado em `scripts/test-send-notifications.mjs`.
+- **Na migration `20261123130000` (fila):**
+  - `notification_claim(p_limit)` reserva com `for update skip locked`, resolve os e-mails na hora (trabalhador e vínculos `verified`), aplica o teto do dia (de Brasília), devolve a `pending` a reserva parada há mais de 30 minutos e apaga `sent` e `suppressed` com mais de 90 dias;
+  - `notification_mark(p_id, p_result, p_error_code, p_messages)` grava o resultado. Novas tentativas em 5 min, 30 min, 2 h, 6 h e 24 h; na falha seguinte, a 6ª, a linha fica `failed`. Era o pedido do Gestor ("e depois failed"); o texto da D6 dizia "na quinta falha".
+- **Opt-out do trabalhador (D8), no mínimo:**
+  - coluna `workers.email_updates` (padrão ligado);
+  - `set_worker_email_updates(p_enabled)` e `my_email_updates()` para Meu perfil;
+  - com os avisos desligados, a linha nasce `suppressed`.
+
+  A base legal e o padrão continuam com o responsável e o advogado (pendência 5).
+- **SQL Editor, lote 4:** extensões, fila, e o agendamento (`cron.schedule` com `net.http_post`, lendo `project_url` e `notify_cron_secret` do Vault pelo nome), mais conferências e o desligamento (`cron.unschedule`).
+
 ## Alternativas consideradas
 - **Provedor transacional (Resend, SES):** tem domínio próprio e idempotência, mas foi descartado pela decisão de custo e pela transferência internacional. Fica na Revisão 3 do parecer como evolução.
 - **Gatilho com `pg_net` chamando o SMTP ou a API direto:** rejeitado. A fila do `pg_net` é *unlogged*, se perde numa queda e não tem nova tentativa, e a credencial ficaria no banco.
