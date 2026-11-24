@@ -16,7 +16,7 @@ import { companyAccessPending, type VerificationStatus } from '../domain/represe
 type CompanyView = 'dashboard' | 'complaints' | 'ranking' | 'partners' | 'contracted' | 'profile';
 type PartnerView = 'dashboard' | 'profile' | 'content' | 'companies' | 'leads' | 'clients';
 
-const companyStatus: Record<ComplaintStatusDb, string> = { received: 'Recebida', in_review: 'Em revisão', adjustment_requested: 'Em revisão', held: 'Em revisão', shared: 'Aguardando resposta', answer_in_review: 'Resposta em revisão pela equipe', answered: 'Respondida', closed: 'Finalizada', canceled: 'Cancelada' };
+const companyStatus: Record<ComplaintStatusDb, string> = { received: 'Recebida', in_review: 'Em revisão', adjustment_requested: 'Em revisão', held: 'Em revisão', shared: 'Aguardando resposta', answer_in_review: 'Resposta em revisão', answered: 'Respondida', closed: 'Finalizada', canceled: 'Cancelada' };
 const feedbackLabels = { yes: 'A resposta ajudou', partial: 'Ajudou em parte', no: 'Não ajudou' } as const;
 
 function dateLabel(value: string) { return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value)); }

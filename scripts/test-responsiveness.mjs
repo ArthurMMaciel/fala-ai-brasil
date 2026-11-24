@@ -124,3 +124,14 @@ test('botões: primário azul profundo, secundário com contorno, 44 px e 40 px 
   assert.match(css, /\.legacy-editorial \.btn \{ min-height: 44px; \}/);
   assert.match(css, /:is\(\.commercial-table, \.worker-table, \.contact-admin-table\) \.btn \{ min-height: 40px;/);
 });
+// Design P2.7 (2026-11-23): selos de status curtos e cor por significado.
+test('selos: rótulos curtos e uma cor por significado; cancelada não fica verde', () => {
+  const ops = readFileSync('src/portals/ops-portal-live.tsx', 'utf8');
+  assert.match(ops, /received: 'Guardada', in_review: 'Em revisão', adjustment_requested: 'Ajuste solicitado', held: 'Retida', shared: 'Liberada',/);
+  assert.match(ops, /closed: 'finalizada', canceled: 'em-aberto' \};/);
+  assert.match(readFileSync('src/portals/worker-portal-live.tsx', 'utf8'), /answer_in_review: 'Resposta em análise',/);
+  assert.match(readFileSync('src/portals/portal-live.tsx', 'utf8'), /answer_in_review: 'Resposta em revisão',/);
+  const css = readFileSync('src/styles/system.css', 'utf8');
+  assert.match(css, /\.legacy-editorial \.worker-status \{ white-space: nowrap; \}/);
+  assert.match(css, /\.legacy-editorial \.worker-status\.retida \{ background: #fde8e8; color: #9f1f1f; \}/);
+});

@@ -527,3 +527,11 @@ h2[data-autofocus]:focus { outline: none; }
 .legacy-editorial :is(.commercial-table, .worker-table, .contact-admin-table) .btn { min-height: 40px; padding: 0 16px; font-size: 14px; }
 .legacy-editorial:has(.portal-layout) .topbar .btn { background: rgba(255, 255, 255, .16); border-color: rgba(255, 255, 255, .45); color: #fff; }
 .legacy-editorial:has(.portal-layout) .topbar .btn:hover { background: rgba(255, 255, 255, .26); }
+/* Design P2.7 (2026-11-23): selos de status curtos, numa linha, com cor por significado: cinza = guardada ou
+   retirada; amarelo = em revisão (atenção); azul = com a empresa; verde = respondida ou finalizada; vermelho = retida. */
+.legacy-editorial .worker-status { white-space: nowrap; }
+.legacy-editorial .worker-status.em-aberto { background: #eef0f4; color: #3f4759; }
+.legacy-editorial .worker-status.em-revisão { background: #fbf1d6; color: #6e4b00; }
+.legacy-editorial .worker-status.encaminhada-para-empresa { background: #e6edfb; color: #1f3a7a; }
+.legacy-editorial .worker-status.respondida, .legacy-editorial .worker-status.finalizada { background: #e1f2e6; color: #12573d; }
+.legacy-editorial .worker-status.retida { background: #fde8e8; color: #9f1f1f; }

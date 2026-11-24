@@ -17,9 +17,9 @@ type View = 'dashboard' | 'list' | 'detail' | 'new' | 'companies' | 'profile';
 export type WorkerEntryView = 'dashboard' | 'list' | 'companies' | 'profile';
 type Period = 'weekly' | 'monthly' | 'yearly';
 
-const statusLabels: Record<ComplaintStatusDb, string> = { received: 'Guardada', in_review: 'Em revisão', adjustment_requested: 'Ajuste solicitado', held: 'Em análise', shared: 'Aguardando empresa', answer_in_review: 'Resposta em análise pela equipe', answered: 'Respondida', closed: 'Finalizada', canceled: 'Cancelada' };
+const statusLabels: Record<ComplaintStatusDb, string> = { received: 'Guardada', in_review: 'Em revisão', adjustment_requested: 'Ajuste solicitado', held: 'Em análise', shared: 'Aguardando empresa', answer_in_review: 'Resposta em análise', answered: 'Respondida', closed: 'Finalizada', canceled: 'Cancelada' };
 const eventLabels: Record<ComplaintStatusDb, string> = { received: 'Registrada', in_review: 'Revisão solicitada', adjustment_requested: 'Ajuste solicitado', held: 'Em análise pela equipe', shared: 'Liberada para a empresa', answer_in_review: 'Resposta da empresa em análise pela equipe', answered: 'Respondida', closed: 'Finalizada', canceled: 'Cancelada' };
-const statusClass: Record<ComplaintStatusDb, string> = { received: 'em-aberto', in_review: 'em-revisão', adjustment_requested: 'em-revisão', held: 'em-revisão', shared: 'encaminhada-para-empresa', answer_in_review: 'em-revisão', answered: 'respondida', closed: 'finalizada', canceled: 'finalizada' };
+const statusClass: Record<ComplaintStatusDb, string> = { received: 'em-aberto', in_review: 'em-revisão', adjustment_requested: 'em-revisão', held: 'em-revisão', shared: 'encaminhada-para-empresa', answer_in_review: 'em-revisão', answered: 'respondida', closed: 'finalizada', canceled: 'em-aberto' };
 const feedbackLabels: Record<ComplaintFeedback, string> = { yes: 'Sim, ajudou', partial: 'Em parte', no: 'Não ajudou' };
 
 function dateLabel(value: string) { return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value)); }
