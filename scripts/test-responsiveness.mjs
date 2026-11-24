@@ -175,3 +175,18 @@ test('menus: cada item com ícone próprio (Contratados e Manifestações do tra
 test('atalhos no celular: até 480 px, duas colunas', () => {
   assert.match(readFileSync('src/styles/system.css', 'utf8'), /@media \(max-width: 480px\) \{ \.sys-quick \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); \} \}/);
 });
+// Design P3.11 (2026-11-24): formulários com rótulo e ajuda legíveis, erro junto do campo e opcional marcado.
+test('formulários: rótulo e ajuda em 14 px, erro junto do campo, opcional sempre marcado', () => {
+  const css = readFileSync('src/styles/system.css', 'utf8');
+  assert.match(css, /\.legacy-editorial \.field label, \.legacy-editorial label\.field \{ font-size: 14px; font-weight: 600;/);
+  assert.match(css, /\.legacy-editorial \.muted\.small, \.legacy-editorial \.field-hint \{ font-size: 14px; color: #4a5368;/);
+  assert.match(css, /\[data-field-error\]::after \{ content: attr\(data-field-error\);/);
+  const feedback = readFileSync('src/app/form-feedback.ts', 'utf8');
+  assert.match(feedback, /host\?\.setAttribute\("data-field-error", messageFor\(field\)\);/);
+  assert.match(feedback, /host\?\.removeAttribute\("data-field-error"\);/);
+  assert.match(feedback, /!node\.matches\("input, select, textarea, small, button, ul, ol, \.password-field"\)/, 'rótulo sem o texto das opções do select');
+  const wizard = readFileSync('src/portals/complaint-wizard.tsx', 'utf8');
+  assert.match(wizard, /Quando isso aconteceu\? \(opcional\)/);
+  assert.match(wizard, /Isso é recorrente\? \(opcional\)/);
+  assert.equal((readFileSync('src/portals/portal-live.tsx', 'utf8').match(/<label className="field">Descrição \(opcional\)<textarea/g) ?? []).length, 2);
+});

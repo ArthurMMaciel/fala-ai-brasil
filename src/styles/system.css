@@ -583,3 +583,11 @@ body.confirm-open { overflow: hidden; }
    ("Responsividad…"). Até 480 px, sempre 2 colunas; o rótulo quebra só entre palavras. */
 @media (max-width: 480px) { .sys-quick { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .sys-quick-label { overflow-wrap: normal; hyphens: manual; }
+/* Design P3.11 (2026-11-24): formulários. Rótulo em 14 px e peso 600; texto de ajuda em 14 px com contraste AA
+   (#4a5368 sobre branco, ~8:1); erro de validação junto do campo, além do toast; opcional sempre marcado com
+   "(opcional)" no rótulo (convenção já usada no cadastro e no perfil). */
+.legacy-editorial .field label, .legacy-editorial label.field { font-size: 14px; font-weight: 600; color: var(--ink); }
+.legacy-editorial label.field :is(input, select, textarea) { font-weight: 400; }
+.legacy-editorial .field small, .legacy-editorial label.field small, .legacy-editorial .muted.small, .legacy-editorial .field-hint { font-size: 14px; color: #4a5368; line-height: 1.5; }
+.legacy-editorial [data-field-error]::after { content: attr(data-field-error); display: block; margin-top: 6px; color: #b42318; font-size: 14px; font-weight: 500; line-height: 1.4; }
+.legacy-editorial .field-error { font-size: 14px; color: #b42318; }

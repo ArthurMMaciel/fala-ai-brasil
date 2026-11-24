@@ -8,7 +8,9 @@ let scheduled = false;
 function labelFor(field: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement): string {
   const explicit = field.id ? document.querySelector<HTMLLabelElement>(`label[for="${CSS.escape(field.id)}"]`) : null;
   const wrapping = field.closest("label");
-  const text = (explicit ?? wrapping)?.textContent ?? field.getAttribute("aria-label") ?? field.name;
+  // Rótulo que envolve o campo: só o texto do próprio rótulo, sem as opções do select nem a ajuda (small).
+  const own = (label: HTMLElement) => Array.from(label.childNodes).filter(node => node.nodeType === Node.TEXT_NODE || (node instanceof HTMLElement && !node.matches("input, select, textarea, small, button, ul, ol, .password-field"))).map(node => node.textContent ?? "").join(" ");
+  const text = explicit?.textContent ?? (wrapping ? own(wrapping) : null) ?? field.getAttribute("aria-label") ?? field.name;
   return text.replace(/\s+/g, " ").replace(/\(opcional\)/i, "").trim();
 }
 
@@ -44,7 +46,10 @@ document.addEventListener("invalid", event => {
   if (!(field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement)) return;
   event.preventDefault();
   field.setAttribute("aria-invalid", "true");
-  field.closest(".field, label")?.classList.add("is-invalid");
+  const host = field.closest(".field, label");
+  host?.classList.add("is-invalid");
+  // Design P3.11: a mensagem também aparece junto do campo (data-field-error, mostrado pelo CSS), além do toast.
+  host?.setAttribute("data-field-error", messageFor(field));
   pending.push(field);
   if (!scheduled) { scheduled = true; queueMicrotask(flush); }
 }, true);
@@ -53,7 +58,9 @@ function clear(event: Event) {
   const field = event.target;
   if (!(field instanceof HTMLElement) || field.getAttribute("aria-invalid") !== "true") return;
   field.removeAttribute("aria-invalid");
-  field.closest(".field, label")?.classList.remove("is-invalid");
+  const host = field.closest(".field, label");
+  host?.classList.remove("is-invalid");
+  host?.removeAttribute("data-field-error");
 }
 document.addEventListener("input", clear, true);
 document.addEventListener("change", clear, true);
