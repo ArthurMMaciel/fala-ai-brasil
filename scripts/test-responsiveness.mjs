@@ -147,3 +147,9 @@ test('atalhos: colunas pela quantidade (6 → 3×2, 4 → 4, 8 → 4×2) e conta
   assert.match(source, /<em className="sys-quick-count" aria-label=\{`\$\{item\.badge\} pendentes`\}>/);
   assert.match(readFileSync('src/styles/system.css', 'utf8'), /\.sys-quick \{ grid-template-columns: repeat\(var\(--quick-cols, 3\), minmax\(0, 1fr\)\); \}/);
 });
+// Design P2.9 (2026-11-23): foco visível em cartões e menus.
+test('foco visível: cartões e itens clicáveis com contorno; menus laterais em amarelo', () => {
+  const css = readFileSync('src/styles/system.css', 'utf8');
+  assert.match(css, /\.legacy-editorial :is\(\.sys-quick-card, \.commercial-list-row, \.partner-card, \.worker-row-action, \.worker-company-row button\):focus-visible \{ outline: 3px solid var\(--deep\); outline-offset: 3px; \}/);
+  assert.match(css, /\.legacy-editorial :is\(\.sys-nav button, \.sidebar \.side-link\):focus-visible \{ outline: 3px solid #f2aa1d;/);
+});
