@@ -159,5 +159,5 @@ test('busca por CNPJ: botão na mesma linha do campo e passo manual com os botõ
   const css = readFileSync('src/styles/system.css', 'utf8');
   assert.match(css, /\.cnpj-search-row \{ display: flex; gap: 12px; align-items: flex-end; \}/);
   assert.match(css, /\.cnpj-search-row \.btn \{[^}]*height: 48px;/);
-  assert.match(css, /@media \(max-width: 600px\) \{\n  \.cnpj-search-row \{ flex-direction: column; align-items: stretch; \}/);
+  assert.match(css, /@media \(max-width: 600px\) \{\r?\n  \.cnpj-search-row \{ flex-direction: column; align-items: stretch; \}/);
 });
