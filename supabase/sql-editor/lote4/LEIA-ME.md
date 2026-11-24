@@ -1,5 +1,10 @@
 # Lote 4 no SQL Editor de produção: avisos por e-mail às contas da plataforma (ADR-0020)
 
+**Situação em 2026-11-24:**
+- **00, extensões:** conferido.
+- **01, fila (`20261123130000`):** aplicado em produção e conferido pelo responsável (itens 1 a 7) e, em leitura, pelo Back (versão, hash das instruções, tabela, gatilhos e contagens). A migration está em `supabase/migrations`. A fila já acumula avisos, sem enviar.
+- **Pendentes, nesta ordem:** secrets da função, publicação da `send-notifications` com teste, segredos no Vault e o **02, agendar**, que liga o envio.
+
 O formato é o mesmo dos lotes anteriores. A ordem segue o runbook [EMAIL_NOTIFICATIONS](../../../docs/runbooks/EMAIL_NOTIFICATIONS.md). O passo 02 é o que liga o envio e vem por último. Não há backup.
 
 ## Antes de começar
