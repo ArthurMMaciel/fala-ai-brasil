@@ -1,7 +1,7 @@
 # TASK-0042 — Avisos por e-mail: atualização ao trabalhador e lembretes de 7 e 15 dias à empresa
 
 - Status: concluída no escopo aprovado (contas da plataforma): envio ligado em produção em 2026-11-24 (ADR-0020, "Envio ligado em 2026-11-24"). Lembretes de 7 e 15 dias (D5) seguem fora.
-- ClickUp: (a criar pelo Gestor)
+- ClickUp: [17tu7rpgngz](https://app.clickup.com/t/17tu7rpgngz)
 - Área: Backend / DevOps
 - Prioridade: P1
 - Estimativa: 3 a 4 dias, depois das decisões (manual pela Operação: 0,5 dia)
