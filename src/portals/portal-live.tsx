@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { listMyContractedPartners, listPartnerDirectory, loadCompanyContext, loadPartnerPhoto, uploadPartnerPhoto, type CompanyContext, type ContractedPartner, type DirectoryPartner } from '../services/account';
 import { listCompanyComplaints, listPartnerCompanies, listCompanyResponsiveness, loadMyCompanyResponsiveness, loadMyCompanySatisfaction, loadMyVerificationStatus, loadCompanyTimeline, loadPartnerProfile, requestPartner, respondCompanyComplaint, setPartnerConnection, updatePartnerProfile, loadPartnerPlan, listMyContents, listPartnerContents, createPartnerContent, deletePartnerContent, type PartnerContent, type CompanySatisfaction, type CompanyComplaint, type ComplaintStatusDb, type PartnerCompany, type PartnerProfileData, type MyResponsiveness, type ResponsivenessRow, type TimelineItem } from '../services/data';
 import { showToast } from '../app/toast';
+import { confirmAction } from '../app/confirm-dialog';
 import { Icon, QuickActions, initials, type IconName } from './ui';
 import { formatPhone, maskPhone, planIncludesContent, validateContent, whatsappLink } from '../domain/account-rules';
 import { safeHttpUrl } from '../domain/html-safety';
@@ -247,7 +248,7 @@ function PartnerContents({ partnerId, planId }: { partnerId: string; planId: str
   setForm({ kind: form.kind, title: '', caption: '', videoUrl: '' }); setFile(undefined); formElement.reset(); setVersion(value => value + 1);
  }
  async function remove(content: PartnerContent) {
-  if (!window.confirm(`Remover "${content.title}" do seu perfil?`)) return;
+  if (!(await confirmAction({ title: 'Remover este conteúdo?', text: `"${content.title}" sai do seu perfil e as empresas deixam de vê-lo.`, confirmLabel: 'Remover', danger: true }))) return;
   const result = await deletePartnerContent(content);
   result.ok ? (showToast('success', 'Conteúdo removido.'), setVersion(value => value + 1)) : showToast('error', result.message);
  }

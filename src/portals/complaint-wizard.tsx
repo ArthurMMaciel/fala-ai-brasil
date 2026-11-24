@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { createWorkerComplaint, type DirectoryCompany } from '../services/data';
 import { findCompanyByCnpj, lookupCnpj } from '../services/notices';
 import { showToast } from '../app/toast';
+import { confirmAction } from '../app/confirm-dialog';
 import { brazilianStates, formatPhone, isValidCnpj, isValidPhone, maskCnpj, maskPhone } from '../domain/account-rules';
 import { suggestionLabel, suggestionSummary, suggestSharedVersion } from '../domain/shared-version-suggestion';
 import { companyContactPhoneEnabled, involvementLabels, noticeConsentMissing, noticeConsentQuestion, noticeContactPayload, noticeTexts, noticeTextsInReview, registeredContactTexts, validateManualCompany, validateNoticeContact, type Involvement, type NoticeConsent, type NoticeContactInput } from '../domain/company-notice';
@@ -120,8 +121,8 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
  const set = (key: keyof typeof draft, value: string | string[]) => setDraft(current => ({ ...current, [key]: value }));
  const go = (next: number) => { setError(''); setStep(next); window.scrollTo({ top: 0 }); };
  // Revisor simulado (sem IA e sem serviço externo): a sugestão é feita aqui no navegador, a partir do relato original.
- function suggest() {
-  if (draft.shared.trim() && !window.confirm('Trocar o texto atual pela sugestão? Você pode editar depois.')) return;
+ async function suggest() {
+  if (draft.shared.trim() && !(await confirmAction({ title: 'Trocar o texto atual pela sugestão?', text: 'O texto que você escreveu na versão para a empresa será substituído. Você pode editar depois.', confirmLabel: 'Trocar pelo texto sugerido' }))) return;
   const result = suggestSharedVersion(draft.original);
   set('shared', result.text.slice(0, 5000));
   setSuggestionNote(suggestionSummary(result.counts));

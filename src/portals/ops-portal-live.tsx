@@ -4,6 +4,7 @@ import type { ComplaintStatusDb } from '../services/data';
 import { statusLabel } from '../domain/complaint-status';
 import { notificationAlert, notificationAlertText, oldestFirst, opsReasonMax, releaseDelivery, releaseNextStep, validateOpsReason, waitingLabel, type ReleaseDelivery, type ReleaseView } from '../domain/ops-queue';
 import { showToast } from '../app/toast';
+import { confirmAction } from '../app/confirm-dialog';
 import { Metric, Sidebar } from './portal-live';
 import { EmptyState, QuickActions } from './ui';
 import { ContactSolicitationsAdmin } from './contact-solicitations-admin';
@@ -134,7 +135,7 @@ function ComplaintDetail({ complaint, delivery, onBack, onChanged, onGo }: { com
  async function decide(decision: ReviewDecision) {
   const reasonError = validateOpsReason(decision, reason);
   if (reasonError) return showToast('error', reasonError, 'Confira os dados');
-  if (decision === 'released' && !window.confirm('Liberar esta versão para a empresa? Ela passará a ver o texto compartilhável.')) return;
+  if (decision === 'released' && !(await confirmAction({ title: 'Liberar para a empresa?', text: 'A empresa passará a ver a versão compartilhável desta manifestação.', confirmLabel: 'Liberar para a empresa' }))) return;
   setBusy(true); const result = await decideOpsComplaint(complaint.id, decision, reason); setBusy(false);
   if (!result.ok) return showToast('error', result.message);
   showToast('success', decision === 'released' ? `Manifestação liberada. ${releaseNextStep(delivery).text}` : decision === 'held' ? 'Manifestação retida para análise.' : 'Ajuste solicitado ao trabalhador.');

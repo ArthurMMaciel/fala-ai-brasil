@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { showToast } from '../app/toast';
+import { confirmAction } from '../app/confirm-dialog';
 import { EmptyState } from './ui';
 import { correctedLabel, reviewOverdue, validateCorrectionReason, validateRatingComment, validateReturnReason, validateWorkerSummary } from '../domain/response-review';
 import { rateResponse, type ComplaintFeedback, type ResponseRating, type TimelineItem } from '../services/data';
@@ -58,7 +59,7 @@ function ResponseDetail({ item, onBack, onChanged }: { item: OpsResponse; onBack
  async function decide(decision: 'released' | 'returned') {
   const problem = decision === 'released' ? validateWorkerSummary(summary) : validateReturnReason(reason);
   if (problem) return showToast('error', problem, 'Confira os dados');
-  if (decision === 'released' && !window.confirm('Liberar esta resposta ao trabalhador, com a descrição da equipe?')) return;
+  if (decision === 'released' && !(await confirmAction({ title: 'Liberar a resposta ao trabalhador?', text: 'O trabalhador passa a ver a resposta da empresa, com a descrição da equipe.', confirmLabel: 'Liberar resposta' }))) return;
   setBusy(true); const result = await decideOpsResponse(item.id, decision, summary, reason); setBusy(false);
   if (!result.ok) return showToast('error', result.message);
   showToast('success', decision === 'released' ? 'Resposta liberada ao trabalhador.' : 'Resposta devolvida à empresa para ajuste.'); onChanged();

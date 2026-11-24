@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { showToast } from '../app/toast';
+import { confirmAction } from '../app/confirm-dialog';
 import { maskCnpj } from '../domain/account-rules';
 import { EmptyState } from './ui';
 import { allowedDecisions, validateVerification, verificationDecisionLabels, verificationMethodLabels, verificationStatusLabels, type VerificationDecision, type VerificationMethod, type VerificationStatus } from '../domain/representatives';
@@ -32,7 +33,8 @@ function RepresentativeDetail({ item, onBack, onChanged }: { item: OpsRepresenta
   const problem = validateVerification(decision, method, evidenceRef, reason);
   if (problem) return showToast('error', problem, 'Confira os dados');
   const question = decision === 'verified' ? `Verificar ${item.email} como representante de ${item.companyName}? A empresa passará a ver casos e números.` : decision === 'revoked' ? `Revogar o acesso de ${item.email}? A empresa deixa de ver casos e números por esta conta.` : `Recusar ${item.email} como representante de ${item.companyName}?`;
-  if (!window.confirm(question)) return;
+  const titles: Record<string, string> = { verified: 'Verificar representante?', revoked: 'Revogar acesso?' };
+  if (!(await confirmAction({ title: titles[decision] ?? 'Recusar representante?', text: question, confirmLabel: decision === 'verified' ? 'Verificar' : decision === 'revoked' ? 'Revogar acesso' : 'Recusar', danger: decision !== 'verified' }))) return;
   setBusy(true); const result = await verifyOpsRepresentative(item.companyId, item.userId, decision, method, evidenceRef, reason); setBusy(false);
   if (!result.ok) return showToast('error', result.message);
   showToast('success', decision === 'verified' ? 'Representante verificado.' : decision === 'revoked' ? 'Acesso revogado.' : 'Representante recusado.'); onChanged();

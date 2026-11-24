@@ -557,3 +557,20 @@ h2[data-autofocus]:focus { outline: none; }
 .legacy-editorial .email-stat dd { margin: 2px 0 0; color: var(--ink); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .legacy-editorial .email-stat.warn { background: #fde8e8; }
 .legacy-editorial .email-stat.warn dd { color: #9f1f1f; }
+/* Modal de confirmação (ClickUp 17tu7rpgnev, 2026-11-24): substitui a janela do navegador. Mesmo estilo dos cartões e
+   botões do design P1/P2; no celular, os botões ficam empilhados na largura toda. */
+.confirm-overlay { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 16px; background: rgba(22, 33, 58, .45); }
+.confirm-dialog { width: min(100%, 460px); padding: 24px; border-radius: 16px; background: #fff; box-shadow: 0 24px 60px -20px rgba(22, 33, 58, .5); font-family: Inter, Arial, sans-serif; color: var(--ink, #16213a); }
+.confirm-title { margin: 0 0 10px; font: 600 20px/1.25 Outfit, Arial, sans-serif; letter-spacing: -.01em; color: var(--ink, #16213a); }
+.confirm-text { margin: 0 0 22px; color: #3f4759; font-size: 15px; line-height: 1.55; overflow-wrap: anywhere; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.confirm-actions .btn { min-height: 44px; padding: 0 20px; border-radius: 999px; font-weight: 600; cursor: pointer; }
+.confirm-actions .btn:not(.primary) { border: 1px solid rgba(31, 58, 122, .35); background: #fff; color: var(--deep, #1f3a7a); }
+.confirm-actions .btn.primary { border: 1px solid var(--deep, #1f3a7a); background: var(--deep, #1f3a7a); color: #fff; }
+.confirm-actions .btn.primary.danger { border-color: #b42318; background: #b42318; }
+.confirm-actions .btn:focus-visible { outline: 3px solid #f2aa1d; outline-offset: 2px; }
+body.confirm-open { overflow: hidden; }
+@media (max-width: 600px) {
+  .confirm-actions { flex-direction: column-reverse; }
+  .confirm-actions .btn { width: 100%; }
+}

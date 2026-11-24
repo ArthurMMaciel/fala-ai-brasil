@@ -16,7 +16,7 @@ function compile(file, customRequire = require) {
   return module.exports;
 }
 const domain = compile('src/domain/response-review.ts');
-const stubs = { '../domain/response-review': domain, '../app/toast': { showToast() {} }, '../services/data': {}, '../services/ops': {}, './ui': { EmptyState: ({ text }) => text } };
+const stubs = { '../domain/response-review': domain, '../app/toast': { showToast() {} }, '../app/confirm-dialog': { confirmAction: async () => true }, '../services/data': {}, '../services/ops': {}, './ui': { EmptyState: ({ text }) => text } };
 const ui = compile('src/portals/response-review.tsx', name => stubs[name] ?? require(name));
 const render = (component, props) => renderToStaticMarkup(React.createElement(component, props));
 const repeat = n => 'a'.repeat(n);
