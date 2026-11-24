@@ -106,3 +106,13 @@ test('estado vazio: componente com ícone, frase e dica; listas da Operação se
   }
   assert.match(readFileSync('src/styles/system.css', 'utf8'), /\.legacy-editorial \.empty-state \{ display: flex;/);
 });
+// Design P1.5 (2026-11-23): assistente com um indicador de progresso, faixa de emergência e marcador na opção.
+test('assistente: progresso só na barra, emergência em faixa e marcador na opção escolhida', () => {
+  const wizard = readFileSync('src/portals/complaint-wizard.tsx', 'utf8');
+  assert.match(wizard, /<p className="wizard-progress-label">Etapa \{step \+ 1\} de \{total\} · \{stepTitle\}<\/p>/);
+  assert.equal((wizard.match(/Etapa \{step \+ 1\} de \{total\}/g) ?? []).length, 1, 'um indicador de etapa só');
+  assert.match(wizard, /<p className="wizard-emergency" role="note">Em caso de risco imediato, procure ajuda: CVV 188, SAMU 192 ou Polícia Militar 190\./);
+  const css = readFileSync('src/styles/system.css', 'utf8');
+  assert.match(css, /\.legacy-editorial \.option\.selected::before \{ content: "";/);
+  assert.match(css, /\.legacy-editorial \.wizard-emergency \{[^}]*border-left: 3px solid/);
+});

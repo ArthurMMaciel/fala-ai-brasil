@@ -227,6 +227,8 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
  }
  const stepTitle = key === 'context' ? contextSteps[step].title : titles[key];
  return <><button className="text-action worker-back" onClick={onCancel}>← Voltar</button>
-  <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Nova manifestação</span><h2>Nova manifestação</h2><p className="muted">Empresa selecionada: <strong>{companyName}</strong>. Etapa {step + 1} de {total} · {stepTitle}</p><p className="muted small">Em caso de risco imediato, procure ajuda: CVV 188, SAMU 192 ou Polícia Militar 190. A Escuta Aí Brasil não é um canal de emergência.</p></div></div>
-  <section className="wizard-box"><div className="progress"><span style={{ width: `${(step + 1) / total * 100}%` }} /></div>{body}</section></>;
+  <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Nova manifestação</span><h2>Nova manifestação</h2><p className="muted">Empresa selecionada: <strong>{companyName}</strong>.</p></div></div>
+  {/* Design P1.5: um indicador de progresso só (texto na barra) e o aviso de emergência em faixa discreta, em todas as etapas. */}
+  <section className="wizard-box"><div className="wizard-progress"><p className="wizard-progress-label">Etapa {step + 1} de {total} · {stepTitle}</p><div className="progress" aria-hidden="true"><span style={{ width: `${(step + 1) / total * 100}%` }} /></div></div>
+   <p className="wizard-emergency" role="note">Em caso de risco imediato, procure ajuda: CVV 188, SAMU 192 ou Polícia Militar 190. A Escuta Aí Brasil não é um canal de emergência.</p>{body}</section></>;
 }
