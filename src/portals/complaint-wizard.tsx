@@ -3,6 +3,7 @@ import { createWorkerComplaint, type DirectoryCompany } from '../services/data';
 import { findCompanyByCnpj, lookupCnpj } from '../services/notices';
 import { showToast } from '../app/toast';
 import { brazilianStates, formatPhone, isValidCnpj, isValidPhone, maskCnpj, maskPhone } from '../domain/account-rules';
+import { suggestionLabel, suggestionSummary, suggestSharedVersion } from '../domain/shared-version-suggestion';
 import { companyContactPhoneEnabled, involvementLabels, noticeConsentMissing, noticeConsentQuestion, noticeContactPayload, noticeTexts, noticeTextsInReview, registeredContactTexts, validateManualCompany, validateNoticeContact, type Involvement, type NoticeConsent, type NoticeContactInput } from '../domain/company-notice';
 
 // Assistente de nova manifestação em 9 etapas (conteúdo da POC, restaurado em 2026-10-30).
@@ -115,8 +116,17 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
  const [noticeConsent, setNoticeConsent] = useState<NoticeConsent>('');
  const [error, setError] = useState('');
  const [busy, setBusy] = useState(false);
+ const [suggestionNote, setSuggestionNote] = useState('');
  const set = (key: keyof typeof draft, value: string | string[]) => setDraft(current => ({ ...current, [key]: value }));
  const go = (next: number) => { setError(''); setStep(next); window.scrollTo({ top: 0 }); };
+ // Revisor simulado (sem IA e sem serviço externo): a sugestão é feita aqui no navegador, a partir do relato original.
+ function suggest() {
+  if (draft.shared.trim() && !window.confirm('Trocar o texto atual pela sugestão? Você pode editar depois.')) return;
+  const result = suggestSharedVersion(draft.original);
+  set('shared', result.text.slice(0, 5000));
+  setSuggestionNote(suggestionSummary(result.counts));
+  setError('');
+ }
 
  if (!chosen && !pending) return <CompanyStep companies={companies} onCancel={onCancel} onChoose={company => { setChosen(company); setStep(0); }} onPending={company => { setPending(company); setStep(0); }} />;
  const companyName = chosen?.name ?? pending?.name ?? '';
@@ -207,7 +217,9 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
   const contactLabel = contact ? [contact.email, contact.phone ? formatPhone(contact.phone) : ''].filter(Boolean).join(' · ') : '';
   body = <><h2>Revisão protegida</h2><p className="muted">Seu relato original não será mostrado à empresa. Escreva uma versão separada, sem nomes, locais, datas ou detalhes que possam identificar pessoas.</p>
    <div className="comparison"><div className="text-panel"><h3>Seu relato original</h3><p>{draft.original}</p></div>
-    <div className="text-panel"><h3>Versão que será enviada à empresa</h3><textarea rows={8} maxLength={5000} value={draft.shared} onChange={event => { set('shared', event.target.value); setError(''); }} aria-label="Versão que será enviada à empresa" placeholder="Descreva o que a empresa precisa saber para entender e responder, sem dados que identifiquem pessoas." /></div></div>
+    <div className="text-panel"><h3>Versão que será enviada à empresa</h3><textarea rows={8} maxLength={5000} value={draft.shared} onChange={event => { set('shared', event.target.value); setError(''); }} aria-label="Versão que será enviada à empresa" aria-describedby="shared-suggestion-note" placeholder="Descreva o que a empresa precisa saber para entender e responder, sem dados que identifiquem pessoas." />
+     <div className="shared-suggestion"><button className="btn" type="button" disabled={!draft.original.trim()} onClick={suggest}>Sugerir versão revisada</button>
+      <p id="shared-suggestion-note" className="muted small" role="status">{suggestionNote ? `${suggestionLabel} ${suggestionNote}` : suggestionLabel}</p></div></div></div>
    {contact ? <p className="muted small">{registered ? 'Contato na empresa (só a equipe vê)' : 'Aviso à empresa'}: {contactLabel}. {contact.possibly_involved ? (registered ? 'Com a sua resposta, a equipe não usa esse contato.' : noticeTexts.involvedWarning) : registered ? '' : 'A equipe confere o e-mail antes de decidir pelo envio.'} {noticeTexts.notSharedWarning.replace('O e-mail para o aviso', 'O contato')}</p> : <p className="muted small">{registered ? 'Nenhum contato na empresa indicado.' : 'Nenhum contato indicado.'}</p>}
    {!registered && <p className="muted small">{noticeConsent === 'yes' ? 'Você autorizou o aviso à empresa, que sai só depois da revisão da equipe.' : 'Você não autorizou o aviso: nada será enviado à empresa.'} A autorização só é guardada quando você solicita a revisão.</p>}
    <p className="muted small">As respostas de contexto ficam só nesta tela e não são armazenadas.</p>
