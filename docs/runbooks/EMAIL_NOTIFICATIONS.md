@@ -89,7 +89,7 @@ Se o `production-smoke` rodar durante o teste, nada muda: ele não chama a `smtp
 - **Agrupamento:** um e-mail por destinatário por rodada, com todas as pendências dele.
 - **Texto fixo:** "Há uma atualização na sua manifestação. Entre na plataforma para ver: https://fala-ai-brasil.vercel.app". O link vai em texto, sem token, protocolo, empresa ou situação. Os textos finais passam por produto e jurídico.
 - **Teto diário:** 300 envios, contados pelos `sent` do dia, para deixar folga ao Auth dentro do limite do Gmail. O limite exato do SMTP é "a confirmar" (ADR-0009). O excedente fica para o dia seguinte.
-- **Novas tentativas:** 5 min, 30 min, 2 h, 6 h e 24 h. Na quinta falha, a linha fica `failed` e aparece na Operação.
+- **Novas tentativas:** 5 min, 30 min, 2 h, 6 h e 24 h. Na **sexta** falha, a linha fica `failed` (decisão de 2026-11-24, que segue o código do Back: as cinco esperas são usadas, num total de cerca de 32 h, o que cobre um bloqueio do Gmail de até 24 h). Mostrar as linhas `failed` na Operação ainda está pendente.
 - **Erro de autenticação SMTP** (senha de app revogada ou conta bloqueada): o lote para sem gastar tentativas e o caso é tratado como incidente ([conta bloqueada](PILOT_SUSPENSION.md#conta-gmail-do-auth-bloqueada)).
 - **Reserva de linhas:** `for update skip locked` para duas rodadas não pegarem a mesma linha. Uma queda entre o envio e a marcação pode gerar uma duplicata rara, aceitável com texto genérico.
 - **Logs:** só `id` da linha, `kind`, resultado e tempo. Nunca e-mail, nome, protocolo, texto do servidor SMTP ou a senha.
