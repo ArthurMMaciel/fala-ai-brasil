@@ -21,3 +21,4 @@ Para o piloto fechado (2026-11):
 - [Ensaio de restauração](RESTORE_DRILL.md).
 - [Rotina de backup gratuito (proposta)](BACKUP_FREE.md).
 - [Deploy e rollback de Edge Function (cnpj-lookup)](EDGE_FUNCTION_DEPLOY.md).
+- [Modelos de e-mail do Auth em português](AUTH_EMAIL_TEMPLATES.md).
