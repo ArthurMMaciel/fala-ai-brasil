@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { decideOpsComplaint, listOpsComplaints, listOpsCompanies, listOpsRepresentatives, loadOpsMetrics, loadOpsTimeline, readOpsOriginal, type OpsComplaint, type OpsCompany, type OpsMetrics, type OpsTimelineItem, type ReviewDecision } from '../services/ops';
+import { decideOpsComplaint, loadNotificationStats, listOpsComplaints, listOpsCompanies, listOpsRepresentatives, loadOpsMetrics, loadOpsTimeline, readOpsOriginal, type OpsComplaint, type OpsCompany, type OpsMetrics, type OpsTimelineItem, type NotificationStats, type ReviewDecision } from '../services/ops';
 import type { ComplaintStatusDb } from '../services/data';
 import { statusLabel } from '../domain/complaint-status';
-import { oldestFirst, opsReasonMax, releaseDelivery, releaseNextStep, validateOpsReason, waitingLabel, type ReleaseDelivery, type ReleaseView } from '../domain/ops-queue';
+import { notificationAlert, notificationAlertText, oldestFirst, opsReasonMax, releaseDelivery, releaseNextStep, validateOpsReason, waitingLabel, type ReleaseDelivery, type ReleaseView } from '../domain/ops-queue';
 import { showToast } from '../app/toast';
 import { Metric, Sidebar } from './portal-live';
 import { EmptyState, QuickActions } from './ui';
@@ -42,7 +42,17 @@ function hours(value: number | null) { return value === null ? '—' : value < 4
 function Status({ status }: { status: ComplaintStatusDb }) { return <span className={`worker-status ${statusLabel(statusTone, status, 'em-aberto')}`}>{statusLabel(statusLabels, status)}</span>; }
 const head = (eyebrow: string, title: string, text: string) => <div className="commercial-page-head"><div><span className="editorial-eyebrow">{eyebrow}</span><h1>{title}</h1><p>{text}</p></div></div>;
 
-function Overview({ metrics, counts, onView }: { metrics: OpsMetrics | null; counts: OpsCounts; onView: (view: OpsView) => void }) {
+// Cartão "E-mails da plataforma" (ADR-0020): contagens da fila; vermelho com senha recusada, amarelo com cota ou falha.
+function EmailStatsCard({ stats }: { stats: NotificationStats }) {
+ const alert = notificationAlert(stats);
+ const item = (label: string, value: number, warn = false) => <div className={warn && value > 0 ? 'email-stat warn' : 'email-stat'}><dt>{label}</dt><dd>{value}</dd></div>;
+ return <section className={`commercial-panel email-stats ${alert}`} aria-labelledby="email-stats-title"><h2 id="email-stats-title">E-mails da plataforma</h2>
+  <p className={alert === 'ok' ? 'muted small' : 'email-stats-alert'} role={alert === 'ok' ? undefined : 'alert'}>{notificationAlertText[alert]}</p>
+  <dl className="email-stats-grid">{item('Na fila', stats.pending)}{item('Enviando', stats.sending)}{item('Falhas', stats.failed, true)}{item('Parados por senha (24 h)', stats.stoppedAuth24h, true)}{item('Parados por cota (24 h)', stats.stoppedQuota24h, true)}{item('Avisos enviados (24 h)', stats.sent24h)}{item('E-mails entregues (24 h)', stats.messages24h)}</dl>
+  <p className="muted small">Último envio: {stats.lastSentAt ? when(stats.lastSentAt) : 'nenhum ainda'}.</p></section>;
+}
+
+function Overview({ metrics, counts, emailStats, onView }: { metrics: OpsMetrics | null; counts: OpsCounts; emailStats: NotificationStats | null; onView: (view: OpsView) => void }) {
  if (!metrics) return <p className="muted">Carregando números…</p>;
  const s = metrics.byStatus;
  const max = Math.max(1, ...metrics.weekly.map(item => item.total));
@@ -56,6 +66,7 @@ function Overview({ metrics, counts, onView }: { metrics: OpsMetrics | null; cou
    { icon: 'info', label: 'Avisos a decidir', badge: badge(counts.notices), onClick: () => onView('notices') },
    { icon: 'users', label: 'Contatos aguardando', badge: counts.contacts, onClick: () => onView('contacts') },
   ]} />
+  {emailStats && <EmailStatsCard stats={emailStats} />}
   <div className="commercial-metrics">
    <Metric label="Em revisão" value={s.in_review ?? 0} note="aguardando decisão da equipe" />
    <Metric label="Retidas" value={s.held ?? 0} note="exigem análise humana" />
@@ -172,6 +183,7 @@ export function OpsPortalLive() {
  const [search, setSearch] = useState('');
  const [version, setVersion] = useState(0);
  const [failure, setFailure] = useState('');
+ const [emailStats, setEmailStats] = useState<NotificationStats | null>(null);
  const [delivery, setDelivery] = useState<{ verified: Set<string> | null; pending: Set<string> | null }>({ verified: null, pending: null });
  const [pendingCounts, setPendingCounts] = useState<{ representatives: number | null; pendingCompanies: number | null; notices: number | null }>({ representatives: null, pendingCompanies: null, notices: null });
  useEffect(() => {
@@ -180,6 +192,8 @@ export function OpsPortalLive() {
    .then(([m, c, co]) => { if (active) { setMetrics(m); setComplaints(c); setCompanies(co); setFailure(''); } })
    .catch(error => { if (active) setFailure(error instanceof Error ? error.message : 'Não foi possível carregar a área da equipe.'); });
   // Contadores das abas: sem a função no banco ou com erro, a aba fica sem número.
+  // Fila de e-mails: sem a função ou com erro, o cartão não aparece.
+  loadNotificationStats().then(value => { if (active) setEmailStats(value.missing ? null : value.stats); }).catch(() => { if (active) setEmailStats(null); });
   Promise.allSettled([listOpsRepresentatives('pending'), listPendingCompanies(), listNoticeCandidates(), listOpsRepresentatives('verified')]).then(([reps, pending, notices, verified]) => {
    if (!active) return;
    setDelivery({
@@ -212,7 +226,7 @@ export function OpsPortalLive() {
   {!opened && <SectionTabs section={section} view={view} counts={tabCounts} onView={go} />}
   {failure ? <section className="commercial-panel"><h2>Não foi possível carregar</h2><p>{failure}</p></section> :
    opened ? <ComplaintDetail key={opened.id + opened.status} complaint={opened} delivery={releaseDelivery(opened.companyId, delivery.verified, delivery.pending)} onBack={() => setOpenId(null)} onChanged={() => setVersion(value => value + 1)} onGo={go} /> :
-   view === 'overview' ? <Overview metrics={metrics} counts={counts} onView={go} /> :
+   view === 'overview' ? <Overview metrics={metrics} counts={counts} emailStats={emailStats} onView={go} /> :
    view === 'queue' ? <>{head('Operação', 'Fila de revisão', 'Confira a versão compartilhável e decida: liberar para a empresa, pedir ajuste ao trabalhador ou reter para análise.')}
     {complaints === null ? <p className="muted">Carregando…</p> : <ComplaintList rows={queue} waiting onOpen={row => setOpenId(row.id)} empty="Nenhuma manifestação aguardando revisão." />}</> :
    view === 'all' ? <>{head('Operação', 'Manifestações', 'Todas as manifestações, sem identidade de quem relatou.')}

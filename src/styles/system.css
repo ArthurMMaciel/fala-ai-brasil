@@ -545,3 +545,15 @@ h2[data-autofocus]:focus { outline: none; }
 .legacy-editorial :is(.sys-quick-card, .commercial-list-row, .partner-card, .worker-row-action, .worker-company-row button):focus-visible { outline: 3px solid var(--deep); outline-offset: 3px; }
 /* Menus laterais ficam sobre o azul: contorno amarelo para contrastar. */
 .legacy-editorial :is(.sys-nav button, .sidebar .side-link):focus-visible { outline: 3px solid #f2aa1d; outline-offset: 2px; }
+/* Cartão "E-mails da plataforma" na Visão geral da Operação (ADR-0020). Vermelho com falhas, parada por senha ou por cota. */
+.legacy-editorial .email-stats { margin: 0 0 24px; border-left: 4px solid #e2e5ec; }
+.legacy-editorial .email-stats.attention { border-left-color: #b42318; background: #fff6f5; }
+.legacy-editorial .email-stats.incident { border-left-color: #b42318; background: #fff6f5; }
+.legacy-editorial .email-stats-alert { margin: 4px 0 14px; color: #9f1f1f; font-weight: 600; }
+.legacy-editorial .email-stats.incident .email-stats-alert { color: #9f1f1f; }
+.legacy-editorial .email-stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 0 0 12px; }
+.legacy-editorial .email-stat { padding: 10px 12px; border-radius: 10px; background: #f6f7f8; }
+.legacy-editorial .email-stat dt { color: #3f4759; font-size: 12px; }
+.legacy-editorial .email-stat dd { margin: 2px 0 0; color: var(--ink); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.legacy-editorial .email-stat.warn { background: #fde8e8; }
+.legacy-editorial .email-stat.warn dd { color: #9f1f1f; }

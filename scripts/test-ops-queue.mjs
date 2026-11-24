@@ -52,3 +52,21 @@ test('próximo passo da liberação: empresa verificada, sem verificado, sem con
   assert.match(portal, /showToast\('success', decision === 'released' \? `Manifestação liberada\. \$\{releaseNextStep\(delivery\)\.text\}`/);
   assert.match(portal, /listOpsRepresentatives\('verified'\)/);
 });
+// ADR-0020 (2026-11-24): cartão "E-mails da plataforma" na Visão geral da Operação.
+test('fila de e-mails: senha recusada é incidente, cota ou falha pedem atenção; tolerante à função ausente', () => {
+  assert.equal(queue.notificationAlert({ failed: 0, stoppedAuth24h: 1, stoppedQuota24h: 0 }), 'incident');
+  assert.equal(queue.notificationAlert({ failed: 3, stoppedAuth24h: 2, stoppedQuota24h: 1 }), 'incident');
+  assert.equal(queue.notificationAlert({ failed: 0, stoppedAuth24h: 0, stoppedQuota24h: 1 }), 'attention');
+  assert.equal(queue.notificationAlert({ failed: 1, stoppedAuth24h: 0, stoppedQuota24h: 0 }), 'attention');
+  assert.equal(queue.notificationAlert({ failed: 0, stoppedAuth24h: 0, stoppedQuota24h: 0 }), 'ok');
+  assert.match(queue.notificationAlertText.incident, /runbook EMAIL_NOTIFICATIONS/);
+  const service = readFileSync('src/services/ops.ts', 'utf8');
+  assert.match(service, /rpc\("ops_notification_stats"\)/);
+  assert.match(service, /if \(missingFunction\(error\) \|\| error\.code === "42501"\) return \{ missing: true \};/);
+  assert.match(service, /stoppedAuth24h: n\(row\.stopped_auth_24h\), stoppedQuota24h: n\(row\.stopped_quota_24h\)/);
+  const portal = readFileSync('src/portals/ops-portal-live.tsx', 'utf8');
+  assert.match(portal, /\{emailStats && <EmailStatsCard stats=\{emailStats\} \/>\}/);
+  const css = readFileSync('src/styles/system.css', 'utf8');
+  assert.match(css, /\.email-stats\.attention \{ border-left-color: #b42318; background: #fff6f5; \}/, 'falha e cota também em vermelho');
+  assert.match(css, /\.email-stats\.incident \{ border-left-color: #b42318;/);
+});

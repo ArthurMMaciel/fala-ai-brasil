@@ -43,3 +43,15 @@ export function releaseNextStep(delivery: ReleaseDelivery, before = false): { te
   if (delivery === "unregistered") return { text: "Empresa sem conta: confira em Empresas → A conferir e decida o aviso em Empresas → Avisos.", links: [{ view: "pending-companies", label: "Abrir A conferir" }, { view: "notices", label: "Abrir Avisos" }] };
   return { text: "Confira a situação da empresa em Empresas.", links: [{ view: "companies", label: "Abrir Empresas" }] };
 }
+// Cartão "E-mails da plataforma" (ADR-0020): fica vermelho com falha, parada por senha ou por cota (pedido do Gestor,
+// 2026-11-24). O texto separa a senha recusada (incidente, pausa do piloto) de cota ou falha.
+export type NotificationAlert = "incident" | "attention" | "ok";
+export function notificationAlert(stats: { failed: number; stoppedAuth24h: number; stoppedQuota24h: number }): NotificationAlert {
+  if (stats.stoppedAuth24h > 0) return "incident";
+  return stats.stoppedQuota24h > 0 || stats.failed > 0 ? "attention" : "ok";
+}
+export const notificationAlertText: Record<NotificationAlert, string> = {
+  incident: "Envio parado: o Gmail recusou a senha. Confira o Gmail e siga o runbook EMAIL_NOTIFICATIONS.",
+  attention: "Há falhas ou limite do Gmail. Confira o Gmail; veja o runbook EMAIL_NOTIFICATIONS.",
+  ok: "Fila funcionando.",
+};

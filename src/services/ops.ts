@@ -131,3 +131,16 @@ export async function loadRepresentativeHistory(companyId: string): Promise<Repr
   if (error) throw new Error(failure(error, "Não foi possível carregar o histórico."));
   return (data ?? []).map((row: Record<string, unknown>) => ({ userId: String(row.user_id), decision: row.decision as VerificationDecision, method: (row.method as VerificationMethod | null) ?? null, evidenceRef: (row.evidence_ref as string | null) ?? null, reason: (row.reason as string | null) ?? null, createdAt: String(row.created_at) }));
 }
+
+// Fila de e-mails da plataforma (ADR-0020, lote 4, migration 20261123130000): contagens só para a equipe.
+// Sem a função (PGRST202/42883) ou sem acesso (42501), o cartão não aparece.
+export interface NotificationStats { pending: number; sending: number; failed: number; sent24h: number; messages24h: number; stoppedAuth24h: number; stoppedQuota24h: number; lastSentAt: string | null }
+
+export async function loadNotificationStats(): Promise<{ missing: true } | { missing: false; stats: NotificationStats }> {
+  const { data, error } = await supabase().rpc("ops_notification_stats");
+  if (error) { if (missingFunction(error) || error.code === "42501") return { missing: true }; throw new Error(failure(error, "Não foi possível carregar a fila de e-mails.")); }
+  const row = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | undefined;
+  if (!row) return { missing: true };
+  const n = (value: unknown) => Number(value ?? 0) || 0;
+  return { missing: false, stats: { pending: n(row.pending), sending: n(row.sending), failed: n(row.failed), sent24h: n(row.sent_24h), messages24h: n(row.messages_24h), stoppedAuth24h: n(row.stopped_auth_24h), stoppedQuota24h: n(row.stopped_quota_24h), lastSentAt: (row.last_sent_at as string | null) ?? null } };
+}
