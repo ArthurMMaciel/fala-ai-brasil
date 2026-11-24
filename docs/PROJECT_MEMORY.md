@@ -144,3 +144,4 @@ Aplicação Vite + TypeScript com landing e percursos editoriais em React, integ
 
 - Nenhum incidente de produção: não há produção.
 - Documentos antigos misturam arquitetura desejada e estado implementado; a governança nova separa explicitamente os dois.
+- 2026-11-23: a empresa recebia o título que o trabalhador escreve no relato original (achado no teste EAB-2026-1067). Corrigido no mesmo dia (`20261123120000`, ADR-0010, revisão de 2026-11-23): a empresa vê só "Manifestação " + protocolo. Títulos já vistos e PDFs já gerados não podem ser recolhidos.

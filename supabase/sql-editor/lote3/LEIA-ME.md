@@ -1,5 +1,7 @@
 # Lote 3 no SQL Editor de produção: título do relato original fora da lista da empresa
 
+**Aplicado em produção em 2026-11-23** (passo 01, conferido pelo responsável). A migration está em `supabase/migrations`.
+
 O formato é o mesmo dos lotes 1 e 2. O responsável roda o script no SQL Editor de produção. Não há db push nem backup.
 
 - **O que muda:** a empresa deixa de receber o título que o trabalhador escreveu no relato original (achado EAB-2026-1067). Na lista, no detalhe, na fila de atenção e no PDF, o título da empresa passa a ser "Manifestação EAB-…".

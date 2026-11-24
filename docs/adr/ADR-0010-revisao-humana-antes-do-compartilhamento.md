@@ -49,6 +49,13 @@ Adotar a opção 2 para o piloto fechado, sujeita à validação de produto, ope
 - Correções (migration `20261106140000_revisao_lock_e_ranking.sql`, só funções): `ops_decide_complaint` trava a linha (`for update`) antes de conferir o status, evitando decisão dupla em concorrência; `company_ranking` mede a primeira resposta a partir da liberação (primeiro evento `shared`), sem contar o tempo de revisão contra a empresa.
 - Teste de fumaça: `supabase/tests/ops_review_smoke.sql` (21 verificações, validado em banco local do zero em 2026-11-06). Pendentes: verificação de representante (TASK-0011), convite seguro (TASK-0029), notificações por e-mail das decisões.
 
+## Revisão de 2026-11-23: título do relato original fora da empresa
+
+- **O achado:** no teste em produção (EAB-2026-1067), a empresa recebia `complaints.title`. Esse título é escrito na etapa do relato original e não passa pela revisão da versão compartilhável, então podia trazer nome ou detalhe identificável. A empresa o via na lista, no detalhe, na fila de atenção e no PDF.
+- **Decisão do responsável (opção a, "Aprovo"):** `list_company_complaints`, a única função da empresa que devolvia o título, passa a devolver "Manifestação " + protocolo. Trabalhador e equipe continuam vendo o título original.
+- **Implementação:** `20261123120000`, aplicada em produção em 2026-11-23 (lote 3 do SQL Editor). Conferida pelo responsável e, em leitura, pelo Back (versão, hash das instruções e corpo da função).
+- **O que não tem volta:** títulos já vistos pelas empresas e PDFs já gerados não podem ser recolhidos.
+
 ## Consequências
 
 Introduz fila e custo humano por manifestação, estado adicional, migração e procedimento de pausa. Mantém Supabase e as tabelas separadas já existentes; não cria novo fornecedor ou infraestrutura paga. Prazo de resposta dependerá de capacidade operacional aprovada.
