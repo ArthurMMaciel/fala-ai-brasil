@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 // Componentes visuais compartilhados dos portais (referência Emerald24, cores da marca).
 export type IconName = 'home' | 'list' | 'building' | 'plus' | 'chart' | 'users' | 'user' | 'image' | 'briefcase' | 'star' | 'inbox' | 'info';
 
@@ -30,9 +31,16 @@ export function EmptyState({ text, hint, icon = 'inbox', action }: { text: strin
 export interface QuickAction { icon: IconName; label: string; hint?: string; badge?: number; onClick: () => void }
 
 // Cartões de ação rápida: ícone em círculo verde e rótulo embaixo, como os atalhos da referência.
+// Design P2.8 (2026-11-23): grade regular (colunas conforme a quantidade, sem sobra de 4+2) e contador legível ao lado do ícone.
+export function quickColumns(count: number): { wide: number; narrow: number } {
+ const wide = count <= 4 ? Math.max(count, 1) : count % 4 === 0 ? 4 : 3;
+ return { wide, narrow: count % 3 === 0 ? 3 : 2 };
+}
+
 export function QuickActions({ items, label }: { items: QuickAction[]; label: string }) {
- return <nav className="sys-quick" aria-label={label}>{items.map(item => <button key={item.label} type="button" className="sys-quick-card" onClick={item.onClick}>
-  <span className="sys-quick-icon"><Icon name={item.icon} />{item.badge ? <em className="sys-badge" aria-label={`${item.badge} pendentes`}>{item.badge}</em> : null}</span>
+ const columns = quickColumns(items.length);
+ return <nav className="sys-quick" aria-label={label} style={{ '--quick-cols': columns.wide, '--quick-cols-sm': columns.narrow } as CSSProperties}>{items.map(item => <button key={item.label} type="button" className="sys-quick-card" onClick={item.onClick}>
+  <span className="sys-quick-top"><span className="sys-quick-icon"><Icon name={item.icon} /></span>{item.badge ? <em className="sys-quick-count" aria-label={`${item.badge} pendentes`}>{item.badge}</em> : null}</span>
   <span className="sys-quick-label">{item.label}</span>{item.hint && <small>{item.hint}</small>}
  </button>)}</nav>;
 }

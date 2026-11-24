@@ -135,3 +135,15 @@ test('selos: rótulos curtos e uma cor por significado; cancelada não fica verd
   assert.match(css, /\.legacy-editorial \.worker-status \{ white-space: nowrap; \}/);
   assert.match(css, /\.legacy-editorial \.worker-status\.retida \{ background: #fde8e8; color: #9f1f1f; \}/);
 });
+// Design P2.8 (2026-11-23): atalhos em grade regular e contador legível.
+test('atalhos: colunas pela quantidade (6 → 3×2, 4 → 4, 8 → 4×2) e contador ao lado do ícone', async () => {
+  const source = readFileSync('src/portals/ui.tsx', 'utf8');
+  const fn = source.match(/export function quickColumns[\s\S]*?\n\}/)[0].replace('export function quickColumns(count: number): { wide: number; narrow: number }', 'function quickColumns(count)');
+  const quickColumns = new Function(`${fn}; return quickColumns;`)();
+  assert.deepEqual(quickColumns(6), { wide: 3, narrow: 3 });
+  assert.deepEqual(quickColumns(4), { wide: 4, narrow: 2 });
+  assert.deepEqual(quickColumns(3), { wide: 3, narrow: 3 });
+  assert.deepEqual(quickColumns(8), { wide: 4, narrow: 2 });
+  assert.match(source, /<em className="sys-quick-count" aria-label=\{`\$\{item\.badge\} pendentes`\}>/);
+  assert.match(readFileSync('src/styles/system.css', 'utf8'), /\.sys-quick \{ grid-template-columns: repeat\(var\(--quick-cols, 3\), minmax\(0, 1fr\)\); \}/);
+});
