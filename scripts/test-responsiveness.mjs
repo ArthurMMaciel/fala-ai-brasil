@@ -95,3 +95,14 @@ test('tabelas: CNPJ com máscara, cabeçalho legível, seta nas linhas clicávei
   assert.match(css, /tbody tr\[tabindex="0"\]:focus-visible \{ outline: 3px solid var\(--deep\);/);
   assert.match(css, /:is\(th, td\)\.num \{ text-align: right; font-variant-numeric: tabular-nums; \}/);
 });
+// Design P1.4 (2026-11-23): estado vazio padrão nas listas da Operação.
+test('estado vazio: componente com ícone, frase e dica; listas da Operação sem "Nada por aqui"', () => {
+  const ui = readFileSync('src/portals/ui.tsx', 'utf8');
+  assert.match(ui, /export function EmptyState\(\{ text, hint, icon = 'inbox', action \}/);
+  for (const file of ['ops-portal-live.tsx', 'representatives.tsx', 'response-review.tsx', 'company-notices.tsx']) {
+    const source = readFileSync(`src/portals/${file}`, 'utf8');
+    assert.match(source, /<EmptyState /, file);
+    assert.doesNotMatch(source, /Nada por aqui/, file);
+  }
+  assert.match(readFileSync('src/styles/system.css', 'utf8'), /\.legacy-editorial \.empty-state \{ display: flex;/);
+});

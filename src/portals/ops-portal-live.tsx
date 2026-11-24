@@ -5,7 +5,7 @@ import { statusLabel } from '../domain/complaint-status';
 import { oldestFirst, opsReasonMax, releaseDelivery, releaseNextStep, validateOpsReason, waitingLabel, type ReleaseDelivery, type ReleaseView } from '../domain/ops-queue';
 import { showToast } from '../app/toast';
 import { Metric, Sidebar } from './portal-live';
-import { QuickActions } from './ui';
+import { EmptyState, QuickActions } from './ui';
 import { ContactSolicitationsAdmin } from './contact-solicitations-admin';
 import { OpsResponses } from './response-review';
 import { OpsRepresentatives } from './representatives';
@@ -78,7 +78,7 @@ function Overview({ metrics, counts, onView }: { metrics: OpsMetrics | null; cou
 }
 
 function ComplaintList({ rows, onOpen, empty, waiting = false }: { rows: OpsComplaint[]; onOpen: (row: OpsComplaint) => void; empty: string; waiting?: boolean }) {
- if (!rows.length) return <section className="commercial-panel"><p className="muted">{empty}</p></section>;
+ if (!rows.length) return <EmptyState text={empty} hint={waiting ? 'Quando um trabalhador pedir a revisão, a manifestação aparece aqui, a mais antiga primeiro.' : undefined} />;
  return <div className="commercial-table-wrap"><table className="commercial-table"><thead><tr><th>Protocolo</th><th>Empresa</th><th>Assunto</th><th>Situação</th><th>{waiting ? 'Aguardando' : 'Atualizada'}</th></tr></thead>
   <tbody>{rows.map(row => <tr key={row.id} tabIndex={0} onClick={() => onOpen(row)} onKeyDown={event => event.key === 'Enter' && onOpen(row)}><td>{row.protocol}</td><td>{row.companyName}</td><td>{row.title}<small>{row.category}</small></td><td><Status status={row.status} /></td><td>{waiting ? <span title={when(row.updatedAt)}>{waitingLabel(row.updatedAt)}</span> : when(row.updatedAt)}</td></tr>)}</tbody></table></div>;
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { showToast } from '../app/toast';
 import { maskCnpj } from '../domain/account-rules';
+import { EmptyState } from './ui';
 import { allowedDecisions, validateVerification, verificationDecisionLabels, verificationMethodLabels, verificationStatusLabels, type VerificationDecision, type VerificationMethod, type VerificationStatus } from '../domain/representatives';
 import { listOpsRepresentatives, loadRepresentativeHistory, verifyOpsRepresentative, type OpsRepresentative, type RepresentativeHistoryItem } from '../services/ops';
 
@@ -64,7 +65,7 @@ export function OpsRepresentatives({ onChanged }: { onChanged?: () => void }) {
  return <><div className="commercial-page-head"><div><span className="editorial-eyebrow">Operação</span><h1>Representantes a verificar</h1><p>Confirme que quem se cadastrou representa a empresa antes de ela ver casos e números. Ligue para o telefone público da empresa ou confira um documento fora da plataforma.</p></div></div>
   {missing ? <section className="commercial-panel"><p>A verificação de representantes ainda não está ativa no banco. A fila aparece aqui assim que a atualização for aplicada.</p></section> : <>
   <div className="account-tabs ops-response-tabs" role="tablist" aria-label="Situação do representante">{tabs.map(([value, label]) => <button key={value} role="tab" aria-selected={tab === value} className={`account-tab${tab === value ? ' active' : ''}`} onClick={() => { setTab(value); setOpenKey(null); }}>{label}</button>)}</div>
-  {failure ? <section className="commercial-panel"><p>{failure}</p></section> : rows === null ? <p className="muted">Carregando…</p> : !rows.length ? <section className="commercial-panel"><p className="muted">{tab === 'pending' ? 'Nenhum representante aguardando verificação.' : 'Nada por aqui.'}</p></section> :
+  {failure ? <section className="commercial-panel"><p>{failure}</p></section> : rows === null ? <p className="muted">Carregando…</p> : !rows.length ? <EmptyState icon="users" text={tab === 'pending' ? 'Nenhum representante aguardando verificação.' : 'Nenhum representante nesta situação.'} hint={tab === 'pending' ? 'Quem se cadastrar como representante de uma empresa aparece aqui para a equipe conferir.' : undefined} /> :
   <div className="commercial-table-wrap"><table className="commercial-table"><thead><tr><th>Empresa</th><th>Representante</th><th>Vínculo</th><th>{tab === 'pending' ? 'Cadastro em' : 'Situação'}</th></tr></thead>
    <tbody>{rows.map(row => <tr key={key(row)} tabIndex={0} onClick={() => setOpenKey(key(row))} onKeyDown={event => event.key === 'Enter' && setOpenKey(key(row))}><td>{row.companyName}<small>CNPJ {maskCnpj(row.cnpj)}</small></td><td>{row.email}</td><td>{roleLabel(row.role)}</td><td>{tab === 'pending' ? dateLabel(row.linkedAt) : verificationStatusLabels[row.status]}</td></tr>)}</tbody></table></div>}</>}</>;
 }

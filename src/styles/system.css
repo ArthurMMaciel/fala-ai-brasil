@@ -505,3 +505,9 @@ h2[data-autofocus]:focus { outline: none; }
 .legacy-editorial :is(.worker-table, .commercial-table) tbody tr[tabindex="0"] > td:last-child { position: relative; padding-right: 40px; }
 .legacy-editorial :is(.worker-table, .commercial-table) tbody tr[tabindex="0"] > td:last-child::after { content: ""; position: absolute; top: 50%; right: 18px; width: 8px; height: 8px; border-top: 2px solid #8a93a6; border-right: 2px solid #8a93a6; transform: translateY(-50%) rotate(45deg); }
 .legacy-editorial :is(.worker-table, .commercial-table) tbody tr[tabindex="0"]:hover > td:last-child::after { border-color: var(--deep); }
+/* Design P1.4 (2026-11-23): estado vazio padrão, com ícone, frase e dica. */
+.legacy-editorial .empty-state { display: flex; gap: 16px; align-items: flex-start; padding: 28px; }
+.legacy-editorial .empty-state-icon { display: grid; flex: none; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: #eef2fb; color: var(--deep); }
+.legacy-editorial .empty-state-text { margin: 0 0 4px; color: var(--ink); font-size: 16px; font-weight: 600; }
+.legacy-editorial .empty-state .muted.small { margin: 0; max-width: 560px; }
+.legacy-editorial .empty-state .btn { margin-top: 12px; }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { showToast } from '../app/toast';
+import { EmptyState } from './ui';
 import { correctedLabel, reviewOverdue, validateCorrectionReason, validateRatingComment, validateReturnReason, validateWorkerSummary } from '../domain/response-review';
 import { rateResponse, type ComplaintFeedback, type ResponseRating, type TimelineItem } from '../services/data';
 import { correctOpsResponseSummary, decideOpsResponse, listOpsResponses, type OpsResponse, type ResponseReviewStatus } from '../services/ops';
@@ -93,7 +94,7 @@ export function OpsResponses({ onChanged }: { onChanged?: () => void }) {
  if (opened) return <ResponseDetail key={opened.id + opened.reviewStatus} item={opened} onBack={() => setOpenId(null)} onChanged={() => { setOpenId(null); setVersion(value => value + 1); onChanged?.(); }} />;
  return <><div className="commercial-page-head"><div><span className="editorial-eyebrow">Operação</span><h1>Respostas das empresas</h1><p>Leia a resposta, escreva a descrição para o trabalhador e libere, ou devolva à empresa com o motivo. Prazo de revisão: 2 dias úteis.</p></div></div>
   <div className="account-tabs ops-response-tabs" role="tablist" aria-label="Situação da resposta">{reviewTabs.map(([key, label]) => <button key={key} role="tab" aria-selected={tab === key} className={`account-tab${tab === key ? ' active' : ''}`} onClick={() => { setTab(key); setOpenId(null); }}>{label}</button>)}</div>
-  {failure ? <section className="commercial-panel"><p>{failure}</p></section> : rows === null ? <p className="muted">Carregando…</p> : !rows.length ? <section className="commercial-panel"><p className="muted">{tab === 'in_review' ? 'Nenhuma resposta aguardando revisão.' : 'Nada por aqui.'}</p></section> :
+  {failure ? <section className="commercial-panel"><p>{failure}</p></section> : rows === null ? <p className="muted">Carregando…</p> : !rows.length ? <EmptyState text={tab === 'in_review' ? 'Nenhuma resposta aguardando revisão.' : 'Nenhuma resposta nesta situação.'} hint={tab === 'in_review' ? 'Quando uma empresa responder a uma manifestação liberada, a resposta aparece aqui antes de chegar ao trabalhador.' : undefined} /> :
   <div className="commercial-table-wrap"><table className="commercial-table"><thead><tr><th>Protocolo</th><th>Empresa</th><th>Assunto</th><th>{tab === 'in_review' ? 'Aguardando' : 'Enviada em'}</th></tr></thead>
    <tbody>{rows.map(row => <tr key={row.id} tabIndex={0} onClick={() => setOpenId(row.id)} onKeyDown={event => event.key === 'Enter' && setOpenId(row.id)}><td>{row.protocol}</td><td>{row.companyName}</td><td>{row.title}<small>{row.category}</small></td>
     <td>{tab === 'in_review' ? <span className={reviewOverdue(row.waitingHours) ? 'ops-overdue' : ''}>{row.waitingHours === null ? '—' : row.waitingHours < 48 ? `há ${Math.floor(row.waitingHours)} h` : `há ${Math.floor(row.waitingHours / 24)} dias`}</span> : dateLabel(row.createdAt)}</td></tr>)}</tbody></table></div>}</>;

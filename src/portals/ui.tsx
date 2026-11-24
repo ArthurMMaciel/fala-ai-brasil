@@ -20,6 +20,13 @@ export function Icon({ name }: { name: IconName }) {
  return <svg className="sys-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} /></svg>;
 }
 
+// Estado vazio padrão (design P1.4, 2026-11-23): ícone, frase, dica opcional e próxima ação quando houver.
+export function EmptyState({ text, hint, icon = 'inbox', action }: { text: string; hint?: string; icon?: IconName; action?: { label: string; onClick: () => void } }) {
+ return <section className="commercial-panel empty-state"><span className="empty-state-icon"><Icon name={icon} /></span><div>
+  <p className="empty-state-text">{text}</p>{hint && <p className="muted small">{hint}</p>}
+  {action && <button className="btn" type="button" onClick={action.onClick}>{action.label}</button>}</div></section>;
+}
+
 export interface QuickAction { icon: IconName; label: string; hint?: string; badge?: number; onClick: () => void }
 
 // Cartões de ação rápida: ícone em círculo verde e rótulo embaixo, como os atalhos da referência.
