@@ -84,7 +84,7 @@ function Dashboard({ complaints, companies, onList, onNew, onCompanies, onOpen }
   <NextStep latest={latest} company={latest ? companies.get(latest.companyId) : undefined} onOpen={onOpen} onNew={onNew} />
   <QuickActions label="Atalhos" items={[
    { icon: 'plus', label: 'Nova manifestação', onClick: onNew },
-   { icon: 'list', label: 'Minhas manifestações', badge: count(['answered']), onClick: onList },
+   { icon: 'inbox', label: 'Minhas manifestações', badge: count(['answered']), onClick: onList },
    { icon: 'building', label: 'Empresas', onClick: onCompanies },
   ]} />
   <div className="worker-funnel">{[['Em acompanhamento', count(['received', 'in_review', 'adjustment_requested', 'held', 'shared', 'answer_in_review', 'answered'])], ['Em revisão', count(['in_review', 'adjustment_requested', 'held', 'answer_in_review'])], ['Aguardando empresa', count(['shared'])], ['Respondidas', count(['answered'])], ['Finalizadas', count(['closed'])]].map(([label, value]) => <article key={String(label)}><span>{label}</span><strong>{value}</strong></article>)}</div>

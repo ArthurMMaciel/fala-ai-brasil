@@ -153,3 +153,21 @@ test('foco visível: cartões e itens clicáveis com contorno; menus laterais em
   assert.match(css, /\.legacy-editorial :is\(\.sys-quick-card, \.commercial-list-row, \.partner-card, \.worker-row-action, \.worker-company-row button\):focus-visible \{ outline: 3px solid var\(--deep\); outline-offset: 3px; \}/);
   assert.match(css, /\.legacy-editorial :is\(\.sys-nav button, \.sidebar \.side-link\):focus-visible \{ outline: 3px solid #f2aa1d;/);
 });
+// Design P3.12 (2026-11-24): um ícone próprio por item de menu, sem repetição, do conjunto da Operação.
+test('menus: cada item com ícone próprio (Contratados e Manifestações do trabalhador deixam o ícone genérico)', () => {
+  const portal = readFileSync('src/portals/portal-live.tsx', 'utf8');
+  const icons = Object.fromEntries([...portal.match(/const sidebarIcons: Record<string, IconName> = \{([^}]*)\}/)[1].matchAll(/(\w+): '(\w+)'/g)].map(m => [m[1], m[2]]));
+  const menus = {
+    company: ['dashboard', 'complaints', 'ranking', 'partners', 'contracted'],
+    partner: ['dashboard', 'content', 'companies', 'leads', 'clients'],
+  };
+  for (const [name, keys] of Object.entries(menus)) {
+    const used = keys.map(key => icons[key]);
+    assert.ok(used.every(Boolean), `${name}: todo item tem ícone mapeado`);
+    assert.equal(new Set(used).size, used.length, `${name}: sem ícone repetido`);
+    assert.ok(!used.includes('list'), `${name}: sem o ícone genérico`);
+  }
+  assert.match(readFileSync('src/portals/ui.tsx', 'utf8'), /contract: 'M14 3H6/);
+  assert.match(readFileSync('src/styles/system.css', 'utf8'), /\.side-link\[data-worker-view="manifestations"\]::before \{ -webkit-mask-image: var\(--sys-i-inbox\);/);
+  assert.match(readFileSync('src/portals/worker-portal-live.tsx', 'utf8'), /icon: 'inbox', label: 'Minhas manifestações'/);
+});

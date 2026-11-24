@@ -574,3 +574,7 @@ body.confirm-open { overflow: hidden; }
   .confirm-actions { flex-direction: column-reverse; }
   .confirm-actions .btn { width: 100%; }
 }
+/* Design P3.12 (2026-11-24): um ícone próprio por item de menu, do mesmo conjunto da Operação. Manifestações do
+   trabalhador usa a caixa de entrada (como na Operação e na empresa), em vez do ícone genérico de lista. */
+:root { --sys-i-inbox: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%20fill%3D'none'%20stroke%3D'black'%20stroke-width%3D'1.8'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%3Cpath%20d%3D'M22%2012h-6l-2%203h-4l-2-3H2M5.5%205h13L22%2012v6a2%202%200%200%201-2%202H4a2%202%200%200%201-2-2v-6z'%2F%3E%3C%2Fsvg%3E"); }
+.legacy-editorial .side-link[data-worker-view="manifestations"]::before { -webkit-mask-image: var(--sys-i-inbox); mask-image: var(--sys-i-inbox); }

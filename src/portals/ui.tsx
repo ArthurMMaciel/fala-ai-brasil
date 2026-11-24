@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 // Componentes visuais compartilhados dos portais (referência Emerald24, cores da marca).
-export type IconName = 'home' | 'list' | 'building' | 'plus' | 'chart' | 'users' | 'user' | 'image' | 'briefcase' | 'star' | 'inbox' | 'info';
+export type IconName = 'home' | 'list' | 'building' | 'plus' | 'chart' | 'users' | 'user' | 'image' | 'briefcase' | 'star' | 'inbox' | 'info' | 'contract';
 
 const paths: Record<IconName, string> = {
  home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z',
@@ -15,6 +15,7 @@ const paths: Record<IconName, string> = {
  star: 'm12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z',
  inbox: 'M22 12h-6l-2 3h-4l-2-3H2M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z',
  info: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20M12 16v-4M12 8h.01',
+ contract: 'M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8zM14 3v5h5M9 14.5l2 2 4-4',
 };
 
 export function Icon({ name }: { name: IconName }) {

@@ -28,7 +28,7 @@ function hours(value: number | null | undefined) { return value === null || valu
 export function Metric({ label, value, note }: { label: string; value: string | number; note?: string }) {
  return <article className="commercial-metric"><span>{label}</span><strong>{value}</strong>{note && <small>{note}</small>}</article>;
 }
-const sidebarIcons: Record<string, IconName> = { overview: 'home', queue: 'inbox', all: 'list', contacts: 'users', dashboard: 'home', complaints: 'inbox', ranking: 'chart', partners: 'users', profile: 'user', content: 'image', companies: 'building', leads: 'star', clients: 'briefcase' };
+const sidebarIcons: Record<string, IconName> = { overview: 'home', queue: 'inbox', all: 'list', contacts: 'users', dashboard: 'home', complaints: 'inbox', ranking: 'chart', partners: 'users', profile: 'user', content: 'image', companies: 'building', leads: 'star', clients: 'briefcase', contracted: 'contract' };
 
 export function Sidebar<T extends string>({ eyebrow, name, items, view, onView }: { eyebrow: string; name: string; items: [T, string][]; view: T; onView: (view: T) => void }) {
  return <aside className="commercial-sidebar"><div className="sys-account"><span className="sys-avatar" aria-hidden="true">{initials(name)}</span><span><strong className="commercial-sidebar-name">{name}</strong><small>{eyebrow}</small></span></div>
