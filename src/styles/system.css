@@ -473,3 +473,14 @@ h2[data-autofocus]:focus { outline: none; }
 .user-menu-item:hover, .user-menu-item:focus-visible { background: #f2f5fb; }
 .user-menu-item.danger { color: #b42318; }
 .user-menu-item.danger:hover, .user-menu-item.danger:focus-visible { background: #fdf0ef; }
+/* Busca por CNPJ na nova manifestação: botão ao lado do campo, com a mesma altura; no celular, logo abaixo.
+   O passo manual (nome, município, UF) usa a mesma largura e os botões ficam junto dos campos. */
+.cnpj-search { max-width: 640px; }
+.cnpj-search-row { display: flex; gap: 12px; align-items: flex-end; }
+.cnpj-search-row .field { flex: 1 1 auto; min-width: 0; margin: 0; }
+.cnpj-search-row .btn { flex: none; align-self: flex-end; height: 48px; min-height: 48px; padding-block: 0; white-space: nowrap; }
+.cnpj-search .cnpj-actions { justify-content: flex-start; }
+@media (max-width: 600px) {
+  .cnpj-search-row { flex-direction: column; align-items: stretch; }
+  .cnpj-search-row .btn { width: 100%; }
+}

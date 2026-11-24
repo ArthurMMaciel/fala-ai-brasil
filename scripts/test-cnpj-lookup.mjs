@@ -149,3 +149,15 @@ test('index.ts: CNPJ só no corpo, conta conferida e nada de log do pedido', () 
   assert.match(src, /pickKey\('SUPABASE_SECRET_KEYS', 'SUPABASE_SERVICE_ROLE_KEY'\)/);
   assert.match(src, /pickKey\('SUPABASE_PUBLISHABLE_KEYS', 'SUPABASE_ANON_KEY'\)/);
 });
+
+// Alinhamento pedido pelo responsável (2026-11-23): "Buscar empresa" ao lado do campo, mesma altura; abaixo no celular.
+test('busca por CNPJ: botão na mesma linha do campo e passo manual com os botões junto dos campos', () => {
+  const wizard = readFileSync('src/portals/complaint-wizard.tsx', 'utf8');
+  assert.match(wizard, /<form className="cnpj-search" onSubmit=\{search\} noValidate><div className="cnpj-search-row"><label className="field worker-company-search">CNPJ da empresa/);
+  assert.match(wizard, /<button className="btn primary" type="submit" disabled=\{phase === 'searching'\}>\{phase === 'searching' \? 'Buscando…' : 'Buscar empresa'\}<\/button><\/div>/);
+  assert.match(wizard, /<div className="nav-actions cnpj-actions">/);
+  const css = readFileSync('src/styles/system.css', 'utf8');
+  assert.match(css, /\.cnpj-search-row \{ display: flex; gap: 12px; align-items: flex-end; \}/);
+  assert.match(css, /\.cnpj-search-row \.btn \{[^}]*height: 48px;/);
+  assert.match(css, /@media \(max-width: 600px\) \{\n  \.cnpj-search-row \{ flex-direction: column; align-items: stretch; \}/);
+});

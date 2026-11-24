@@ -89,15 +89,16 @@ function CompanyStep({ companies, onChoose, onPending, onCancel }: { companies: 
    <button className="btn primary" onClick={() => phase === 'found' ? onChoose(found) : onPending({ cnpj, name: found.name, city: found.city, state: found.state, source: 'lookup' })}>É sobre esta empresa</button></article></div>
   {phase === 'lookup' && <p className="muted small">Os dados desta empresa só são usados quando você enviar a manifestação.</p>}
   <div className="nav-actions"><button className="btn" type="button" onClick={reset}>Buscar outro CNPJ</button></div></>;
- else if (phase === 'manual') body = <><p className="muted">Não encontramos os dados deste CNPJ automaticamente. Preencha o nome e a cidade da empresa; a equipe confere na Receita Federal antes de qualquer aviso.</p>
+ else if (phase === 'manual') body = <div className="cnpj-search"><p className="muted">Não encontramos os dados deste CNPJ automaticamente. Preencha o nome e a cidade da empresa; a equipe confere na Receita Federal antes de qualquer aviso.</p>
   <label className="field">Nome da empresa<input value={manual.name} maxLength={160} onChange={event => { setManual({ ...manual, name: event.target.value }); setError(''); }} placeholder="Razão social ou nome conhecido" /></label>
   <div className="grid two"><label className="field">Município<input value={manual.city} maxLength={80} onChange={event => { setManual({ ...manual, city: event.target.value }); setError(''); }} /></label>
    <label className="field">UF<select value={manual.state} onChange={event => { setManual({ ...manual, state: event.target.value }); setError(''); }}><option value="">Selecione</option>{brazilianStates.map(uf => <option key={uf} value={uf}>{uf}</option>)}</select></label></div>
   <p className="muted small">Os dados desta empresa só são usados quando você enviar a manifestação.</p>
-  {errorLine}<div className="nav-actions"><button className="btn" type="button" onClick={reset}>Buscar outro CNPJ</button><button className="btn primary" type="button" onClick={continueManual}>Continuar</button></div></>;
- else body = <form onSubmit={search} noValidate><label className="field worker-company-search">CNPJ da empresa<input value={cnpj} inputMode="text" maxLength={18} autoFocus placeholder="00.000.000/0000-00" onChange={event => { setCnpj(maskCnpj(event.target.value)); setError(''); }} /></label>
+  {errorLine}<div className="nav-actions cnpj-actions"><button className="btn" type="button" onClick={reset}>Buscar outro CNPJ</button><button className="btn primary" type="button" onClick={continueManual}>Continuar</button></div></div>;
+ else body = <form className="cnpj-search" onSubmit={search} noValidate><div className="cnpj-search-row"><label className="field worker-company-search">CNPJ da empresa<input value={cnpj} inputMode="text" maxLength={18} autoFocus placeholder="00.000.000/0000-00" onChange={event => { setCnpj(maskCnpj(event.target.value)); setError(''); }} /></label>
+  <button className="btn primary" type="submit" disabled={phase === 'searching'}>{phase === 'searching' ? 'Buscando…' : 'Buscar empresa'}</button></div>
   <p className="muted small">Você encontra o CNPJ no contracheque, no contrato ou no site da empresa.</p>
-  {errorLine}<div className="nav-actions"><button className="btn primary" type="submit" disabled={phase === 'searching'}>{phase === 'searching' ? 'Buscando…' : 'Buscar empresa'}</button></div></form>;
+  {errorLine}</form>;
  return <><button className="text-action worker-back" onClick={onCancel}>← Voltar</button>
   <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Nova manifestação</span><h2>{phase === 'legacy' ? 'Pesquisar empresa' : 'Qual é o CNPJ da empresa?'}</h2><p className="muted">{phase === 'legacy' ? 'Digite o nome ou a cidade da empresa relacionada ao relato.' : 'Digite o CNPJ da empresa relacionada ao relato.'}</p></div></div>
   {body}</>;
