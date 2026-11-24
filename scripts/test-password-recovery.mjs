@@ -54,3 +54,14 @@ test('troca do e-mail de acesso liberada, com texto neutro sobre a confirmação
   assert.match(screen, /Enviamos um link de confirmação\. A troca só vale depois de confirmar\./);
   assert.match(screen, /LockedFacts facts=\{\[\['CPF'/);
 });
+
+test('telas de senha: cartão centralizado e foco no primeiro campo (ou no título), não no bloco inteiro', () => {
+  const markup = readFileSync('src/app/password-recovery.ts', 'utf8');
+  assert.match(markup, /<h2 tabindex="-1" data-autofocus>Confira seu e-mail\.<\/h2>/);
+  assert.match(markup, /<input id="forgot-email" data-autofocus /);
+  assert.match(markup, /\.replace\('<input id="reset-password"', '<input id="reset-password" data-autofocus'\)/);
+  assert.match(readFileSync('src/app/main.js', 'utf8'), /requestAnimationFrame\(\(\)=>\(v\.querySelector\("main \[data-autofocus\]"\)\?\?v\.querySelector\("main"\)\)\?\.focus\(\{preventScroll:true\}\)\)/);
+  const css = readFileSync('src/styles/system.css', 'utf8');
+  assert.match(css, /\.form-shell > :only-child \{ grid-column: 1 \/ -1; justify-self: center;/);
+  assert.match(css, /h2\[data-autofocus\]:focus \{ outline: none; \}/);
+});

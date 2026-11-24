@@ -453,3 +453,9 @@
 /* Operação: abas das seções Manifestações e Empresas, com contador de pendências. */
 .ops-section-tabs { margin: 0 0 18px; flex-wrap: wrap; }
 .ops-tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; margin-left: 8px; padding: 0 7px; border-radius: 999px; background: var(--amber); color: var(--ink); font-size: 12px; font-weight: 700; line-height: 1; }
+
+/* Telas de um cartão só (Esqueci minha senha, Confira seu e-mail, Criar nova senha): o .form-shell é uma grade de duas
+   colunas e o cartão caía na da esquerda. Aqui ele ocupa a grade toda, centralizado na horizontal. */
+.form-shell > :only-child { grid-column: 1 / -1; justify-self: center; width: min(100%, 560px); }
+/* Título que recebe o foco ao abrir a tela (data-autofocus) não ganha contorno: não é um controle. */
+h2[data-autofocus]:focus { outline: none; }
