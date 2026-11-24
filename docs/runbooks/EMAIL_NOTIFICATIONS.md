@@ -1,6 +1,6 @@
 # Notificações por e-mail: teste da porta 465 e plano da função de envio (ADR-0020)
 
-- Estado: **porta 465 aberta** (teste de 2026-11-24, resultado abaixo). A `send-notifications` ainda não foi publicada.
+- Estado: **em produção desde 2026-11-24 03:10 UTC.** A `send-notifications` está publicada e agendada a cada 5 minutos, e a conferência do lote 4 deu tudo verdadeiro (rodada `succeeded`, resposta 200). Para desligar já: `supabase/sql-editor/lote4/02_desligar_envio.sql` ([PILOT_SUSPENSION](PILOT_SUSPENSION.md#notificações-por-e-mail-desligar-já)).
 - Escopo aprovado pelo responsável ("Aprovo", repassado pelo Gestor em 2026-11-23): notificação automática **só para contas da plataforma**:
   - o trabalhador dono do relato;
   - os usuários verificados da empresa.
@@ -116,7 +116,7 @@ O mesmo valor vai para dois lugares, nos passos 4 e 6. Guardar no gerenciador de
 
 **Passo 4. Secrets da função (painel, de preferência).** Edge Functions > Secrets (ou Project Settings > Edge Functions):
 - `GMAIL_USER`: o endereço do Gmail do Auth;
-- `GMAIL_APP_PASSWORD`: a senha de app atual do SMTP do Auth (ADR-0009). Não gerar outra: a mesma serve. Copiar do gerenciador de senhas;
+- `GMAIL_APP_PASSWORD`: uma senha de app **própria das notificações**, gerada na mesma conta Google. Foi a escolha do responsável em 2026-11-24. Revogar uma não derruba a outra;
 - `NOTIFY_CRON_SECRET`: o valor do passo 3.
 
 Por que o painel: `supabase secrets set NOME=valor` no terminal deixa o valor no histórico do PowerShell. Se for pela CLI, usar `--env-file` com um arquivo temporário fora de qualquer repositório e apagá-lo logo depois:

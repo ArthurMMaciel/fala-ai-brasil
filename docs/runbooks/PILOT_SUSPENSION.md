@@ -57,9 +57,12 @@ Segue também [CREDENTIAL_LEAK](CREDENTIAL_LEAK.md). Inventário em 2026-11-17:
 | Segredo | Onde é usado | Como trocar |
 |---|---|---|
 | Chave publishable do Supabase | Front (`VITE_SUPABASE_PUBLISHABLE_KEY` na Vercel) | É pública por desenho, e a proteção real é a RLS. Só se troca se houver abuso. Criar a nova em Supabase > Settings > API Keys, atualizar a variável na Vercel, fazer redeploy e depois revogar a antiga. |
-| Chave secret / service_role do Supabase | Nenhum código do repositório a usa hoje: não há Edge Function nem backend próprio | Supabase > Settings > API Keys: revogar e gerar outra. Sem impacto no app, que não a usa. |
+| Chave secret / service_role do Supabase | Edge Function `send-notifications` (em produção desde 2026-11-24). A plataforma injeta a chave pela `SUPABASE_SECRET_KEYS`, com a legada como reserva. Ela só executa `notification_claim` e `notification_mark` | Supabase > Settings > API Keys: gerar outra e revogar a comprometida. A função lê a chave injetada; conferir uma rodada `succeeded` depois da troca (`02_conferir_agendamento.sql`). |
 | Senha do banco (Postgres) | CLI (`db push`, `db dump`) na máquina do responsável | Supabase > Settings > Database > reset da senha. |
 | SMTP do Auth (senha de app do Gmail do responsável, uso estendido ao piloto; ADR-0009, revisão de 2026-11-17) | Supabase > Authentication > SMTP | Na conta Google, remover a senha de app comprometida, gerar outra e colar no painel do Supabase. Enquanto isso, os e-mails de confirmação e de recuperação param. Trocar a senha da conta Google revoga todas as senhas de app, e aí o mesmo procedimento é obrigatório. |
+| `GMAIL_APP_PASSWORD` (senha de app **própria das notificações**, separada da do SMTP do Auth) e `GMAIL_USER` | Secrets da Edge Function `send-notifications` | Primeiro, **desligar o envio**: `supabase/sql-editor/lote4/02_desligar_envio.sql`. Depois, na conta Google, remover só esta senha de app, gerar outra e atualizar o secret (painel: Edge Functions > Secrets). A senha do Auth continua valendo. Religar com `02_agendar_envio.sql`. Trocar a senha da conta Google revoga as duas senhas de app: o Auth **e** as notificações param, e as duas precisam ser refeitas. |
+| `NOTIFY_CRON_SECRET` (secret da função) e `notify_cron_secret` (Vault), com o mesmo valor | Cabeçalho `x-cron-secret` da chamada do Cron para a função | Desligar o envio (`02_desligar_envio.sql`), gerar um valor novo (comando do passo 3 do [EMAIL_NOTIFICATIONS](EMAIL_NOTIFICATIONS.md)), atualizar **os dois lugares** com o mesmo valor e religar (`02_agendar_envio.sql`). Valor só num dos lados faz a função responder 401 em toda rodada. |
+| `project_url` (Vault) | URL do projeto que o Cron chama | Não é segredo: é a URL pública do projeto. Só muda se o projeto mudar. |
 | Token da Vercel e token do GitHub | Contas pessoais do responsável | Revogar no painel de cada serviço. |
 
 Nunca colar um segredo em chat, task ou commit. No registro do incidente entra só o nome da chave e a hora da troca.
@@ -67,6 +70,19 @@ Nunca colar um segredo em chat, task ou commit. No registro do incidente entra s
 **Risco aceito (2026-11-17):** o piloto usa o Gmail do responsável no SMTP (ADR-0009, revisão de 2026-11-17). Os riscos aceitos são o limite diário, o remetente pessoal e a dependência de uma conta pessoal.
 
 **Risco aceito (2026-11-18):** os avisos manuais às empresas não cadastradas saem da mesma conta (ADR-0009, revisão de 2026-11-18). O limite diário é compartilhado com o Auth, e uma denúncia de spam ou um bloqueio derrubam a confirmação de cadastro e a recuperação de senha.
+
+### Notificações por e-mail: desligar já
+
+As notificações automáticas (ADR-0020, `send-notifications`) estão em produção desde 2026-11-24 03:10 UTC, com o Cron a cada 5 minutos.
+- **Desligar:** rodar no SQL Editor `supabase/sql-editor/lote4/02_desligar_envio.sql` (`cron.unschedule`). Nada se perde: as mudanças de situação continuam entrando na fila como `pending`.
+- **Quando desligar:**
+  - suspeita sobre `GMAIL_APP_PASSWORD` ou `NOTIFY_CRON_SECRET`;
+  - conta Gmail bloqueada;
+  - e-mail saindo para quem não devia;
+  - qualquer SEV-1 que envolva a fila ou a função.
+- **Conferir:** `02_conferir_agendamento.sql` sem o job. A equipe vê as contagens em `ops_notification_stats()`.
+- **Contenção total:** `npx supabase functions delete send-notifications --project-ref <ref-de-producao>` e a troca dos segredos da tabela acima.
+- **Religar:** `02_agendar_envio.sql`, depois de resolvida a causa. A fila acumulada sai respeitando o teto de 300 por dia.
 
 ### Conta Gmail do Auth bloqueada
 
@@ -77,6 +93,7 @@ Severidade: SEV-2, porque o cadastro é fluxo crítico, sem exposição de dados
    - o Gmail mostra aviso de limite ou de suspensão;
    - os logs do Auth mostram erro de SMTP. Exportar os logs no mesmo dia, porque a retenção é de 1 dia.
 2. **Conter:**
+   - desligar as notificações automáticas (`02_desligar_envio.sql`), porque saem da mesma conta Gmail;
    - parar os avisos manuais às empresas até a conta voltar;
    - registrar a hora no incidente.
 3. **Limite diário atingido:** a ajuda do Gmail diz que o envio volta em 1 a 24 h. Esperar e não tentar reenviar em massa. Quando voltar, quem não recebeu pode pedir o reenvio da confirmação pelo site, que usa `auth.resend`.
