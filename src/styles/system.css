@@ -517,3 +517,13 @@ h2[data-autofocus]:focus { outline: none; }
 .legacy-editorial .wizard-progress-label { margin: 0 0 8px; color: var(--muted); font-size: 13px; font-weight: 600; }
 .legacy-editorial .wizard-emergency { margin: 0 0 24px; padding: 10px 14px; border-left: 3px solid var(--amber, #f2aa1d); border-radius: 0 10px 10px 0; background: #fff8ea; color: #4d3a0a; font-size: 13px; line-height: 1.45; }
 .legacy-editorial .option.selected::before { content: ""; display: inline-block; flex: none; width: 10px; height: 5px; margin: 0 8px 3px 0; border-left: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); vertical-align: middle; }
+/* Design P2.6 (2026-11-23): botões. Primário azul profundo; secundário com contorno; terciário em texto (.text-action);
+   alturas 44 px (formulários e páginas) e 40 px (dentro de tabelas). */
+.legacy-editorial .btn { min-height: 44px; }
+.legacy-editorial .btn.primary { border-color: var(--deep); background: var(--deep); color: #fff; }
+.legacy-editorial .btn.primary:hover:not(:disabled) { border-color: #172c5e; background: #172c5e; }
+.legacy-editorial .btn:not(.primary):not(.ghost):not(.danger) { border: 1px solid rgba(31, 58, 122, .35); background: #fff; color: var(--deep); }
+.legacy-editorial .btn:not(.primary):not(.ghost):not(.danger):hover:not(:disabled) { border-color: var(--deep); background: #eef2fb; }
+.legacy-editorial :is(.commercial-table, .worker-table, .contact-admin-table) .btn { min-height: 40px; padding: 0 16px; font-size: 14px; }
+.legacy-editorial:has(.portal-layout) .topbar .btn { background: rgba(255, 255, 255, .16); border-color: rgba(255, 255, 255, .45); color: #fff; }
+.legacy-editorial:has(.portal-layout) .topbar .btn:hover { background: rgba(255, 255, 255, .26); }

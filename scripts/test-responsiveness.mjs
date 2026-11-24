@@ -116,3 +116,11 @@ test('assistente: progresso só na barra, emergência em faixa e marcador na op�
   assert.match(css, /\.legacy-editorial \.option\.selected::before \{ content: "";/);
   assert.match(css, /\.legacy-editorial \.wizard-emergency \{[^}]*border-left: 3px solid/);
 });
+// Design P2.6 (2026-11-23): botões com papéis claros e alturas 44/40.
+test('botões: primário azul profundo, secundário com contorno, 44 px e 40 px nas tabelas', () => {
+  const css = readFileSync('src/styles/system.css', 'utf8');
+  assert.match(css, /\.legacy-editorial \.btn\.primary \{ border-color: var\(--deep\); background: var\(--deep\); color: #fff; \}/);
+  assert.match(css, /\.legacy-editorial \.btn:not\(\.primary\):not\(\.ghost\):not\(\.danger\) \{ border: 1px solid rgba\(31, 58, 122, \.35\); background: #fff;/);
+  assert.match(css, /\.legacy-editorial \.btn \{ min-height: 44px; \}/);
+  assert.match(css, /:is\(\.commercial-table, \.worker-table, \.contact-admin-table\) \.btn \{ min-height: 40px;/);
+});
