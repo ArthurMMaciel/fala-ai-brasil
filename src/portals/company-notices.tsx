@@ -3,7 +3,7 @@ import { showToast } from '../app/toast';
 import { confirmAction } from '../app/confirm-dialog';
 import { EmptyState } from './ui';
 import { maskCnpj } from '../domain/account-rules';
-import { dataSourceLabels, noticeStatusLabels, noticeTab, noticeTexts, noticeTextsInReview, registrationLabels, validateOpsReason, type NoticeTab } from '../domain/company-notice';
+import { dataSourceLabels, automaticNoticeSendEnabled, noticeSendStateText, noticeStatusLabels, noticeTab, noticeTexts, noticeTextsInReview, registrationLabels, validateOpsReason, type NoticeTab } from '../domain/company-notice';
 import { addNoticeOptOut, decideNotice, listNoticeCandidates, listPendingCompanies, loadComplaintContacts, markNoticeSent, noticeDestination, purgeExpiredContacts, reviewPendingCompany, type NoticeCandidate, type NoticeDestinationChoice, type PendingCompany , type ComplaintContactItem } from '../services/notices';
 
 const registryEmailBadge = 'E-mail da Receita: confira antes (pode ser do contador ou pessoal)';
@@ -111,10 +111,10 @@ function NoticeDetail({ item, onBack, onChanged }: { item: NoticeCandidate; onBa
   event.preventDefault();
   if (decision === 'rejected') { const problem = validateOpsReason(reason); if (problem) return showToast('error', problem, 'Confira os dados'); }
   const ok = await confirmAction(decision === 'approved'
-   ? { title: 'Aprovar o aviso?', text: `O aviso vai para ${to}.${destination?.fromRegistry ? ' É o e-mail da Receita: confirme que é um canal da empresa.' : ''} Depois de aprovado, você envia o texto fixo pela conta da plataforma.`, confirmLabel: 'Aprovar aviso' }
+   ? { title: 'Aprovar o aviso?', text: `O aviso vai para ${to}.${destination?.fromRegistry ? ' É o e-mail da Receita: confirme que é um canal da empresa.' : ''} ${automaticNoticeSendEnabled ? 'Depois de aprovado, o aviso entra na fila e sai automaticamente pela conta da plataforma.' : 'Depois de aprovado, você envia o texto fixo pela conta da plataforma.'}`, confirmLabel: 'Aprovar aviso' }
    : { title: 'Recusar o aviso?', text: 'O e-mail não recebe nada.', confirmLabel: 'Recusar aviso', danger: true });
   if (!ok) return;
-  await run(() => decideNotice(item.complaintId, decision, reason, decision === 'approved' && !(usingList && pickedContact) ? (usingList ? 'receita' : choice) : null, decision === 'approved' && usingList ? pickedContact : null), decision === 'approved' ? 'Aviso aprovado. Envie e marque como enviado.' : 'Aviso recusado.');
+  await run(() => decideNotice(item.complaintId, decision, reason, decision === 'approved' && !(usingList && pickedContact) ? (usingList ? 'receita' : choice) : null, decision === 'approved' && usingList ? pickedContact : null), decision === 'approved' ? (automaticNoticeSendEnabled ? 'Aviso aprovado. Ele entra na fila e sai automaticamente.' : 'Aviso aprovado. Envie e marque como enviado.') : 'Aviso recusado.');
  }
  const copy = async () => { try { await navigator.clipboard.writeText(`${noticeTexts.emailSubject}\n\n${noticeTexts.emailBody}`); showToast('success', 'Texto copiado.'); } catch { showToast('error', 'Não foi possível copiar. Selecione o texto e copie manualmente.'); } };
  const optOut = async () => { if (to && await confirmAction({ title: 'Registrar o pedido de não receber avisos?', text: `Nenhum aviso futuro vai para ${to}.`, confirmLabel: 'Registrar pedido', danger: true })) run(() => addNoticeOptOut(to), 'Pedido registrado.'); };
@@ -137,7 +137,12 @@ function NoticeDetail({ item, onBack, onChanged }: { item: NoticeCandidate; onBa
     {decision === 'rejected' && <label className="field">Motivo<textarea rows={3} maxLength={300} value={reason} onChange={event => setReason(event.target.value)} placeholder="Ex.: e-mail pessoal de uma pessoa nomeada." /><small className="muted">{reason.trim().length}/300 caracteres. Sem conteúdo de relato.</small></label>}
     <div className="ops-decision-actions"><button className="btn primary" type="submit" disabled={busy}>{busy ? 'Registrando…' : decision === 'approved' ? 'Aprovar aviso' : 'Recusar aviso'}</button></div>
    </form>}
-   {(tab === 'approved' || item.noticeStatus === 'sent') && <section className="worker-detail-section"><h3>Texto do aviso</h3>
+    {automaticNoticeSendEnabled && item.noticeStatus && item.noticeStatus !== 'rejected' && <section className="worker-detail-section notice-send-state" aria-live="polite"><h3>Envio do aviso</h3>
+     <p><span className={`worker-status ${item.noticeStatus === 'sent' ? 'respondida' : item.noticeStatus === 'bounced' ? 'retida' : 'encaminhada-para-empresa'}`}>{noticeStatusLabels[item.noticeStatus]}</span></p>
+     <p className="muted small">{noticeSendStateText[item.noticeStatus]} Destino: <strong>{to || 'definido na aprovação'}</strong>{destination?.fromRegistry ? ` (${registryEmailBadge})` : ''}.</p>
+     {item.noticeStatus === 'sent' && item.noticeId && <div className="ops-decision-actions"><button className="btn" type="button" disabled={busy} onClick={async () => { if (await confirmAction({ title: 'Registrar que o e-mail voltou?', text: 'Use quando a mensagem de devolução chegar à conta da plataforma depois do envio. Registra na trilha que o aviso não foi entregue a este e-mail.', confirmLabel: 'Registrar retorno' })) run(() => markNoticeSent(item.noticeId as string, 'bounced'), 'Retorno registrado.'); }}>O e-mail voltou</button></div>}
+    </section>}
+    {!automaticNoticeSendEnabled && (tab === 'approved' || item.noticeStatus === 'sent') && <section className="worker-detail-section"><h3>Texto do aviso</h3>
     {noticeTextsInReview && <p className="legal-review-banner">Texto em revisão jurídica.</p>}
     <p className="muted small">Envie da conta da plataforma para <strong>{to}</strong>{destination?.fromRegistry ? ` (${registryEmailBadge})` : ''}, sem link e sem nenhuma informação do relato.</p>
     <label className="field">Assunto<input readOnly value={noticeTexts.emailSubject} /></label>
@@ -155,7 +160,7 @@ function NoticeDetail({ item, onBack, onChanged }: { item: NoticeCandidate; onBa
   </ul>{!item.optedOut && <button className="btn" type="button" disabled={busy} onClick={optOut}>Pedido para não receber</button>}</section></aside></div></>;
 }
 
-const noticeTabs: [NoticeTab, string][] = [['decide', 'A decidir'], ['approved', 'Aprovados para enviar'], ['sent', 'Enviados'], ['rejected', 'Recusados']];
+const noticeTabs: [NoticeTab, string][] = [['decide', 'A decidir'], ['approved', automaticNoticeSendEnabled ? 'Na fila' : 'Aprovados para enviar'], ['sent', automaticNoticeSendEnabled ? 'Enviados ou voltaram' : 'Enviados'], ['rejected', 'Recusados']];
 
 export function OpsNotices() {
  const [version, setVersion] = useState(0);
@@ -172,7 +177,7 @@ export function OpsNotices() {
   if (!result.ok) return showToast('error', result.message);
   showToast('success', result.value ? `${result.value} contato(s) apagado(s).` : 'Nenhum contato vencido.'); setVersion(value => value + 1);
  }
- return <>{heading('Avisos à empresa', 'E-mails indicados pelos trabalhadores para avisar empresas sem conta. A equipe aprova, envia o texto fixo pela conta da plataforma e marca como enviado.')}
+ return <>{heading('Avisos à empresa', automaticNoticeSendEnabled ? 'E-mails indicados pelos trabalhadores para avisar empresas sem conta. A equipe aprova; o aviso sai automaticamente pela conta da plataforma e o estado do envio aparece aqui.' : 'E-mails indicados pelos trabalhadores para avisar empresas sem conta. A equipe aprova, envia o texto fixo pela conta da plataforma e marca como enviado.')}
   {missing ? notActive('A fila de avisos') : <>
    <div className="account-tabs ops-response-tabs" role="tablist" aria-label="Situação do aviso">{noticeTabs.map(([value, label]) => <button key={value} role="tab" aria-selected={tab === value} className={`account-tab${tab === value ? ' active' : ''}`} onClick={() => setTab(value)}>{label}</button>)}</div>
    {failure ? <section className="commercial-panel"><p>{failure}</p></section> : rows === null ? <p className="muted">Carregando…</p> : !listed.length ? <EmptyState text={tab === 'decide' ? 'Nenhum aviso aguardando decisão.' : 'Nenhum aviso nesta situação.'} hint={tab === 'decide' ? 'Manifestações sobre empresas sem conta, com aviso autorizado pelo trabalhador, aparecem aqui.' : undefined} /> :

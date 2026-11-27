@@ -93,3 +93,15 @@ test('contrato dos 3 contatos: notice_contacts sem notice_contact, listas com re
   const notices = readFileSync('src/portals/company-notices.tsx', 'utf8');
   assert.match(notices, /contact\.eligibleForNotice !== false && !contact\.possiblyInvolved && !contact\.optedOut/, 'só contatos elegíveis com e-mail');
 });
+// Aviso automático (contrato do Back 5ddf9ad, lote 5 aplicado em 2026-11-27).
+test('aviso automático: estado do envio no lugar de copiar texto e marcar enviado; "O e-mail voltou" só depois de enviado', async () => {
+  const notice = await load(true);
+  assert.equal(notice.automaticNoticeSendEnabled, true);
+  assert.equal(notice.noticeStatusLabels.approved, 'Na fila para envio');
+  assert.equal(notice.noticeStatusLabels.sent, 'Enviado');
+  assert.equal(notice.noticeStatusLabels.bounced, 'Voltou');
+  const screen = readFileSync('src/portals/company-notices.tsx', 'utf8');
+  assert.match(screen, /\{automaticNoticeSendEnabled && item\.noticeStatus && item\.noticeStatus !== 'rejected' && <section className="worker-detail-section notice-send-state"/);
+  assert.match(screen, /\{!automaticNoticeSendEnabled && \(tab === 'approved' \|\| item\.noticeStatus === 'sent'\) && <section/, 'copiar texto e marcar enviado só no fluxo manual');
+  assert.match(screen, /\{item\.noticeStatus === 'sent' && item\.noticeId && <div className="ops-decision-actions"><button className="btn" type="button" disabled=\{busy\}/, 'O e-mail voltou só para aviso enviado');
+});

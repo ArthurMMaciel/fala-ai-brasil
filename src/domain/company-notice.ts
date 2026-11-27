@@ -110,7 +110,19 @@ export function validateOpsReason(reason: string): string | null {
 }
 
 export type NoticeStatus = 'approved' | 'sent' | 'rejected' | 'bounced';
-export const noticeStatusLabels: Record<NoticeStatus, string> = { approved: 'Aprovado, a enviar', sent: 'Enviado', rejected: 'Recusado', bounced: 'E-mail voltou' };
+// Aviso automático (decisão do responsável em 2026-11-27; contrato do Back 5ddf9ad, migration 20261126130000, lote 5):
+// depois da aprovação, o aviso entra na fila e sai pela conta da plataforma, com o texto do Back. O banco marca 'sent'
+// ao enviar e 'bounced' na falha definitiva do envio. Um e-mail que volta DEPOIS de enviado o banco não detecta: a
+// equipe ainda registra "O e-mail voltou". Com a chave em false, volta o fluxo manual (copiar texto e marcar enviado).
+export const automaticNoticeSendEnabled = true;
+export const noticeStatusLabels: Record<NoticeStatus, string> = automaticNoticeSendEnabled
+  ? { approved: 'Na fila para envio', sent: 'Enviado', rejected: 'Recusado', bounced: 'Voltou' }
+  : { approved: 'Aprovado, a enviar', sent: 'Enviado', rejected: 'Recusado', bounced: 'E-mail voltou' };
+export const noticeSendStateText: Record<'approved' | 'sent' | 'bounced', string> = {
+  approved: 'Na fila para envio. O aviso sai automaticamente pela conta da plataforma; esta tela mostra quando for enviado.',
+  sent: 'Enviado pela conta da plataforma.',
+  bounced: 'Voltou: o envio falhou de vez ou o e-mail foi devolvido.',
+};
 export type NoticeTab = 'decide' | 'approved' | 'sent' | 'rejected';
 export interface NoticeCandidateState { contactStatus: string; noticeStatus: NoticeStatus | null }
 
