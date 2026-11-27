@@ -50,6 +50,8 @@ function CompanyDashboard({ company, complaints, mine, onOpen, onView }: { compa
    <section className="commercial-panel company-summary"><h2>Dados da empresa</h2><dl className="company-facts"><div><dt>Razão social</dt><dd>{company.legalName}</dd></div><div><dt>CNPJ</dt><dd className="nowrap">{formatCnpj(company.cnpj)}</dd></div><div><dt>Cidade</dt><dd>{company.city}/{company.state}</dd></div>
     <div><dt>Contato para parceiros</dt><dd>{company.contactEmail || company.contactPhone ? [company.contactEmail, company.contactPhone ? formatPhone(company.contactPhone) : ''].filter(Boolean).join(' · ') : 'Não informado'}</dd></div></dl>
     <div className="commercial-callout">A empresa acessa somente a versão compartilhável revisada por quem relatou, sem identidade.</div>
+    {/* Conta da empresa gratuita (decisão do responsável em 2026-11-27): só informação, sem botão nem compra. */}
+    <p className="muted small company-free-account">Conta gratuita. Relatório inicial por manifestação: R$ 299, sob pedido à equipe.</p>
     <button className="btn" onClick={() => onView('profile')}>{company.isOwner ? 'Editar no Meu perfil' : 'Ver no Meu perfil'}</button></section></div></>;
 }
 

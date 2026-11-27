@@ -1,6 +1,7 @@
 // Gerado a partir de empresa.html (landing oficial); textos, imagens e classes iguais aos da página estática.
 import type { CSSProperties } from 'react';
-import { BillButton, Caminhos, ContactForm, Per, Price, SponsorStrip } from '../site-parts';
+import { Caminhos, ContactForm, SponsorStrip } from '../site-parts';
+import { brandName } from '../../domain/brand';
 
 export function EmpresaPage() {
   return (
@@ -13,7 +14,7 @@ export function EmpresaPage() {
       <span className="eyebrow">Para empresas</span>
       <h1>Escutar é só <em>o começo.</em></h1>
       <p className="lead">Um caminho pra receber a versão compartilhável de um relato, organizar a atuação e dar retorno a quem falou.</p>
-      <div className="hero-ctas"><a className="btn btn-pri" href="/#cadastrar-empresa">Criar conta da empresa <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a><a className="btn btn-sec" href="#planos">Ver planos</a></div>
+      <div className="hero-ctas"><a className="btn btn-pri" href="/#cadastrar-empresa">Criar conta da empresa <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a><a className="btn btn-sec" href="#planos">Ver serviços</a></div>
       <div className="trust"><div><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg></i>Só o conteúdo liberado</div><div><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5" /><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c1.8.7 3 2.5 3.5 5.2" /></svg></i>RH e Compliance juntos</div><div><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4" /><path d="M12 12l6-6" /></svg></i>Riscos vistos antes</div></div>
       
     </div>
@@ -39,7 +40,7 @@ export function EmpresaPage() {
     <div className="rv">
       <span className="eyebrow">Quem somos · Nosso objetivo</span>
       <h2>Escuta com continuidade e responsabilidade.</h2>
-      <p className="lead">A proposta da escuta.aí aproxima quem precisa falar e quem pode agir. A empresa acompanha apenas o conteúdo liberado pra ela, sem acesso ao relato original ou à identidade do trabalhador.</p>
+      <p className="lead">A proposta da {brandName} aproxima quem precisa falar e quem pode agir. A empresa acompanha apenas o conteúdo liberado pra ela, sem acesso ao relato original ou à identidade do trabalhador.</p>
       <div className="valores"><div className="valor"><i style={{ background: "var(--azul)" }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h10M4 12h16M4 18h7" /><circle cx="18" cy="6" r="2" /><circle cx="15" cy="18" r="2" /></svg></i><b>Fila e responsáveis</b><p>Cada caso com dono e próximo passo.</p></div><div className="valor"><i style={{ background: "var(--verde)" }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg></i><b>Prazos e escalonamento</b><p>Nada fica parado sem ninguém ver.</p></div><div className="valor"><i style={{ background: "var(--amarelo)", color: "var(--tinta)" }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg></i><b>Indicadores</b><p>Leitura da organização ao longo do tempo.</p></div><div className="valor"><i style={{ background: "var(--profundo)" }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l8 4v5c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V7z" /><path d="M9 12l2 2 4-4" /></svg></i><b>Apoio à NR-1</b><p>Gestão de riscos psicossociais com registro.</p></div></div>
       
     </div>
@@ -88,12 +89,11 @@ export function EmpresaPage() {
 <section className="planos pad" id="planos">
   <div className="wrap">
     <div className="planos-head rv">
-      <div><span className="eyebrow">Planos para empresa</span><h2>Soluções, planos e acesso à conta</h2>
-      <p className="trial"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></svg><span><b>1º mês de calendário grátis.</b> Depois, mensal ou anual com 5% de desconto.</span></p></div>
-      <div className="toggle" role="group" aria-label="Período de cobrança"><BillButton bill="m">Mensal</BillButton><BillButton bill="a">Anual<em>-5%</em></BillButton></div>
+      <div><span className="eyebrow">Serviços para empresa</span><h2>Conta gratuita e serviços sob pedido</h2>
+      <p className="trial"><span><b>A conta da empresa é gratuita.</b> Os serviços abaixo são pedidos à equipe.</span></p></div>
     </div>
-    <div className="pl-grid" style={{ "--n": "3" } as CSSProperties}><div className="pl rv"><h3>Essencial</h3><p className="para">Pra organizar a escuta de uma unidade.</p><div className="val">R$ <Price monthly={1500} /><small>/mês</small></div><div className="per"><Per /></div><ul><li>Fila e responsáveis</li><li>Resposta e acompanhamento</li><li>Indicadores da organização</li></ul><a className="btn btn-sec" href="/#cadastrar-plano-company-essential">Escolher Essencial</a></div><div className="pl rv dest"><span className="tag">Pra RH e Compliance</span><h3>Gestão</h3><p className="para">Pra RH e Compliance trabalharem juntos.</p><div className="val">R$ <Price monthly={3900} /><small>/mês</small></div><div className="per"><Per /></div><ul><li>Até 5 unidades</li><li>Prazos e escalonamento</li><li>Revisão executiva</li></ul><a className="btn btn-acc" href="/#cadastrar-plano-company-management">Escolher Gestão</a></div><div className="pl rv"><h3>Multiunidade</h3><p className="para">Pra grupos com operação em várias unidades.</p><div className="val sob">Sob proposta</div><div className="per">preço e escopo sob proposta</div><ul><li>Governança regional</li><li>Comparação interna protegida</li><li>Implantação sob proposta</li></ul><a className="btn btn-sec" href="/#cadastrar-plano-company-multi">Escolher Multiunidade</a></div></div>
-    <div className="pl-nota"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16h.01" /></svg>Demonstração comercial: preços e funcionalidades são hipóteses pra validação. Não há cobrança real. Ofertas sob proposta dependem de preço e escopo aprovados.</div>
+    <div className="pl-grid" style={{ "--n": "3" } as CSSProperties}><div className="pl rv"><h3>Relatório inicial</h3><div className="val">R$ 299</div><div className="per">por manifestação</div><a className="btn btn-sec" href="#contato" style={{ marginTop: "auto" }}>Falar com a equipe</a></div><div className="pl rv"><h3>Implantação</h3><div className="val sob">Sob consulta</div><div className="per" /><a className="btn btn-sec" href="#contato" style={{ marginTop: "auto" }}>Falar com a equipe</a></div><div className="pl rv"><h3>Apoio especializado</h3><div className="val sob">Sob consulta</div><div className="per" /><a className="btn btn-sec" href="#contato" style={{ marginTop: "auto" }}>Falar com a equipe</a></div></div>
+    <div className="pl-nota"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16h.01" /></svg>Ver e responder um relato não depende de pagamento.</div>
   </div>
 </section>
 
