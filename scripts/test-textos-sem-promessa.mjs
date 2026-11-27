@@ -38,6 +38,14 @@ test('nome antigo do produto não volta às telas', () => {
   assert.deepEqual(found, []);
 });
 
+// P0 do piloto (2026-11-27): página pública do parceiro sem preço, teste grátis ou desconto; serviços "sob consulta".
+test('parceiros: serviços por nome, sob consulta, sem preço, teste grátis nem desconto', () => {
+  const page = readFileSync('src/landing-site/pages/parceiros.tsx', 'utf8');
+  assert.doesNotMatch(page, /R\$|<Price|grátis|desconto|-5%|BillButton/);
+  assert.equal((page.match(/<div className="val sob">Sob consulta<\/div>/g) ?? []).length, 3);
+  for (const name of ['Presença', 'Profissional', 'Nacional']) assert.match(page, new RegExp(`<h3>${name}</h3>`));
+});
+
 test('assistente de manifestação mostra os canais de emergência e diz que não é canal de emergência', () => {
   const wizard = readFileSync('src/portals/complaint-wizard.tsx', 'utf8');
   assert.ok(wizard.includes('Em caso de risco imediato, procure ajuda: CVV 188, SAMU 192 ou Polícia Militar 190. A {brandName} não é um canal de emergência.'), 'frase fixa (B4)');
