@@ -51,9 +51,12 @@ const BATCHES = [
   { out: 'lote4', applied: true, plan: [
     { file: '20261123130000_fila_de_avisos_da_plataforma.sql', after: '20261123120000' },
   ] },
-  // Lote 5: até 3 contatos por manifestação (ADR-0023, revisão de 2026-11-26).
+  // Lote 5: até 3 contatos por manifestação; motivo do aviso e aviso automático à empresa não cadastrada
+  // (ADR-0023 e ADR-0020, revisões de 2026-11-26).
   { out: 'lote5', plan: [
     { file: '20261126120000_ate_3_contatos.sql', after: '20261123130000' },
+    { file: '20261126130000_avisos_por_evento_e_aviso_automatico.sql', after: '20261126120000',
+      warn: 'depois deste passo, publique a versão nova da send-notifications; a aprovação de aviso à empresa não cadastrada passa a gerar envio automático.' },
   ] },
 ];
 

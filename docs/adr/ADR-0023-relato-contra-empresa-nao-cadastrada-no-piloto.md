@@ -296,6 +296,43 @@ Problema bloqueante corrigido antes da aplicação: o consentimento só era exig
   - a empresa continua sem ler contato algum.
 - **Teste:** `supabase/tests/tx/contatos3_checks.sql`, que passou no banco local em transação desfeita. O rollback também foi testado no local.
 
+## Revisão de 2026-11-26: envio automático do aviso depois da aprovação (proposta, aguarda o responsável)
+
+**Pedido do Gestor** em 2026-11-26: o aviso à empresa não cadastrada sai sozinho depois que a equipe aprova. Hoje a equipe aprova e envia à mão.
+
+**O que muda:** só o envio. A variante (a) da seção 2 passa a ter o envio pela fila da ADR-0020, e a variante (b) continua descartada.
+- **A decisão continua humana**, em `ops_decide_notice`, que não muda e mantém todas as travas:
+  - a manifestação precisa ter sido liberada, com consentimento do relato e troca do gate;
+  - a empresa não pode estar em `pending_check`, bloqueada ou ser pessoa física;
+  - o destino precisa ser contato com e-mail e não envolvido, ou a Receita diferente de contato envolvido;
+  - o e-mail não pode ter opt-out;
+  - vale 1 aviso por manifestação e 1 por empresa a cada 30 dias.
+- Antes de aprovar, a equipe avalia a manifestação. O caso de risco alto fica sem aprovação, e nada sai.
+- **A recusa** não gera envio.
+
+**Implementação**, em `20261126130000`, não aplicada (lote 5, passo 02):
+- **Fila:**
+  - um gatilho em `company_notices` põe a aprovação na fila da ADR-0020, como `kind = 'company_notice'`, com `notice_id`;
+  - a fila não guarda o e-mail.
+- **Envio:**
+  - o banco resolve o destino na hora do envio (`private.company_notice_destination`) e confere de novo: aviso ainda `approved`, empresa ainda não cadastrada nem bloqueada, manifestação existente, opt-out, e Receita diferente de contato envolvido;
+  - se a conferência falhar, a linha vira `suppressed` e o aviso fica `approved`, para a equipe decidir.
+- **Resultado:**
+  - enviado, o aviso vira `sent` automaticamente (`sent_by` nulo);
+  - na 6ª falha, vira `bounced`;
+  - `ops_mark_notice_sent` (manual) tira da fila o envio ainda pendente e recusa enquanto ele estiver em curso.
+- **Teto:** conta nos 300 e-mails por dia da ADR-0020.
+- **Texto:** fixo, enviado pela send-notifications.
+  - Assunto: "Existe uma manifestação sobre a sua empresa na Escuta Aí Brasil".
+  - Corpo: o que é a plataforma, que existe uma manifestação, o link https://fala-ai-brasil.vercel.app/empresa, "Por segurança, este e-mail não traz detalhes." e o pedido de exclusão por resposta ao e-mail.
+  - Nada de protocolo, categoria, conteúdo ou nome do trabalhador.
+- **Teste:** `supabase/tests/tx/avisos2_checks.sql`, que passou no banco local, assim como o rollback e a regressão de `contatos3` e `avisos`.
+
+**Pendências antes de aplicar:**
+1. **Aprovação do responsável.** A mudança contraria a revisão de 2026-11-23 da ADR-0020 ("o contato e a Receita não recebem nada automático"), que ele aprovou.
+2. **Caixa de respostas:** alguém da equipe precisa ler as respostas na conta do remetente e registrar a exclusão com `ops_add_opt_out`. Sem isso, o pedido de exclusão escrito no e-mail não é atendido.
+3. **Base legal e texto:** o e-mail a terceiro (contato indicado ou e-mail da Receita) continua na pendência jurídica da TASK-0007. O texto passa pelo jurídico.
+
 ## Ordem de aplicação
 
 Formato igual ao do lote atual: scripts `aplicar` e `conferir` para o SQL Editor, rollback por passo e teste tx antes de cada um, com liberação escrita.

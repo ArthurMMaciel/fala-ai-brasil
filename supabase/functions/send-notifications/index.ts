@@ -1,4 +1,6 @@
-// Edge Function send-notifications (ADR-0020; runbook docs/runbooks/EMAIL_NOTIFICATIONS.md).
+// Edge Function send-notifications (ADR-0020 e ADR-0023; runbook docs/runbooks/EMAIL_NOTIFICATIONS.md).
+// Envia avisos às contas (trabalhador e empresa verificada) e, depois da aprovação da equipe, o aviso à empresa não
+// cadastrada (company_notice), com o destino resolvido pelo banco no envio.
 // Chamada só pelo Cron (pg_cron + pg_net), a cada 5 minutos, com o cabeçalho x-cron-secret. Publicada com
 // --no-verify-jwt: a proteção é o segredo do agendador, comparado em tempo constante com NOTIFY_CRON_SECRET.
 // Secrets (definidos pelo responsável): GMAIL_USER, GMAIL_APP_PASSWORD, NOTIFY_CRON_SECRET. Banco: só as RPCs
@@ -74,7 +76,10 @@ async function connect(): Promise<SmtpConn> {
 
 const deps = {
   async claim(limit: number): Promise<ClaimRow[]> {
-    const { data, error } = await service.rpc('notification_claim', { p_limit: limit });
+    // Pede também os avisos à empresa não cadastrada (20261126130000). Banco ainda sem a migration (função sem
+    // p_include_notices, PGRST202): cai na chamada antiga, sem avisos, e as contas continuam recebendo.
+    let { data, error } = await service.rpc('notification_claim', { p_limit: limit, p_include_notices: true });
+    if (error?.code === 'PGRST202') ({ data, error } = await service.rpc('notification_claim', { p_limit: limit }));
     if (error) throw new Error('claim');
     return (data ?? []) as ClaimRow[];
   },

@@ -76,20 +76,55 @@ test('SMTP: destinatário recusado vira erro com código e a sessão é reinicia
 });
 
 test('mensagem: cabeçalhos codificados, corpo em base64 e só o texto fixo', () => {
-  const body = send.messageBody(new Set(['worker_update']));
-  const m = smtp.buildMessage('conta@gmail.invalid', 'Escuta Aí Brasil', 'p@x.invalid', send.SUBJECT, body, new Date(0), 'id1');
+  const { subject, body } = send.message('worker_update', new Set(['update']));
+  const m = smtp.buildMessage('conta@gmail.invalid', 'Escuta Aí Brasil', 'p@x.invalid', subject, body, new Date(0), 'id1');
   assert.match(m, /^From: =\?UTF-8\?B\?.+\?= <conta@gmail\.invalid>/);
   assert.match(m, /Subject: =\?UTF-8\?B\?/);
   assert.match(m, /Content-Transfer-Encoding: base64/);
   assert.match(m, /\r\nAuto-Submitted: auto-generated\r\n/);
   const encoded = m.split('\r\n\r\n')[1].replace(/\r\n/g, '');
   assert.equal(Buffer.from(encoded, 'base64').toString('utf8'), body);
-  assert.match(body, /https:\/\/fala-ai-brasil\.vercel\.app/);
-  assert.match(body, /Meu perfil/);
-  assert.doesNotMatch(body, /EAB-|protocolo|empresa .*respondeu|liberad|retid/i);
-  assert.doesNotMatch(body, /terceiros/i);  // sem promessa de proteção (revisão do DevOps)
-  assert.match(body, /Por segurança, este e-mail não traz detalhes\./);
-  assert.doesNotMatch(send.messageBody(new Set(['company_update'])), /Meu perfil/);
+});
+
+// Textos por evento (pedido do Gestor de 2026-11-26). Nenhum traz protocolo, categoria, situação ou promessa de proteção.
+const allTexts = () => [
+  send.message('worker_update', new Set(['update'])),
+  ...['released', 'response_returned', 'closed', 'update'].map((r) => send.message('company_update', new Set([r]))),
+  send.message('company_update', new Set(['released', 'closed'])),
+  send.message('company_update', new Set()),
+  send.message('company_notice', new Set(['notice'])),
+];
+
+test('textos: frases e links por evento', () => {
+  const w = send.message('worker_update', new Set(['update']));
+  assert.equal(w.subject, 'Há uma novidade na sua manifestação na Escuta Aí Brasil');
+  assert.match(w.body, /Há uma novidade na sua manifestação na Escuta Aí Brasil\.\nPara ver, entre na plataforma: https:\/\/fala-ai-brasil\.vercel\.app\/#entrar\n/);
+  assert.match(w.body, /Meu perfil/);
+
+  const rel = send.message('company_update', new Set(['released']));
+  assert.equal(rel.subject, 'Nova manifestação para a sua empresa na Escuta Aí Brasil');
+  assert.match(rel.body, /Sua empresa acabou de receber uma nova manifestação na Escuta Aí Brasil\.\nPara ver e responder, entre na plataforma: https:\/\/fala-ai-brasil\.vercel\.app\/#entrar-empresa\n/);
+  assert.match(send.message('company_update', new Set(['response_returned'])).body, /A equipe da Escuta Aí Brasil pediu um ajuste em uma resposta da sua empresa\.\nPara ver, entre/);
+  assert.match(send.message('company_update', new Set(['closed'])).body, /Uma manifestação da sua empresa foi encerrada\.\nPara ver, entre/);
+
+  const mixed = send.message('company_update', new Set(['closed', 'released']));
+  assert.equal(mixed.subject, 'Há novidades para a sua empresa na Escuta Aí Brasil');
+  assert.match(mixed.body, /nova manifestação na Escuta Aí Brasil\.\nUma manifestação da sua empresa foi encerrada\.\nPara ver e responder/);
+  assert.match(send.message('company_update', new Set()).body, /Há uma atualização para a sua empresa/);  // linha antiga, sem motivo
+
+  const n = send.message('company_notice', new Set(['notice']));
+  assert.equal(n.subject, 'Existe uma manifestação sobre a sua empresa na Escuta Aí Brasil');
+  assert.match(n.body, /https:\/\/fala-ai-brasil\.vercel\.app\/empresa\n/);
+  assert.match(n.body, /responda a este e-mail pedindo a exclusão/);
+  assert.doesNotMatch(n.body, /Meu perfil|empresa verificada/);
+  for (const { body } of allTexts().slice(1)) assert.doesNotMatch(body, /Meu perfil/);
+});
+
+test('textos: todos com o aviso de segurança e sem detalhe nem promessa', () => {
+  for (const { subject, body } of allTexts()) {
+    assert.match(body, /Por segurança, este e-mail não traz detalhes\./);
+    assert.doesNotMatch(subject + body, /EAB-|protocolo|retid|assédio|categoria|anônim|sigil|garant|terceiros/i);
+  }
 });
 
 // Banco e SMTP simulados para a rodada.
@@ -134,10 +169,10 @@ test('SMTP: o código estendido vem da resposta do servidor', async () => {
   // o servidor simulado responde "550 rcpt" (sem código estendido)
   await assert.rejects(c.send('x@y.invalid', 'm'), (e) => e instanceof smtp.SmtpError && e.enhanced === null);
 });
-const row = (id, kind, email, remaining = 300) => ({ outbox_id: id, kind, email, remaining_today: remaining });
+const row = (id, kind, email, remaining = 300, reason = null) => ({ outbox_id: id, kind, reason, email, remaining_today: remaining });
 const markOf = (calls, id) => calls.marks.find((m) => m.id === id);
 
-test('rodada: um e-mail por destinatário, agrupando as pendências; empresa com dois verificados recebe dois', async () => {
+test('rodada: um e-mail por destinatário e tipo, agrupando as pendências; empresa com dois verificados recebe dois', async () => {
   const t = makeDeps({ rows: [row('a', 'worker_update', 'W@x.invalid'), row('b', 'worker_update', 'w@x.invalid'),
     row('c', 'company_update', 'r1@e.invalid'), row('c', 'company_update', 'r2@e.invalid')] });
   const s = await send.runBatch(t.deps);
@@ -146,6 +181,27 @@ test('rodada: um e-mail por destinatário, agrupando as pendências; empresa com
   assert.deepEqual(markOf(t.calls, 'c'), { id: 'c', result: 'sent', code: null, messages: 2 });
   assert.equal(s.emails, 3);
   assert.equal(t.calls.quit, 1);
+});
+
+test('rodada: motivos da mesma empresa no mesmo e-mail; tipos diferentes no mesmo endereço não se misturam', async () => {
+  const t = makeDeps({ rows: [row('a', 'company_update', 'r@e.invalid', 300, 'released'), row('b', 'company_update', 'r@e.invalid', 300, 'closed'),
+    row('c', 'worker_update', 'r@e.invalid', 300, 'update')] });
+  const s = await send.runBatch(t.deps);
+  assert.equal(s.emails, 2);
+  const company = t.calls.sent.find((e) => e.body.includes('#entrar-empresa'));
+  assert.match(company.body, /nova manifestação[\s\S]*foi encerrada/);
+  assert.ok(t.calls.sent.some((e) => e.subject === send.WORKER_SUBJECT));
+  assert.ok(['a', 'b', 'c'].every((id) => markOf(t.calls, id).result === 'sent'));
+});
+
+test('rodada: aviso à empresa não cadastrada sai sozinho, um por linha, e conta no teto', async () => {
+  const t = makeDeps({ rows: [row('n1', 'company_notice', 'c@e.invalid', 2, 'notice'), row('n2', 'company_notice', 'c@e.invalid', 2, 'notice'),
+    row('u', 'company_update', 'c@e.invalid', 2, 'released')] });
+  const s = await send.runBatch(t.deps);
+  assert.equal(s.emails, 2);
+  assert.equal(t.calls.sent.filter((e) => e.subject === send.NOTICE_SUBJECT).length, 2);
+  assert.deepEqual(markOf(t.calls, 'n1'), { id: 'n1', result: 'sent', code: null, messages: 1 });
+  assert.deepEqual(markOf(t.calls, 'u'), { id: 'u', result: 'release', code: 'daily_cap', messages: 0 });
 });
 
 test('rodada: teto do dia adia o excedente sem gastar tentativa', async () => {
@@ -226,7 +282,9 @@ test('index.ts: segredo do agendador em tempo constante, sem JWT, só as duas RP
   assert.match(src, /status: 401/);
   assert.match(src, /smtp\.gmail\.com/);
   assert.match(src, /SMTP_PORT = 465/);
-  assert.deepEqual([...src.matchAll(/rpc\('([a-z_]+)'/g)].map((m) => m[1]).sort(), ['notification_claim', 'notification_mark']);
+  assert.deepEqual([...new Set([...src.matchAll(/rpc\('([a-z_]+)'/g)].map((m) => m[1]))].sort(), ['notification_claim', 'notification_mark']);
+  assert.match(src, /p_include_notices: true/);
+  assert.match(src, /PGRST202/);
   assert.equal((src.match(/console\.log/g) ?? []).length, 3);
   assert.doesNotMatch(src, /console\.log\([^)]*\b(email|to|gmailUser|password)\b/i);
   assert.match(src, /clearTimeout\(timer\)/);

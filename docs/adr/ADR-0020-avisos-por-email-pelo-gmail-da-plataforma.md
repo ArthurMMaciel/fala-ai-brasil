@@ -183,3 +183,24 @@ Decisão do responsável, comunicada pelo Gestor ("Aprovo"):
    - **465 fechada:** o piloto começa sem notificação automática. A API do Gmail com OAuth volta para decisão, sem prazo.
 5. **Prazo.** Mesmo com a porta aberta, a função entra depois do go/no-go de 25/11 e é tratada como mudança pós-go/no-go.
 6. **Pendências de dados (Back):** fila, gatilho, destinatários verificados e opt-out do trabalhador, a registrar na parte de dados desta ADR e em migration própria.
+
+## Revisão de 2026-11-26: texto por evento e aviso à empresa não cadastrada (proposta, aguarda o responsável)
+
+Pedido do Gestor em 2026-11-26. Migration `20261126130000`, não aplicada (lote 5, passo 02), e versão nova da `send-notifications`, não publicada.
+
+1. **Texto por evento.**
+   - A fila ganha `reason`, um código fixo: `update` (trabalhador e linhas antigas), `released`, `response_returned` e `closed` (empresa).
+   - A função escolhe um texto curto por motivo:
+     - trabalhador: "Há uma novidade na sua manifestação na Escuta Aí Brasil", com link para `/#entrar`;
+     - empresa: liberação ("Sua empresa acabou de receber uma nova manifestação"), devolução ("pediu um ajuste em uma resposta") e encerramento ("Uma manifestação da sua empresa foi encerrada"), com link para `/#entrar-empresa`.
+   - Todos os textos mantêm "Por segurança, este e-mail não traz detalhes." e nenhum traz protocolo, categoria, situação de revisão ou conteúdo.
+   - O agrupamento passa a ser por tipo e endereço: vários motivos da mesma empresa saem num e-mail só, com uma frase por motivo.
+   - A D7 ("texto genérico, sem a situação") fica flexibilizada: o e-mail da empresa diz que houve liberação, devolução ou encerramento. Isso revela, a quem lê a caixa, que existe uma manifestação. Para a conta verificada da empresa, o Gestor considerou aceitável.
+2. **Aviso à empresa não cadastrada** (`kind = 'company_notice'`), depois da aprovação humana da ADR-0023. Detalhes na ADR-0023, "Revisão de 2026-11-26: envio automático do aviso depois da aprovação".
+   - **Muda o item 2 da revisão de 2026-11-23:** o contato indicado ou o e-mail da Receita passa a receber um e-mail automático, mas só depois que a equipe aprova aquele aviso, com as mesmas travas.
+   - **Precisa da aprovação do responsável antes de aplicar.**
+3. **Compatibilidade e ordem.**
+   - `notification_claim` ganha `p_include_notices` (padrão `false`). A função publicada hoje não recebe avisos de empresa, que esperam na fila.
+   - A versão nova pede `true` e, se o banco ainda não tiver a migration, cai na chamada antiga.
+   - Ordem: aplicar o passo 02 e depois publicar a função.
+   - Rollback: `supabase/tests/rollback/20261126130000_rollback.sql`.

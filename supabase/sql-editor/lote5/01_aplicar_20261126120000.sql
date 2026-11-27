@@ -1,5 +1,5 @@
 -- GERADO por supabase/sql-editor/build.mjs a partir de supabase/pending/20261126120000_ate_3_contatos.sql. Não editar à mão.
--- Passo 01 de 01. SQL Editor de produção: colar o arquivo INTEIRO e rodar UMA vez.
+-- Passo 01 de 02. SQL Editor de produção: colar o arquivo INTEIRO e rodar UMA vez.
 -- Tudo ou nada (begin ... commit). Se aparecer erro, nada foi gravado: rode `rollback;` sozinho e avise o Back.
 -- Depois de rodar: 01_conferir_20261126120000.sql (todas as linhas com ok = true).
 begin;
