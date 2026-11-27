@@ -71,10 +71,14 @@ test('cadastro é dividido em etapas e não mostra o resumo de cobrança', () =>
   const screen = app();
   screen.api.route('register', { authAudience: 'worker' });
   assert.equal((screen.html.match(/class="auth-step"/g) || []).length, 3);
+  // Empresa: etapa "Plano" só enquanto companySignupWithoutPlan estiver desligada; o parceiro segue com ela.
+  const companyPlan = accountRules.signupAsksPlan('company');
   screen.api.route('register', { authAudience: 'company' });
-  assert.equal((screen.html.match(/class="auth-step"/g) || []).length, 4);
-  assert.match(screen.html, /data-title="Plano"/);
+  assert.equal((screen.html.match(/class="auth-step"/g) || []).length, companyPlan ? 4 : 3);
+  if (companyPlan) assert.match(screen.html, /data-title="Plano"/); else assert.doesNotMatch(screen.html, /data-title="Plano"|name="planId"/);
   assert.doesNotMatch(screen.html, /subscription-summary/);
+  screen.api.route('register', { authAudience: 'partner' });
+  assert.match(screen.html, /data-title="Plano"/);
   assert.match(screen.html, /data-step-next/);
 });
 
@@ -127,7 +131,7 @@ test('cadastro de Patrocínio ou Intelligence (ocultos) vira o genérico ou o de
 
 test('cada plano abre cadastro da persona correta com seleção preservada', () => {
   const screen = app();
-  for (const plan of catalog.filter(item => !['intelligence', 'sponsor'].includes(item.audience))) {
+  for (const plan of catalog.filter(item => !['intelligence', 'sponsor'].includes(item.audience) && accountRules.signupAsksPlan(item.audience))) {
     screen.api.route('register', { authAudience: plan.audience, landingAudience: plan.audience, commercialAudience: plan.audience, selectedPlanId: plan.id });
     assert.equal(screen.api.state.authAudience, plan.audience);
     assert.match(screen.html, new RegExp(`value="${plan.id}" selected`));
