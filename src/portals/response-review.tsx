@@ -81,7 +81,7 @@ function ResponseDetail({ item, onBack, onChanged }: { item: OpsResponse; onBack
     <label className="field">{item.reviewStatus === 'in_review' ? 'Motivo da devolução (só para devolver)' : 'Motivo da correção'}<textarea rows={2} maxLength={500} value={reason} onChange={event => setReason(event.target.value)} placeholder={item.reviewStatus === 'in_review' ? 'Ex.: a resposta cita uma pessoa; peça à empresa para retirar.' : 'Ex.: a descrição omitiu o prazo informado pela empresa.'} />{item.reviewStatus === 'in_review' && <small className="muted">Na devolução, o motivo aparece para a empresa.</small>}</label>
     <div className="ops-decision-actions">{item.reviewStatus === 'in_review' ? <><button className="btn primary" disabled={busy} onClick={() => decide('released')}>Liberar ao trabalhador</button><button className="btn" disabled={busy} onClick={() => decide('returned')}>Devolver à empresa</button></> : <button className="btn primary" disabled={busy} onClick={correct}>Salvar correção</button>}</div>
    </section>}
-  </div><aside className="worker-detail-aside"><section className="worker-detail-section"><h3>Relato</h3><p className="muted small">O que a empresa leu antes de responder.</p><p>{item.shared ?? '—'}</p></section></aside></div></>;
+  </div><aside className="worker-detail-aside"><section className="worker-detail-section"><h3>Versão compartilhável</h3><p className="muted small">O que a empresa leu antes de responder.</p><p>{item.shared ?? '—'}</p></section></aside></div></>;
 }
 
 /** Fila de respostas da Operação, das mais antigas para as mais novas (prazo de 2 dias úteis). */
