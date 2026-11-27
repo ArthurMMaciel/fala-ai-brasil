@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { listContactSolicitations, setContactSolicitationStatus, type ContactProfile, type ContactSolicitation, type ContactStatus } from '../services/contact-solicitations';
+import { brandName } from '../domain/brand';
 
 const profileLabels: Record<ContactProfile, string> = { worker: 'Trabalhador', company: 'Empresa', partner: 'Parceiro', sponsor: 'Patrocinador' };
 const statusLabels: Record<ContactStatus, string> = { waiting_contact: 'Aguardando contato', contacted: 'Contatado' };
@@ -34,7 +35,7 @@ export function ContactSolicitationsAdmin() {
   }
 
   return <div className="contact-admin" id="main-content" tabIndex={-1}>
-    <header className="contact-admin-heading"><span className="editorial-eyebrow">Equipe Escuta Aí Brasil</span><h1>Solicitações contato</h1><p>Pedidos enviados pelas páginas públicas. O status registra se a equipe já realizou o contato.</p></header>
+    <header className="contact-admin-heading"><span className="editorial-eyebrow">Equipe {brandName}</span><h1>Solicitações contato</h1><p>Pedidos enviados pelas páginas públicas. O status registra se a equipe já realizou o contato.</p></header>
     <div className="contact-admin-filters"><label>Status<select value={status} onChange={event => setStatus(event.target.value as ContactStatus | '')}><option value="">Todos</option><option value="waiting_contact">Aguardando contato</option><option value="contacted">Contatado</option></select></label><label>Perfil<select value={profile} onChange={event => setProfile(event.target.value as ContactProfile | '')}><option value="">Todos</option>{Object.entries(profileLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><button className="btn" onClick={() => setRefresh(value => value + 1)}>Atualizar lista</button></div>
     {error && <p className="field-error" role="alert">{error}</p>}
     {items === null ? <p role="status">Carregando solicitações…</p> : items.length === 0 ? <div className="contact-admin-empty"><h2>Nenhuma solicitação encontrada</h2><p>Revise os filtros ou atualize a lista.</p></div> :

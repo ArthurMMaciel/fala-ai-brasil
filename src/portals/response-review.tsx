@@ -5,6 +5,7 @@ import { EmptyState } from './ui';
 import { correctedLabel, reviewOverdue, validateCorrectionReason, validateRatingComment, validateReturnReason, validateWorkerSummary } from '../domain/response-review';
 import { rateResponse, type ComplaintFeedback, type ResponseRating, type TimelineItem } from '../services/data';
 import { correctOpsResponseSummary, decideOpsResponse, listOpsResponses, type OpsResponse, type ResponseReviewStatus } from '../services/ops';
+import { brandName } from '../domain/brand';
 
 // Resposta da empresa revisada pela equipe (ADR-0013, TASK-0035).
 
@@ -28,7 +29,7 @@ function RateResponse({ responseId, onRated }: { responseId: string; onRated: ()
   <fieldset><legend>Esta resposta ajudou?</legend>
    {(Object.keys(ratingLabels) as ComplaintFeedback[]).map(key => <label key={key}><input type="radio" name={`rating-${responseId}`} value={key} checked={rating === key} onChange={() => setRating(key)} /> {ratingLabels[key]}</label>)}
   </fieldset>
-  <label className="field">Comentário (opcional)<textarea rows={2} maxLength={300} value={comment} onChange={event => setComment(event.target.value)} /><small className="muted">Só a equipe Escuta Aí Brasil lê. A empresa não vê o comentário. {comment.length}/300</small></label>
+  <label className="field">Comentário (opcional)<textarea rows={2} maxLength={300} value={comment} onChange={event => setComment(event.target.value)} /><small className="muted">Só a equipe {brandName} lê. A empresa não vê o comentário. {comment.length}/300</small></label>
   <button className="btn" type="submit" disabled={busy}>{busy ? 'Enviando…' : 'Enviar avaliação'}</button>
  </form>;
 }
@@ -42,7 +43,7 @@ export function WorkerResponses({ responses, ratings, onRated }: { responses: Ti
    const corrected = correctedLabel(response.summaryCorrectedAt);
    return <article key={response.id ?? response.createdAt} className="worker-response">
     <p className="muted small">{dateLabel(response.releasedAt ?? response.createdAt)}</p>
-    {response.workerSummary && <div className="commercial-callout worker-response-summary"><strong>Descrição da equipe Escuta Aí Brasil</strong><p>{response.workerSummary}</p>{corrected && <small>{corrected}</small>}</div>}
+    {response.workerSummary && <div className="commercial-callout worker-response-summary"><strong>Descrição da equipe {brandName}</strong><p>{response.workerSummary}</p>{corrected && <small>{corrected}</small>}</div>}
     <div className="worker-response-original"><strong>{response.workerSummary ? 'Resposta original da empresa' : 'Resposta da empresa'}</strong><p className="worker-original">{response.content}</p></div>
     {response.id && (rated ? <p className="muted small">Sua avaliação: <strong>{ratingLabels[rated.rating]}</strong></p> : <RateResponse responseId={response.id} onRated={onRated} />)}
    </article>;

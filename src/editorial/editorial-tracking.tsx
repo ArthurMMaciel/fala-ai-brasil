@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Journey, Note } from './editorial-ui';
 import { session } from './editorial-model';
+import { brandName } from '../domain/brand';
 
 type Props = { onRoute: (route: string) => void };
 
@@ -9,7 +10,7 @@ export function Confirmation({ onRoute }: Props) {
  const [feedback, setFeedback] = useState('');
  async function saveAccess() {
   try {
-   await navigator.clipboard.writeText(`Escuta Aí Brasil — demonstração\nProtocolo fictício: ${item.protocol}\nChave fictícia: ${item.key}\nVálidos somente nesta aba, até recarregar. Não oferecem autenticação real.`);
+   await navigator.clipboard.writeText(`${brandName} — demonstração\nProtocolo fictício: ${item.protocol}\nChave fictícia: ${item.key}\nVálidos somente nesta aba, até recarregar. Não oferecem autenticação real.`);
    setFeedback('Dados fictícios copiados. Guarde em local reservado. O registro só existe nesta aba, até recarregar.');
   } catch {
    setFeedback('Não foi possível copiar. Selecione o protocolo e a chave acima e copie manualmente para um local reservado.');

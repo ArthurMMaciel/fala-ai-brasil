@@ -1,3 +1,4 @@
+import { brandName } from './brand';
 // PDF da manifestação, fase 1 (TASK-0043): documento montado no navegador e salvo pelo "Salvar como PDF".
 // Regras: nenhum dado de identidade; o relato original só entra na versão do trabalhador, se ele marcar;
 // a versão da empresa leva só a versão compartilhável.
@@ -6,7 +7,7 @@ export interface PrintTimelineItem { title: string; date: string; text: string }
 export interface PrintSection { heading: string; text?: string; note?: string; items?: string[]; timeline?: PrintTimelineItem[] }
 export interface PrintDocument { fileName: string; eyebrow: string; title: string; meta: [string, string][]; sections: PrintSection[]; footer: string[] }
 
-export const emergencyLine = "Em caso de risco imediato, procure ajuda: CVV 188, SAMU 192 ou Polícia Militar 190. A Escuta Aí Brasil não é um canal de emergência.";
+export const emergencyLine = `Em caso de risco imediato, procure ajuda: CVV 188, SAMU 192 ou Polícia Militar 190. A ${brandName} não é um canal de emergência.`;
 
 function fileName(protocol: string): string {
   return `manifestacao-${protocol.replace(/[^A-Za-z0-9-]/g, "")}`;
@@ -50,7 +51,7 @@ export function buildCompanyPrint(input: CompanyPrintInput): PrintDocument {
     title: input.title,
     meta: [["Protocolo", input.protocol], ["Situação", input.statusText], ["Assunto", input.category], ["Recebida em", input.receivedAt], ["Gerado em", input.generatedAt]],
     sections,
-    footer: [`Versão compartilhável revisada pela equipe Escuta Aí Brasil. Não contém a identidade de quem relatou. Não tente identificar a pessoa. Gerado por ${input.companyName} em ${input.generatedAt}.`],
+    footer: [`Versão compartilhável revisada pela equipe ${brandName}. Não contém a identidade de quem relatou. Não tente identificar a pessoa. Gerado por ${input.companyName} em ${input.generatedAt}.`],
   };
 }
 

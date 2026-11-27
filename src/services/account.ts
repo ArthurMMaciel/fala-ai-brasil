@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { appRoleFor, authErrorMessage, buildProfilePayload, signUpErrorCode, type CampaignInput, type CampaignKind, type CampaignStatus, type ProfileType, type RegistrationInput } from "../domain/account-rules";
 import { authLinkType, passwordUpdateError, recoveryExpiredMessage, recoveryRequestOutcome } from "../domain/password-recovery";
+import { brandName } from '../domain/brand';
 
 // ADR-0009: somente a chave pública no navegador; o acesso real é controlado por RLS.
 const url = import.meta.env.VITE_SUPABASE_URL;
@@ -138,7 +139,7 @@ export async function loadAccount(preferred?: { type: ProfileType; id: string })
   // A equipe é provisionada fora do navegador; uma conta empresarial não herda este acesso.
   const { data: isStaff } = await db.rpc("is_platform_admin");
   if (isStaff === true) {
-    const profile: AccountProfile = { type: "system", id: authUser.id, name: "Equipe Escuta Aí Brasil" };
+    const profile: AccountProfile = { type: "system", id: authUser.id, name: `Equipe ${brandName}` };
     const user: AppUser = { id: authUser.id, name: profile.name, email: authUser.email ?? "", role: "platform_admin", profile, createdAt: authUser.created_at };
     return { user, subscription: null, profiles: [profile] };
   }

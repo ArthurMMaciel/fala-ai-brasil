@@ -12,7 +12,7 @@ const require = createRequire(import.meta.url);
 function compile(file, customRequire = require) {
   const module = { exports: {} };
   const code = ts.transpileModule(readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2021 } }).outputText;
-  vm.runInNewContext(code, { module, exports: module.exports, require: customRequire });
+  vm.runInNewContext(code, { module, exports: module.exports, require: name => /\/brand$/.test(name) ? compile('src/domain/brand.ts') : customRequire(name) });
   return module.exports;
 }
 const domain = compile('src/domain/print-document.ts');

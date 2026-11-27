@@ -11,7 +11,7 @@ const require = createRequire(import.meta.url);
 function compile(file, extra = '', customRequire = require) {
   const module = { exports: {} };
   const code = ts.transpileModule(readFileSync(file, 'utf8') + extra, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2021 } }).outputText;
-  vm.runInNewContext(code, { module, exports: module.exports, require: customRequire, URL });
+  vm.runInNewContext(code, { module, exports: module.exports, require: name => /\/brand$/.test(name) ? compile('src/domain/brand.ts') : customRequire(name), URL });
   return module.exports;
 }
 const catalog = compile('src/domain/commercial.ts').commercialCatalog;
@@ -56,7 +56,7 @@ function app() {
     registerAccount: async () => ({ ok: false, message: 'indisponível' }), resendConfirmation: async () => ({ ok: true, value: null }),
     signIn: async () => ({ ok: false, message: 'indisponível' }), signOut: async () => {}, watchSession: () => () => {}, sessionChange: () => null, sessionChangeMessages: {}, legalRouteFromHash: () => null, authEntryFromHash: () => null, bindPasswordRecovery() {}, forgotPasswordMarkup: notice => `<main data-screen="forgot">${notice?.recoverySent ? "enviado" : "pedido"}</main>`, resetPasswordMarkup: () => '<main data-screen="reset"></main>', consumeRecoveryArrival: async () => null, recoverySavedMessage: '', authEntryState: () => ({}), isVisibleAudience: audience => !['intelligence', 'sponsor'].includes(audience), visibleRegisterAudience: audience => audience === 'intelligence' ? 'company' : 'worker', location: { hash: '', pathname: '/', search: '' }, loadPartnerPhoto: async () => ({ url: null }), uploadPartnerPhoto: async () => ({ ok: false, message: 'indisponível' }),
     isDemoEmail: email => email.endsWith('@escutaai.demo'), listPublicSponsors: async () => [], minPasswordLength: 8, validateRegistration: () => null,
-    userMenuMarkup: userMenu.userMenuMarkup, escapeHtml: htmlSafety.escapeHtml, safeHttpUrl: htmlSafety.safeHttpUrl,
+    brandName: compile('src/domain/brand.ts').brandName, userMenuMarkup: userMenu.userMenuMarkup, escapeHtml: htmlSafety.escapeHtml, safeHttpUrl: htmlSafety.safeHttpUrl,
     brazilianStates: ['SP'], showToast() {}, createCampaign: async () => ({ ok: false, message: 'indisponível' }), deleteCampaignDraft: async () => ({ ok: true }), listCampaigns: async () => [], submitCampaign: async () => ({ ok: true }), campaignKindForPlan: () => null, campaignKindLabels: {}, campaignStatusLabels: {}, isActiveCampaign: () => false, validateCampaign: () => null, profileLabels: {}, splitStreet: () => null, streetTypeLabels: { street: 'Rua' },
     document: { createElement() { return { relList: { supports: () => true } }; }, querySelector: () => element },
     window: { scrollTo() {}, matchMedia: () => ({ matches: true }) },
@@ -369,3 +369,4 @@ test('topo logado: avatar no lugar de Minha área, Área da empresa, Hub do parc
   assert.doesNotMatch(readFileSync('src/app/worker-portal-bridge.tsx', 'utf8'), /textContent = 'Meu perfil'/);
   assert.match(readFileSync('src/app/commercial-portal-bridge.tsx', 'utf8'), /addEventListener\('escuta:open-profile'/);
 });
+

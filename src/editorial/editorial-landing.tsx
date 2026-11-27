@@ -1,8 +1,9 @@
 import { EditorialSection as Section, Note } from './editorial-ui';
+import { brandName } from '../domain/brand';
 
 export function WorkerStory({ onRoute, onCompany }: { onRoute: (route: string) => void; onCompany: () => void }) {
  return <>
-  <Section number="02" title="O trabalho faz parte da vida. Sua voz também."><p className="section-lead">Há experiências que precisam de espaço para ser contadas, não de respostas apressadas.</p><p>O Escuta Aí Brasil está em desenvolvimento para acolher relatos sobre o contexto de trabalho e organizar um caminho de revisão, encaminhamento e retorno. O acesso do trabalhador é gratuito.</p></Section>
+  <Section number="02" title="O trabalho faz parte da vida. Sua voz também."><p className="section-lead">Há experiências que precisam de espaço para ser contadas, não de respostas apressadas.</p><p>A {brandName} está em desenvolvimento para acolher relatos sobre o contexto de trabalho e organizar um caminho de revisão, encaminhamento e retorno. O acesso do trabalhador é gratuito.</p></Section>
   <Section number="03" title="Um relato não termina no envio." tinted><ol className="editorial-process">{[
    ['Relato', 'Você escolhe o assunto e conta a situação com as palavras que fizerem sentido para você.'],
    ['Revisão', 'Você confere o envio. Depois, a equipe responsável revisa o conteúdo e prepara a versão compartilhável dentro da sua autorização.'],

@@ -1,5 +1,6 @@
 // Gerado a partir de inicio.html (landing oficial); textos, imagens e classes iguais aos da página estática.
 import { Caminhos, ContactForm, Marquee, SponsorStrip } from '../site-parts';
+import { brandName } from '../../domain/brand';
 
 export function InicioPage() {
   return (
@@ -40,14 +41,14 @@ export function InicioPage() {
   <div className="wrap">
     <div className="sobre-art rv">
       <img src="/landing/img/photo-1573497620053-ea5300f94f21-900x1125.jpg" alt="Duas mulheres conversando à mesa" />
-      <div className="sobre-quote">Escutar também é cuidar do caminho depois.<small>escuta.aí</small></div>
+      <div className="sobre-quote">Escutar também é cuidar do caminho depois.<small>{brandName}</small></div>
     </div>
     <div className="rv">
       <span className="eyebrow">Quem somos · Nosso objetivo</span>
       <h2>Um relato não pode terminar no envio.</h2>
-      <p className="lead">A escuta.aí está construindo um percurso de escuta psicossocial pra que relatos não terminem no envio. O acesso de quem trabalha é gratuito.</p>
+      <p className="lead">A {brandName} está construindo um percurso de escuta psicossocial pra que relatos não terminem no envio. O acesso de quem trabalha é gratuito.</p>
       <div className="valores"><div className="valor"><i style={{ background: "var(--azul)" }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 5h16v11H9l-5 4z" /><path d="M8 9h8M8 12h5" /></svg></i><b>Escuta de verdade</b><p>Atenção e respeito, sem julgamento.</p></div><div className="valor"><i style={{ background: "var(--verde)" }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="10" width="14" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg></i><b>Sigilo como regra</b><p>Seus dados de identificação não vão pra empresa.</p></div><div className="valor"><i style={{ background: "var(--amarelo)", color: "var(--tinta)" }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4" /><path d="M12 12l6-6" /></svg></i><b>Prevenção</b><p>Sinais vistos cedo, antes de virar problema.</p></div><div className="valor"><i style={{ background: "var(--profundo)" }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l8 4v5c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V7z" /></svg></i><b>Independência</b><p>Ninguém compra influência sobre a escuta.</p></div></div>
-      <a className="video-link" href="/media/escuta-ai-brasil-institucional.mp4" download><span className="play"><svg width="20" height="20" viewBox="0 0 24 24" fill="#16213A"><path d="M8 5v14l11-7z" /></svg></span><span>Baixe o vídeo institucional<small>Conheça a escuta.aí em poucos minutos</small></span></a>
+      <a className="video-link" href="/media/escuta-ai-brasil-institucional.mp4" download><span className="play"><svg width="20" height="20" viewBox="0 0 24 24" fill="#16213A"><path d="M8 5v14l11-7z" /></svg></span><span>Baixe o vídeo institucional<small>Conheça a {brandName} em poucos minutos</small></span></a>
     </div>
   </div>
 </section>

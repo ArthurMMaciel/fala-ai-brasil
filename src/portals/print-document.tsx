@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { PrintDocument } from '../domain/print-document';
+import { brandName } from '../domain/brand';
 
 // Versão para impressão/PDF (TASK-0043, fase 1): texto real, montado só no clique, impresso pelo navegador.
 
 export function PrintDocumentView({ doc }: { doc: PrintDocument }) {
  return <article className="print-document" aria-label={`${doc.eyebrow}: ${doc.title}`}>
-  <header className="print-header"><img src="/brand/escuta-ai-brasil.svg" alt="Escuta Aí Brasil" width="180" height="36" /><span>{doc.eyebrow}</span></header>
+  <header className="print-header"><img src="/brand/escuta-ai-brasil.svg" alt={brandName} width="180" height="36" /><span>{doc.eyebrow}</span></header>
   <h1>{doc.title}</h1>
   <dl className="print-meta">{doc.meta.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
   {doc.sections.map(section => <section key={section.heading} className="print-section"><h2>{section.heading}</h2>

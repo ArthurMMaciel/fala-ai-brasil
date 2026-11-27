@@ -10,7 +10,8 @@ const commercialUrl = asUrl(compile('src/domain/commercial.ts'));
 const entry = await import(asUrl(compile('src/domain/entry-routes.ts').replace(/from ['"]\.\/commercial['"]/, `from '${commercialUrl}'`)));
 const contact = await import(asUrl(compile('src/domain/landing-contact.ts')));
 const entryUrl = asUrl(compile('src/domain/entry-routes.ts').replace(/from ['"]\.\/commercial['"]/, `from '${commercialUrl}'`));
-const site = await import(asUrl(compile('src/domain/site-pages.ts').replace(/from ['"]\.\/entry-routes['"]/, `from '${entryUrl}'`)));
+const brandUrl = asUrl(compile('src/domain/brand.ts'));
+const site = await import(asUrl(compile('src/domain/site-pages.ts').replace(/from ['"]\.\/entry-routes['"]/, `from '${entryUrl}'`).replace(/from ['"]\.\/brand['"]/, `from '${brandUrl}'`)));
 const plain = value => JSON.parse(JSON.stringify(value));
 const pages = ['inicio', 'empresa', 'parceiros', 'patrocinio', 'intelligence', '404'];
 const pageSource = page => readFileSync(`src/landing-site/pages/${page}.tsx`, 'utf8').replace(/^\/\/.*$/gm, '');
@@ -89,7 +90,7 @@ test('rotas da landing: caminho de cada página, 404, SEO e retorno de confirma�
   assert.equal(site.sitePageFromPath('/empresa.html'), 'empresa');
   assert.equal(site.sitePageFromPath('/inicio.html'), 'inicio');
   assert.equal(site.sitePageFromPath('/qualquer-coisa'), '404');
-  for (const page of Object.values(site.sitePages)) assert.match(page.title, /^escuta\.aí Brasil \| /, page.id);
+  for (const page of Object.values(site.sitePages)) assert.match(page.title, /^RH Escuta\.Aí \| /, page.id);
   for (const page of Object.values(site.sitePages)) if (page.id !== '404') assert.ok(page.description, page.id);
   assert.equal(site.showsLandingImmediately({ search: '', hash: '' }, []), true);
   assert.equal(site.showsLandingImmediately({ search: '', hash: '#contato' }, []), true);

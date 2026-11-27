@@ -11,6 +11,7 @@ import { usePrintDocument } from './print-document';
 import { WorkerResponses } from './response-review';
 import { loadComplaintContacts, type ComplaintContactItem } from '../services/notices';
 import { formatPhone } from '../domain/account-rules';
+import { brandName } from '../domain/brand';
 
 // Portal do trabalhador com dados reais (modelo v3). O relato original nunca sai daqui; a empresa recebe só a versão revisada.
 type View = 'dashboard' | 'list' | 'detail' | 'new' | 'companies' | 'profile';
@@ -110,7 +111,7 @@ function MyComplaintContact({ complaintId }: { complaintId: string }) {
  const [contacts, setContacts] = useState<ComplaintContactItem[]>([]);
  useEffect(() => { let active = true; loadComplaintContacts(complaintId, 'worker').then(result => { if (active && !result.missing) setContacts(result.contacts); }).catch(() => undefined); return () => { active = false; }; }, [complaintId]);
  if (!contacts.length) return null;
- return <section className="worker-detail-section"><h3>{contacts.length > 1 ? 'Contatos que você indicou' : 'Contato que você indicou'}</h3><p className="muted small">Só a equipe da Escuta Aí Brasil vê {contacts.length > 1 ? 'estes contatos' : 'este contato'}. A empresa não vê.</p>
+ return <section className="worker-detail-section"><h3>{contacts.length > 1 ? 'Contatos que você indicou' : 'Contato que você indicou'}</h3><p className="muted small">Só a equipe da {brandName} vê {contacts.length > 1 ? 'estes contatos' : 'este contato'}. A empresa não vê.</p>
   {contacts.map((contact, index) => <ul className="ops-notice-facts" key={contact.contactId || index}>{contact.email && <li><span className="muted small">E-mail</span><strong>{contact.email}</strong></li>}{contact.phone && <li><span className="muted small">Telefone</span><strong>{formatPhone(contact.phone)}</strong></li>}
    {contact.possiblyInvolved && <li><span className="muted small">Você indicou</span><strong>que a pessoa pode estar envolvida: a equipe não usa este contato.</strong></li>}</ul>)}</section>;
 }

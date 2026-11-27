@@ -3,6 +3,7 @@ import termsSource from '../content/legal/termos-de-uso.md?raw';
 import privacySource from '../content/legal/aviso-de-privacidade.md?raw';
 import { legalRoutes, parseLegalDoc, type LegalBlock, type LegalRoute } from '../domain/legal-docs';
 import { EditorialFooter } from './editorial-ui';
+import { brandName } from '../domain/brand';
 
 const docs: Record<LegalRoute, string> = { terms: termsSource, privacy: privacySource };
 
@@ -22,7 +23,7 @@ export function LegalPage({ route, onRoute }: { route: LegalRoute; onRoute: (rou
   return () => { if (location.hash === `#${legalRoutes[route]}`) history.replaceState(null, '', location.pathname + location.search); };
  }, [route]);
  return <div className="app-shell editorial-app"><a className="skip-link" href="#main-content">Ir para o conteúdo principal</a>
-  <header className="editorial-header"><button className="editorial-wordmark" onClick={() => onRoute('landing')} aria-label="Escuta Aí Brasil — página inicial">Escuta Aí Brasil</button><button className="text-action" onClick={() => onRoute('landing')}>← Voltar à inicial</button></header>
+  <header className="editorial-header"><button className="editorial-wordmark" onClick={() => onRoute('landing')} aria-label={`${brandName} — página inicial`}>{brandName}</button><button className="text-action" onClick={() => onRoute('landing')}>← Voltar à inicial</button></header>
   <main className="legal-page" id="main-content" tabIndex={-1}>
    {doc.inReview && <p className="legal-review-banner" role="note"><strong>Texto em revisão jurídica.</strong> Este conteúdo ainda não é a versão final.</p>}
    <h1>{doc.title}</h1>

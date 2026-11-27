@@ -1,6 +1,7 @@
 // Gerado a partir de parceiros.html (landing oficial); textos, imagens e classes iguais aos da página estática.
 import type { CSSProperties } from 'react';
 import { BillButton, Caminhos, ContactForm, Per, Price, SponsorStrip } from '../site-parts';
+import { brandName } from '../../domain/brand';
 
 export function ParceirosPage() {
   return (
@@ -34,7 +35,7 @@ export function ParceirosPage() {
   <div className="wrap">
     <div className="sobre-art rv">
       <img src="/landing/img/photo-1758273240360-76b908e7582a-900x1125.jpg" alt="Profissional em atendimento" />
-      <div className="sobre-quote">Empresas que precisam, perto de quem sabe ajudar.<small>O Hub da escuta.aí</small></div>
+      <div className="sobre-quote">Empresas que precisam, perto de quem sabe ajudar.<small>O Hub da {brandName}</small></div>
     </div>
     <div className="rv">
       <span className="eyebrow">Quem somos · Nosso objetivo</span>

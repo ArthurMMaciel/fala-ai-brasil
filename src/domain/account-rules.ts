@@ -273,7 +273,7 @@ export function buildProfilePayload(input: RegistrationInput): Record<string, un
 }
 
 const authMessages: Record<string, string> = {
-  email_not_confirmed: "Confirme seu e-mail antes de entrar. Procure a mensagem da Escuta Aí Brasil na sua caixa de entrada.",
+  email_not_confirmed: "Confirme seu e-mail antes de entrar. Procure a mensagem de confirmação na sua caixa de entrada.",
   invalid_credentials: "E-mail ou senha incorretos.",
   user_already_exists: "Já existe uma conta com este e-mail. Entre e adicione este perfil pela sua conta.",
   email_exists: "Já existe uma conta com este e-mail. Entre e adicione este perfil pela sua conta.",

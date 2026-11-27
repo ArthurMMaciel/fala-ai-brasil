@@ -12,6 +12,7 @@ import { CompanyProfile } from './profile-live';
 import { MyResponsivenessPanel, ResponsivenessTable, responsivenessMethod } from './responsiveness';
 import { companyFacingTitle, statusLabel } from '../domain/complaint-status';
 import { companyAccessPending, type VerificationStatus } from '../domain/representatives';
+import { brandName } from '../domain/brand';
 
 // Portais de empresa e parceiro com dados reais (modelo v3). A empresa lê apenas versões compartilhadas, sem identidade.
 type CompanyView = 'dashboard' | 'complaints' | 'ranking' | 'partners' | 'contracted' | 'profile';
@@ -101,7 +102,7 @@ function CompanyComplaintDetail({ item, companyName, onBack, onChanged }: { item
   {host}
   <div className="commercial-grid-two"><section className="commercial-panel"><h2>Versão compartilhada</h2><p>{item.shared}</p><div className="commercial-callout">Texto revisado e autorizado por quem relatou. A identidade e o relato original não são compartilhados.</div>{item.feedback && <p><strong>Avaliação do retorno:</strong> {feedbackLabels[item.feedback]}</p>}</section>
    <section className="commercial-panel"><h2>Histórico</h2>{timeline === null ? <p className="muted">Carregando…</p> : <ol className="worker-timeline">{timeline.map((entry, index) => <li key={index} className={entry.kind === 'response' ? 'worker-timeline-response' : entry.kind === 'response_review' ? 'worker-timeline-review' : ''}><strong>{entry.kind === 'response' ? 'Resposta enviada' : entry.kind === 'response_review' ? 'Revisão da equipe' : statusLabel(companyStatus, entry.status ?? 'shared')}</strong><span>{dateLabel(entry.createdAt)}</span><p>{entry.content}</p></li>)}</ol>}</section></div>
-  {item.status === 'answer_in_review' && <section className="commercial-panel"><h2>Resposta com a equipe</h2><p className="muted small">A equipe Escuta Aí Brasil revisa a resposta antes de entregá-la a quem relatou. Se precisar de ajuste, o motivo aparece no histórico e você poderá responder de novo.</p></section>}
+  {item.status === 'answer_in_review' && <section className="commercial-panel"><h2>Resposta com a equipe</h2><p className="muted small">A equipe {brandName} revisa a resposta antes de entregá-la a quem relatou. Se precisar de ajuste, o motivo aparece no histórico e você poderá responder de novo.</p></section>}
   {['shared', 'answered'].includes(item.status) && <section className="commercial-panel"><h2>{item.status === 'shared' ? 'Responder' : 'Enviar nova atualização'}</h2><p className="muted small">Responda de forma institucional. Não tente identificar quem relatou.</p><textarea className="company-response-text" rows={5} maxLength={5000} value={text} onChange={event => setText(event.target.value)} aria-label="Resposta da empresa" /><div className="nav-actions"><button className="btn primary" disabled={busy || text.trim().length < 10} onClick={send}>Enviar resposta</button></div></section>}</>;
 }
 
@@ -152,9 +153,9 @@ function ContractedPartners({ companyId }: { companyId: string }) {
 
 // ADR-0012: fora de "verified", nada de casos nem números; perfil e parceiros seguem abertos.
 const verificationCopy: Record<Exclude<VerificationStatus, 'verified'>, [string, string]> = {
- pending: ['Aguardando verificação', 'Antes de mostrar manifestações e indicadores, a equipe Escuta Aí Brasil confirma que você representa a empresa. Para isso, entramos em contato pelo telefone público da empresa ou pedimos um documento, sempre fora da plataforma. Quando a verificação terminar, esta área passa a mostrar os casos.'],
- rejected: ['Não foi possível confirmar o vínculo', 'A equipe Escuta Aí Brasil não conseguiu confirmar que esta conta representa a empresa. Por isso, manifestações e indicadores continuam ocultos. Se houve engano, fale com a equipe Escuta Aí Brasil.'],
- revoked: ['Acesso suspenso', 'O acesso desta conta às manifestações e aos indicadores da empresa foi retirado pela equipe Escuta Aí Brasil. Se houve engano, fale com a equipe Escuta Aí Brasil.'],
+ pending: ['Aguardando verificação', `Antes de mostrar manifestações e indicadores, a equipe ${brandName} confirma que você representa a empresa. Para isso, entramos em contato pelo telefone público da empresa ou pedimos um documento, sempre fora da plataforma. Quando a verificação terminar, esta área passa a mostrar os casos.`],
+ rejected: ['Não foi possível confirmar o vínculo', `A equipe ${brandName} não conseguiu confirmar que esta conta representa a empresa. Por isso, manifestações e indicadores continuam ocultos. Se houve engano, fale com a equipe ${brandName}.`],
+ revoked: ['Acesso suspenso', `O acesso desta conta às manifestações e aos indicadores da empresa foi retirado pela equipe ${brandName}. Se houve engano, fale com a equipe ${brandName}.`],
 };
 function VerificationPending({ status, companyName, onView }: { status: VerificationStatus; companyName: string; onView: (view: CompanyView) => void }) {
  const [title, text] = verificationCopy[status === 'verified' ? 'pending' : status];

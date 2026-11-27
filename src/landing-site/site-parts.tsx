@@ -6,6 +6,7 @@ import { landingContactInput } from '../domain/landing-contact';
 import { contactProfiles, isVisibleSitePage, siteMenu, sitePages, type SitePage, type SitePageId } from '../domain/site-pages';
 import { submitContactSolicitation, validateContactSolicitation } from '../services/contact-solicitations';
 import { FooterLogo, HeaderLogo } from './site-logos';
+import { brandName } from '../domain/brand';
 
 export function SiteHeader({ page }: { page: SitePage }) {
   const [scrolled, setScrolled] = useState(false);
@@ -19,7 +20,7 @@ export function SiteHeader({ page }: { page: SitePage }) {
   return (
     <header id="topo" className={scrolled ? 'scrolled' : undefined}>
       <div className="wrap nav">
-        <a className="logo" href="/" aria-label="escuta.aí Brasil, início"><HeaderLogo /></a>
+        <a className="logo" href="/" aria-label={`${brandName}, início`}><HeaderLogo /></a>
         <ul className={open ? 'menu open' : 'menu'} id="menu">
           {siteMenu.map(item => <li key={item.id}><a className={item.id === page.id ? 'on' : undefined} href={sitePages[item.id].path ?? '/'}>{item.label}</a></li>)}
           <li className="m-only"><a href={page.entrar}>Entrar</a></li>
@@ -45,7 +46,7 @@ export function SiteFooter({ page }: { page: SitePage }) {
           <div><h4>Conta</h4><ul><li><a href={page.entrar}>Entrar</a></li><li><a href={page.cadastrar}>Cadastrar</a></li><li><a href={page.contato}>Fale com a gente</a></li></ul></div>
         </div>
         <div className="sos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /><path d="M12 9v4M12 17h.01" /></svg>Não é um serviço de urgência. Em risco imediato, procure os serviços públicos de emergência.</div>
-        <div className="f-bot"><span>© 2026 Escuta Aí Brasil</span><span>Protótipo · Dados fictícios · Evite inserir dados pessoais reais.</span></div>
+        <div className="f-bot"><span>© 2026 {brandName}</span><span>Protótipo · Dados fictícios · Evite inserir dados pessoais reais.</span></div>
       </div>
     </footer>
   );
@@ -84,7 +85,7 @@ export function SponsorStrip() {
         <div className="patro-head"><div><span className="eyebrow">Quem apoia a escuta</span><h2 style={{ fontSize: 'clamp(26px,2.8vw,36px)', marginBottom: '6px' }}>Nossos patrocinadores</h2></div>
           <div className="selo"><svg {...iconProps}><path d="M12 3l8 4v5c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V7z" /><path d="M9 12l2 2 4-4" /></svg>Nenhum patrocinador acessa relatos, identidades ou influencia o tratamento dos relatos.</div></div>
         <div className="ps-row"><div className="ps"><img src="/sponsors/lumen.svg" alt="" /><div><b>Lumen Saúde Ocupacional</b><small>Conteúdo · Guia prático de ergonomia no home office</small></div></div><div className="ps"><img src="/sponsors/vila-serena.svg" alt="" /><div><b>Instituto Vila Serena</b><small>Evento · Semana do cuidado no trabalho</small></div></div><div className="ps"><img src="/sponsors/aurora-beneficios.svg" alt="" /><div><b>Aurora Benefícios</b><small>Evento · Roda de conversa sobre benefícios e saúde</small></div></div><div className="ps"><img src="/sponsors/pontal.svg" alt="" /><div><b>Rede Pontal</b><small>Conteúdo · Série: como pedir ajuda no trabalho</small></div></div><div className="ps"><img src="/sponsors/mirante.svg" alt="" /><div><b>Fundação Mirante</b><small>Estudo público · Estudo aberto: rotina e descanso no trabalho</small></div></div></div>
-        <p className="patro-nota">Patrocinadores com campanha aprovada pela escuta.aí.{isVisibleSitePage('patrocinio') ? <> <a href="/patrocinio" style={{ color: 'var(--azul)', fontWeight: 600 }}>Quero apoiar →</a></> : null}</p>
+        <p className="patro-nota">Patrocinadores com campanha aprovada pela {brandName}.{isVisibleSitePage('patrocinio') ? <> <a href="/patrocinio" style={{ color: 'var(--azul)', fontWeight: 600 }}>Quero apoiar →</a></> : null}</p>
       </div>
     </section>
   );
@@ -154,7 +155,7 @@ export function ContactForm({ pagina, perfil, organizacao = false }: { pagina: s
       <p className="hp" aria-hidden="true"><label>Não preencha: <input name="bot-field" tabIndex={-1} autoComplete="off" /></label></p>
       <span className="eyebrow">Saiba mais</span>
       <h2>Vamos conversar?</h2>
-      <p style={{ color: 'var(--cinza)' }}>Deixe seus dados e nossa equipe retorna pra apresentar a escuta.aí pro seu perfil.</p>
+      <p style={{ color: 'var(--cinza)' }}>Deixe seus dados e nossa equipe retorna pra apresentar a {brandName} pro seu perfil.</p>
       <div className="perfis" role="radiogroup" aria-label="Seu perfil">{contactProfiles.map(value => <label key={value}><input type="radio" name="perfil" value={value} defaultChecked={value === perfil} /><span>{value}</span></label>)}</div>
       <div className="campos">
         <div className="campo full"><label htmlFor="nome">Nome</label><input id="nome" name="nome" required maxLength={120} autoComplete="name" /></div>

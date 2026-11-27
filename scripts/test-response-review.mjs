@@ -12,7 +12,7 @@ const require = createRequire(import.meta.url);
 function compile(file, customRequire = require) {
   const module = { exports: {} };
   const code = ts.transpileModule(readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2021 } }).outputText;
-  vm.runInNewContext(code, { module, exports: module.exports, require: customRequire, Intl, Date, Number });
+  vm.runInNewContext(code, { module, exports: module.exports, require: name => /\/brand$/.test(name) ? compile('src/domain/brand.ts') : customRequire(name), Intl, Date, Number });
   return module.exports;
 }
 const domain = compile('src/domain/response-review.ts');
@@ -45,7 +45,7 @@ const response = (extra = {}) => ({ id: 'r1', kind: 'response', status: null, ac
 
 test('trabalhador vê a descrição da equipe em destaque e o texto original abaixo', () => {
   const html = render(ui.WorkerResponses, { responses: [response({ workerSummary: 'A empresa informou que vai revisar a escala do setor.', releasedAt: '2026-11-10T12:00:00Z', summaryCorrectedAt: '2026-11-10T15:00:00Z' })], ratings: [], onRated() {} });
-  assert.ok(html.indexOf('Descrição da equipe Escuta Aí Brasil') < html.indexOf('Resposta original da empresa'));
+  assert.ok(html.indexOf('Descrição da equipe RH Escuta.Aí') < html.indexOf('Resposta original da empresa'));
   assert.match(html, /Descrição corrigida em/);
   assert.match(html, /Esta resposta ajudou\?/);
   assert.match(html, /A empresa não vê o comentário/);

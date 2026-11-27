@@ -14,6 +14,7 @@ import { OpsNotices, OpsPendingCompanies } from './company-notices';
 import { listNoticeCandidates, listPendingCompanies, loadComplaintContacts, type ComplaintContactItem } from '../services/notices';
 import { noticeTab } from '../domain/company-notice';
 import { formatPhone } from '../domain/account-rules';
+import { brandName } from '../domain/brand';
 
 // Área da equipe (ADR-0010): revisão antes da liberação, acesso ao original só com justificativa, números agregados.
 type OpsView = 'overview' | 'queue' | 'responses' | 'representatives' | 'pending-companies' | 'notices' | 'all' | 'companies' | 'contacts';
@@ -224,7 +225,7 @@ export function OpsPortalLive() {
   ['companies', `Empresas${sum(counts.representatives, counts.pendingCompanies, counts.notices) ? ` (${sum(counts.representatives, counts.pendingCompanies, counts.notices)})` : ''}`],
   ['contacts', `Contatos${counts.contacts ? ` (${counts.contacts})` : ''}`],
  ];
- return <main className="commercial-portal-content"><Sidebar eyebrow="Operação" name="Equipe Escuta Aí Brasil" items={items} view={section} onView={next => go(firstTab[next])} /><section className="commercial-portal-main">
+ return <main className="commercial-portal-content"><Sidebar eyebrow="Operação" name={`Equipe ${brandName}`} items={items} view={section} onView={next => go(firstTab[next])} /><section className="commercial-portal-main">
   {!opened && <SectionTabs section={section} view={view} counts={tabCounts} onView={go} />}
   {failure ? <section className="commercial-panel"><h2>Não foi possível carregar</h2><p>{failure}</p></section> :
    opened ? <ComplaintDetail key={opened.id + opened.status} complaint={opened} delivery={releaseDelivery(opened.companyId, delivery.verified, delivery.pending)} onBack={() => setOpenId(null)} onChanged={() => setVersion(value => value + 1)} onGo={go} /> :

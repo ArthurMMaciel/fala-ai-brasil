@@ -16,7 +16,7 @@ const button = name => page.getByRole('button', { name, exact: true });
 const heading = name => page.getByRole('heading', { name, exact: true });
 async function capture(name) { await page.screenshot({ path: `${output}/${name}.png`, fullPage: true }); }
 async function noOverflow() { assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `Overflow em ${await page.locator('h1').textContent()}`); }
-async function home() { await button('Escuta Aí Brasil — página inicial').click(); }
+async function home() { await button('RH Escuta.Aí — página inicial').click(); }
 async function keyboardActivate(locator) { await locator.focus(); await page.keyboard.press('Enter'); }
 try {
  await page.goto(process.env.EDITORIAL_URL || 'http://127.0.0.1:5173');

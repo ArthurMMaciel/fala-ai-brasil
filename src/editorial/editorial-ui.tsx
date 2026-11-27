@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react';
+import { brandName } from '../domain/brand';
 
 export function PrototypeBar({ label = 'Escuta psicossocial no trabalho' }: { label?: string }) {
  return <div className="prototype-bar"><span>Protótipo · Dados fictícios</span><span>{label} · Sem envio externo</span></div>;
@@ -13,5 +14,5 @@ export function EditorialSection({ number, title, children, tinted = false }: { 
  return <section className={`editorial-section${tinted ? ' tinted' : ''}`}><div className="editorial-section-heading"><span className="editorial-eyebrow">{number} / Escuta em continuidade</span><h2>{title}</h2></div><div className="editorial-section-body">{children}</div></section>;
 }
 export function EditorialFooter({ onRoute, children }: { onRoute: (route: string) => void; children?: ReactNode }) {
- return <footer className="editorial-footer"><div><h2>Escuta Aí Brasil</h2><p>A escuta precisa ter continuidade. Plataforma em desenvolvimento para escuta psicossocial no trabalho.</p></div><div><nav aria-label="Navegação do rodapé"><button onClick={() => onRoute('landing')}>Início</button><button onClick={() => onRoute('tracking')}>Acompanhamento</button><button onClick={() => onRoute('terms')}>Termos de uso</button><button onClick={() => onRoute('privacy')}>Privacidade</button>{children}</nav><p>Não é um canal de emergência. Em risco imediato, procure ajuda: CVV 188, SAMU 192 ou Polícia Militar 190.</p></div></footer>;
+ return <footer className="editorial-footer"><div><h2>{brandName}</h2><p>A escuta precisa ter continuidade. Plataforma em desenvolvimento para escuta psicossocial no trabalho.</p></div><div><nav aria-label="Navegação do rodapé"><button onClick={() => onRoute('landing')}>Início</button><button onClick={() => onRoute('tracking')}>Acompanhamento</button><button onClick={() => onRoute('terms')}>Termos de uso</button><button onClick={() => onRoute('privacy')}>Privacidade</button>{children}</nav><p>Não é um canal de emergência. Em risco imediato, procure ajuda: CVV 188, SAMU 192 ou Polícia Militar 190.</p></div></footer>;
 }

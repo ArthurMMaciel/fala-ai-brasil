@@ -6,6 +6,7 @@ import { confirmAction } from '../app/confirm-dialog';
 import { brazilianStates, formatPhone, isValidCnpj, isValidPhone, maskCnpj, maskPhone } from '../domain/account-rules';
 import { suggestionLabel, suggestionSummary, suggestSharedVersion } from '../domain/shared-version-suggestion';
 import { companyContactPhoneEnabled, involvementLabels, noticeConsentMissing, noticeConsentQuestion, noticeContactPayload, noticeContactsPayload, noticeTexts, noticeTextsInReview, registeredContactTexts, validateManualCompany, validateNoticeContacts, contactFilled, contactsConsentText, emptyExtraContact, maxNoticeContacts, multipleNoticeContactsEnabled, type ExtraNoticeContact, type Involvement, type NoticeConsent, type NoticeContactInput } from '../domain/company-notice';
+import { brandName } from '../domain/brand';
 
 // Assistente de nova manifestação em 9 etapas (conteúdo da POC, restaurado em 2026-10-30).
 // Relato, versão compartilhável e expectativas vão ao banco; respostas de contexto e contatos
@@ -183,7 +184,7 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
   const current = contextSteps[step];
   body = <><span className="eyebrow">Contexto desta manifestação</span><h2>{current.title}</h2><p className="muted">{current.intro} Responda pensando especificamente na empresa selecionada e na situação que você vai relatar.</p>
    {current.fields.map(([label, options], index) => <div className="field" key={label}><label>{label}{multiple(step, index) && <span className="muted small"> (selecione uma ou mais)</span>}</label><OptionGrid label={label} options={options} value={answers[`${step}-${index}`]} onSelect={option => select(index, option)} />
-    {step === 2 && index === 2 && <div className="notice warn small">Se houver risco imediato para você ou outra pessoa, procure agora ajuda: CVV 188 (apoio emocional, 24 horas), SAMU 192 ou Polícia Militar 190. A Escuta Aí Brasil não é canal de emergência e não acompanha casos em tempo real. Nenhum contato com a empresa é feito de forma automática.</div>}</div>)}
+    {step === 2 && index === 2 && <div className="notice warn small">Se houver risco imediato para você ou outra pessoa, procure agora ajuda: CVV 188 (apoio emocional, 24 horas), SAMU 192 ou Polícia Militar 190. A {brandName} não é canal de emergência e não acompanha casos em tempo real. Nenhum contato com a empresa é feito de forma automática.</div>}</div>)}
    {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Continuar</button></div></>;
  } else if (key === 'theme') {
   body = <><h2>O que melhor descreve o que aconteceu?</h2><OptionGrid label="Tema" options={themes} value={draft.category} onSelect={option => { set('category', option); setError(''); }} />
@@ -198,7 +199,7 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
  } else if (key === 'notice') {
   const update = (next: Partial<NoticeContactInput>) => { setNotice(current => ({ ...current, ...next })); setError(''); };
   const filled = Boolean(notice.email.trim() || (companyContactPhoneEnabled && (notice.phone ?? '').replace(/\D/g, '')));
-  body = <><h2>{registered ? 'Contato na empresa' : 'Aviso à empresa'}</h2><p className="muted">{registered ? registeredContactTexts.intro : 'Esta empresa ainda não usa a Escuta Aí Brasil. Diga se autoriza a equipe a avisar a empresa de que existe um relato. Se quiser, indique também um contato da empresa, como o RH. Sem contato, a equipe pode usar o e-mail público da empresa na Receita Federal, só com a sua autorização.'}</p>
+  body = <><h2>{registered ? 'Contato na empresa' : 'Aviso à empresa'}</h2><p className="muted">{registered ? registeredContactTexts.intro : `Esta empresa ainda não usa a ${brandName}. Diga se autoriza a equipe a avisar a empresa de que existe um relato. Se quiser, indique também um contato da empresa, como o RH. Sem contato, a equipe pode usar o e-mail público da empresa na Receita Federal, só com a sua autorização.`}</p>
    {noticeTextsInReview && <p className="legal-review-banner">Texto em revisão jurídica.</p>}
    {!registered && <fieldset className="response-rating"><legend>{noticeConsentQuestion}</legend>
     <label className="check-row"><input type="radio" name="notice-consent" value="yes" checked={noticeConsent === 'yes'} onChange={() => { setNoticeConsent('yes'); setError(''); }} /> <span>Sim</span></label>
@@ -249,5 +250,5 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
   <div className="worker-portal-heading"><div><span className="editorial-eyebrow">Nova manifestação</span><h2>Nova manifestação</h2><p className="muted">Empresa selecionada: <strong>{companyName}</strong>.</p></div></div>
   {/* Design P1.5: um indicador de progresso só (texto na barra) e o aviso de emergência em faixa discreta, em todas as etapas. */}
   <section className="wizard-box"><div className="wizard-progress"><p className="wizard-progress-label">Etapa {step + 1} de {total} · {stepTitle}</p><div className="progress" aria-hidden="true"><span style={{ width: `${(step + 1) / total * 100}%` }} /></div></div>
-   <p className="wizard-emergency" role="note">Em caso de risco imediato, procure ajuda: CVV 188, SAMU 192 ou Polícia Militar 190. A Escuta Aí Brasil não é um canal de emergência.</p>{body}</section></>;
+   <p className="wizard-emergency" role="note">Em caso de risco imediato, procure ajuda: CVV 188, SAMU 192 ou Polícia Militar 190. A {brandName} não é um canal de emergência.</p>{body}</section></>;
 }

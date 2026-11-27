@@ -1,6 +1,7 @@
 // Gerado a partir de patrocinio.html (landing oficial); textos, imagens e classes iguais aos da página estática.
 import type { CSSProperties } from 'react';
 import { Caminhos, ContactForm } from '../site-parts';
+import { brandName } from '../../domain/brand';
 
 export function PatrocinioPage() {
   return (
@@ -105,7 +106,7 @@ export function PatrocinioPage() {
       <a className="feat rv" href="#apoiadores"><img src="/landing/img/photo-1555069855-e580a9adbf43-1200x800.jpg" alt="Roda de conversa ao ar livre" /><div className="feat-in"><span className="tipo">Evento · Instituto Vila Serena</span><h3>Semana do cuidado no trabalho</h3><p>Rodas de conversa e conteúdo aberto pra quem trabalha.</p></div></a>
       <div className="patro-list"><a className="pt rv" href="#apoiadores"><span className="pt-logo"><img src="/sponsors/lumen.svg" alt="Lumen Saúde Ocupacional" /></span><div><span className="tipo">Conteúdo</span><b>Lumen Saúde Ocupacional</b><small>Guia prático de ergonomia no home office</small></div></a><a className="pt rv" href="#apoiadores"><span className="pt-logo"><img src="/sponsors/aurora-beneficios.svg" alt="Aurora Benefícios" /></span><div><span className="tipo">Evento</span><b>Aurora Benefícios</b><small>Roda de conversa sobre benefícios e saúde</small></div></a><a className="pt rv" href="#apoiadores"><span className="pt-logo"><img src="/sponsors/pontal.svg" alt="Rede Pontal" /></span><div><span className="tipo">Conteúdo</span><b>Rede Pontal</b><small>Série: como pedir ajuda no trabalho</small></div></a><a className="pt rv" href="#apoiadores"><span className="pt-logo"><img src="/sponsors/mirante.svg" alt="Fundação Mirante" /></span><div><span className="tipo">Estudo público</span><b>Fundação Mirante</b><small>Estudo aberto: rotina e descanso no trabalho</small></div></a></div>
     </div>
-    <p className="patro-nota">Patrocinadores com campanha aprovada pela escuta.aí.</p>
+    <p className="patro-nota">Patrocinadores com campanha aprovada pela {brandName}.</p>
   </div>
 </section>
 
