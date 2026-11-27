@@ -13,7 +13,7 @@
 
 ## O que é a plataforma
 
-A Escuta Aí Brasil é uma plataforma em que pessoas trabalhadoras registram manifestações sobre o ambiente de trabalho, e as empresas podem recebê-las e responder.
+A RH Escuta.Aí é uma plataforma em que pessoas trabalhadoras registram manifestações sobre o ambiente de trabalho, e as empresas podem recebê-las e responder.
 
 Responsável pela plataforma: [A DEFINIR: razão social, CNPJ e endereço].
 
@@ -63,6 +63,7 @@ As condições dos planos, incluindo período gratuito, valores e cancelamento, 
 
 - O conteúdo das manifestações e das respostas é de responsabilidade de quem o escreve.
 - A revisão da equipe busca evitar exposição indevida e abusos, mas não é uma apuração dos fatos relatados.
+- A plataforma é um canal de escuta e de recebimento de manifestações. Usá-la não comprova, sozinho, que a empresa cumpre a NR-1 ou gerencia os riscos psicossociais: essa obrigação continua com a empresa empregadora, que conduz a análise, as decisões e as medidas.
 - A plataforma pode passar por interrupções, manutenções ou pausas. [A DEFINIR com o jurídico: limites de responsabilidade].
 
 ## Privacidade

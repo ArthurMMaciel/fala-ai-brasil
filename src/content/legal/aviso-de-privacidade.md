@@ -13,7 +13,7 @@
 
 ## Quem somos
 
-A Escuta Aí Brasil é uma plataforma em que pessoas trabalhadoras registram manifestações sobre o ambiente de trabalho, e as empresas podem recebê-las e responder.
+A RH Escuta.Aí é uma plataforma em que pessoas trabalhadoras registram manifestações sobre o ambiente de trabalho, e as empresas podem recebê-las e responder.
 
 Controladora dos dados: [A DEFINIR: razão social, CNPJ e endereço].
 
@@ -50,7 +50,7 @@ Encarregado pelo tratamento de dados pessoais: [A DEFINIR: nome ou função e ca
 - Manter o registro de decisões e acessos, para apurar erros e abusos.
 - Cumprir obrigações legais e atender pedidos de autoridades, nos limites da lei.
 
-Bases legais: [A DEFINIR com o jurídico, por finalidade].
+Bases legais: [A DEFINIR com o jurídico, por finalidade]. O papel da plataforma no tratamento (controladora ou operadora em nome da empresa) é definido para cada operação, conforme o que ela de fato decide.
 
 ## O que a empresa vê
 
@@ -79,7 +79,7 @@ Nenhum sistema é totalmente imune a falhas ou incidentes. Se ocorrer um inciden
 
 Não vendemos dados pessoais.
 
-Transferência internacional: [A DEFINIR com o jurídico, conforme a localização dos fornecedores].
+Transferência internacional: o banco de dados da plataforma fica em servidores nos Estados Unidos. Por isso, os dados pessoais são transferidos para fora do Brasil. [A CONFIRMAR COM JURÍDICO: o mecanismo da LGPD que ampara a transferência e a localização dos demais fornecedores].
 
 ## Por quanto tempo guardamos
 
