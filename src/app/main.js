@@ -7,6 +7,7 @@ import "./ops-portal-bridge";
 import { passwordRulesMarkup } from "./password-rules";
 import "./auth-steps";
 import "./form-feedback";
+import "./legal-dialog";
 import { experienceRoutes } from "../editorial/editorial-experience";
 import { mountExperience, mountSite, unmountLanding } from "../landing/landing-react";
 import { showsLandingImmediately, sitePageFromPath } from "../domain/site-pages";
@@ -130,8 +131,8 @@ function u(e,a){return`<article class="card"><h3>${e}</h3><p class="muted">${a}<
           ${i?`<fieldset class="auth-step" data-title="Plano">${se(o.authAudience,o.selectedPlanId)}</fieldset>`:""}
           <fieldset class="auth-step" data-title="Senha e termos">${acctPasswordField("auth-password","password","Senha","new-password",minPasswordLength)}
             ${acctPasswordField("auth-confirm","confirm","Confirmação de senha","new-password",minPasswordLength,passwordRulesMarkup())}
-            <label class="check-row"><input name="terms" type="checkbox" required /> <span>Aceito os <a href="/#termos" target="_blank" rel="noopener">termos de uso</a>.</span></label>
-            <label class="check-row"><input name="privacy" type="checkbox" required /> <span>Li o <a href="/#privacidade" target="_blank" rel="noopener">aviso de privacidade</a>.</span></label></fieldset>
+            <label class="check-row"><input name="terms" type="checkbox" required /> <span>Aceito os <a href="/#termos" data-legal="terms">termos de uso</a>.</span></label>
+            <label class="check-row"><input name="privacy" type="checkbox" required /> <span>Li o <a href="/#privacidade" data-legal="privacy">aviso de privacidade</a>.</span></label></fieldset>
           <div class="auth-step-nav">
             <button class="btn" type="button" data-step-back>Voltar</button>
             <button class="btn primary" type="button" data-step-next>Continuar</button>
