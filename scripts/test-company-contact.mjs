@@ -61,7 +61,7 @@ test('Operação: contato indicado no detalhe e e-mail da Receita como destino q
 test('vários contatos: até 3, validação por contato, "Não sei" conta como envolvido, consentimento único', async () => {
   const notice = await load(true);
   assert.equal(notice.maxNoticeContacts, 3);
-  assert.equal(notice.multipleNoticeContactsEnabled, false, 'desligado até o contrato p.notice_contacts');
+  assert.equal(notice.multipleNoticeContactsEnabled, true, 'ligado depois do lote 5 (p.notice_contacts no banco)');
   const first = { email: 'rh@example.com', phone: '', involvement: 'no', consent: true };
   const extras = [{ email: 'ouvidoria@example.com', phone: '', involvement: 'unknown' }, { email: '', phone: '(11) 91234-5678', involvement: 'no' }];
   assert.equal(notice.validateNoticeContacts(first, extras), null);

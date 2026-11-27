@@ -129,7 +129,7 @@ export const dataSourceLabels: Record<string, string> = { manual: 'Preenchida pe
 // todos; a autorização do aviso continua uma pergunta só. A tela com a lista fica DESLIGADA até o contrato do Back
 // (p.notice_contacts): com ela desligada, vale o contrato atual, um contato em p.notice_contact.
 export const maxNoticeContacts = 3;
-export const multipleNoticeContactsEnabled = false;
+export const multipleNoticeContactsEnabled = true; // ligado em 2026-11-27: lote 5 (20261126120000) aplicado em produção
 export interface ExtraNoticeContact { email: string; phone: string; involvement: Involvement }
 export const emptyExtraContact = (): ExtraNoticeContact => ({ email: '', phone: '', involvement: '' });
 export const contactFilled = (contact: { email: string; phone?: string }) => Boolean(contact.email.trim() || (companyContactPhoneEnabled && phoneDigits(contact.phone ?? '')));
