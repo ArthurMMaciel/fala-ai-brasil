@@ -13,7 +13,7 @@ import { buildMessage, SmtpClient, SmtpError, stopCode, type SmtpConn } from './
 const SMTP_HOST = 'smtp.gmail.com';
 const SMTP_PORT = 465;
 const SMTP_TIMEOUT_MS = 15000;
-const FROM_NAME = 'Escuta Aí Brasil';
+const FROM_NAME = 'RH Escuta.Aí';
 
 function pickKey(dictVar: string, legacyVar: string): string {
   try {

@@ -39,19 +39,19 @@ const SAFETY = 'Por segurança, este e-mail não traz detalhes.';
 
 // Uma frase fixa por motivo (empresa cadastrada). Linhas antigas, sem motivo, usam a genérica ('update').
 const COMPANY_LINES: Record<string, string> = {
-  released: 'Sua empresa acabou de receber uma nova manifestação na Escuta Aí Brasil.',
-  response_returned: 'A equipe da Escuta Aí Brasil pediu um ajuste em uma resposta da sua empresa.',
+  released: 'Sua empresa acabou de receber uma nova manifestação na RH Escuta.Aí.',
+  response_returned: 'A equipe da RH Escuta.Aí pediu um ajuste em uma resposta da sua empresa.',
   closed: 'Uma manifestação da sua empresa foi encerrada.',
-  update: 'Há uma atualização para a sua empresa na Escuta Aí Brasil.',
+  update: 'Há uma atualização para a sua empresa na RH Escuta.Aí.',
 };
 const COMPANY_SUBJECTS: Record<string, string> = {
-  released: 'Nova manifestação para a sua empresa na Escuta Aí Brasil',
-  response_returned: 'Pedido de ajuste em uma resposta na Escuta Aí Brasil',
-  closed: 'Uma manifestação da sua empresa foi encerrada na Escuta Aí Brasil',
-  update: 'Há novidades para a sua empresa na Escuta Aí Brasil',
+  released: 'Nova manifestação para a sua empresa na RH Escuta.Aí',
+  response_returned: 'Pedido de ajuste em uma resposta na RH Escuta.Aí',
+  closed: 'Uma manifestação da sua empresa foi encerrada na RH Escuta.Aí',
+  update: 'Há novidades para a sua empresa na RH Escuta.Aí',
 };
-export const WORKER_SUBJECT = 'Há uma novidade na sua manifestação na Escuta Aí Brasil';
-export const NOTICE_SUBJECT = 'Existe uma manifestação sobre a sua empresa na Escuta Aí Brasil';
+export const WORKER_SUBJECT = 'Há uma novidade na sua manifestação na RH Escuta.Aí';
+export const NOTICE_SUBJECT = 'Existe uma manifestação sobre a sua empresa na RH Escuta.Aí';
 
 // Texto fixo por tipo e motivos, sem protocolo, categoria, empresa, situação nem conteúdo.
 // Trabalhador: com o caminho do opt-out (ADR-0020 D8). Empresa cadastrada: aviso de serviço da conta. Empresa não
@@ -60,21 +60,21 @@ export function message(kind: Kind, reasons: Set<string> = new Set()): { subject
   if (kind === 'worker_update') {
     return { subject: WORKER_SUBJECT, body: [
       'Olá.', '',
-      'Há uma novidade na sua manifestação na Escuta Aí Brasil.',
+      'Há uma novidade na sua manifestação na RH Escuta.Aí.',
       `Para ver, entre na plataforma: ${WORKER_LINK}`, '',
       SAFETY, '',
-      'Você recebe este aviso porque tem uma conta na Escuta Aí Brasil. Para não receber mais, desligue os avisos em Meu perfil.',
+      'Você recebe este aviso porque tem uma conta na RH Escuta.Aí. Para não receber mais, desligue os avisos em Meu perfil.',
     ].join('\n') };
   }
   if (kind === 'company_notice') {
     return { subject: NOTICE_SUBJECT, body: [
       'Olá.', '',
-      'A Escuta Aí Brasil é uma plataforma em que trabalhadores registram manifestações sobre o ambiente de trabalho, e as empresas podem recebê-las e responder.',
+      'A RH Escuta.Aí é uma plataforma em que trabalhadores registram manifestações sobre o ambiente de trabalho, e as empresas podem recebê-las e responder.',
       '',
       'Existe uma manifestação sobre a sua empresa na plataforma. Para saber como a empresa pode se cadastrar e acompanhar, acesse:',
       NOTICE_LINK, '',
       SAFETY, '',
-      'Se não quiser receber novos avisos da Escuta Aí Brasil neste endereço, responda a este e-mail pedindo a exclusão.',
+      'Se não quiser receber novos avisos da RH Escuta.Aí neste endereço, responda a este e-mail pedindo a exclusão.',
     ].join('\n') };
   }
   const order = ['released', 'response_returned', 'closed', 'update'];
@@ -87,7 +87,7 @@ export function message(kind: Kind, reasons: Set<string> = new Set()): { subject
       ...list.map((r) => COMPANY_LINES[r]),
       `${list.includes('released') ? 'Para ver e responder' : 'Para ver'}, entre na plataforma: ${COMPANY_LINK}`, '',
       SAFETY, '',
-      'Você recebe este aviso porque representa uma empresa verificada na Escuta Aí Brasil.',
+      'Você recebe este aviso porque representa uma empresa verificada na RH Escuta.Aí.',
     ].join('\n'),
   };
 }

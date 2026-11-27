@@ -47,7 +47,7 @@ function fakeServer({ authCode = 235, rcptCode = 250 } = {}) {
 test('SMTP: saudação, EHLO, AUTH LOGIN, envio e QUIT, na ordem', async () => {
   const s = fakeServer();
   const c = await smtp.SmtpClient.open(s.conn, 'conta@gmail.invalid', 'senha-de-app');
-  await c.send('pessoa@empresa.invalid', smtp.buildMessage('conta@gmail.invalid', 'Escuta Aí Brasil', 'pessoa@empresa.invalid', 'Assunto', 'Corpo', new Date(0), 'id1'));
+  await c.send('pessoa@empresa.invalid', smtp.buildMessage('conta@gmail.invalid', 'RH Escuta.Aí', 'pessoa@empresa.invalid', 'Assunto', 'Corpo', new Date(0), 'id1'));
   await c.quit();
   assert.equal(s.sent[0], 'EHLO escutaai.invalid');
   assert.equal(s.sent[1], 'AUTH LOGIN');
@@ -77,7 +77,7 @@ test('SMTP: destinatário recusado vira erro com código e a sessão é reinicia
 
 test('mensagem: cabeçalhos codificados, corpo em base64 e só o texto fixo', () => {
   const { subject, body } = send.message('worker_update', new Set(['update']));
-  const m = smtp.buildMessage('conta@gmail.invalid', 'Escuta Aí Brasil', 'p@x.invalid', subject, body, new Date(0), 'id1');
+  const m = smtp.buildMessage('conta@gmail.invalid', 'RH Escuta.Aí', 'p@x.invalid', subject, body, new Date(0), 'id1');
   assert.match(m, /^From: =\?UTF-8\?B\?.+\?= <conta@gmail\.invalid>/);
   assert.match(m, /Subject: =\?UTF-8\?B\?/);
   assert.match(m, /Content-Transfer-Encoding: base64/);
@@ -97,23 +97,23 @@ const allTexts = () => [
 
 test('textos: frases e links por evento', () => {
   const w = send.message('worker_update', new Set(['update']));
-  assert.equal(w.subject, 'Há uma novidade na sua manifestação na Escuta Aí Brasil');
-  assert.match(w.body, /Há uma novidade na sua manifestação na Escuta Aí Brasil\.\nPara ver, entre na plataforma: https:\/\/fala-ai-brasil\.vercel\.app\/#entrar\n/);
+  assert.equal(w.subject, 'Há uma novidade na sua manifestação na RH Escuta.Aí');
+  assert.match(w.body, /Há uma novidade na sua manifestação na RH Escuta.Aí\.\nPara ver, entre na plataforma: https:\/\/fala-ai-brasil\.vercel\.app\/#entrar\n/);
   assert.match(w.body, /Meu perfil/);
 
   const rel = send.message('company_update', new Set(['released']));
-  assert.equal(rel.subject, 'Nova manifestação para a sua empresa na Escuta Aí Brasil');
-  assert.match(rel.body, /Sua empresa acabou de receber uma nova manifestação na Escuta Aí Brasil\.\nPara ver e responder, entre na plataforma: https:\/\/fala-ai-brasil\.vercel\.app\/#entrar-empresa\n/);
-  assert.match(send.message('company_update', new Set(['response_returned'])).body, /A equipe da Escuta Aí Brasil pediu um ajuste em uma resposta da sua empresa\.\nPara ver, entre/);
+  assert.equal(rel.subject, 'Nova manifestação para a sua empresa na RH Escuta.Aí');
+  assert.match(rel.body, /Sua empresa acabou de receber uma nova manifestação na RH Escuta.Aí\.\nPara ver e responder, entre na plataforma: https:\/\/fala-ai-brasil\.vercel\.app\/#entrar-empresa\n/);
+  assert.match(send.message('company_update', new Set(['response_returned'])).body, /A equipe da RH Escuta.Aí pediu um ajuste em uma resposta da sua empresa\.\nPara ver, entre/);
   assert.match(send.message('company_update', new Set(['closed'])).body, /Uma manifestação da sua empresa foi encerrada\.\nPara ver, entre/);
 
   const mixed = send.message('company_update', new Set(['closed', 'released']));
-  assert.equal(mixed.subject, 'Há novidades para a sua empresa na Escuta Aí Brasil');
-  assert.match(mixed.body, /nova manifestação na Escuta Aí Brasil\.\nUma manifestação da sua empresa foi encerrada\.\nPara ver e responder/);
+  assert.equal(mixed.subject, 'Há novidades para a sua empresa na RH Escuta.Aí');
+  assert.match(mixed.body, /nova manifestação na RH Escuta.Aí\.\nUma manifestação da sua empresa foi encerrada\.\nPara ver e responder/);
   assert.match(send.message('company_update', new Set()).body, /Há uma atualização para a sua empresa/);  // linha antiga, sem motivo
 
   const n = send.message('company_notice', new Set(['notice']));
-  assert.equal(n.subject, 'Existe uma manifestação sobre a sua empresa na Escuta Aí Brasil');
+  assert.equal(n.subject, 'Existe uma manifestação sobre a sua empresa na RH Escuta.Aí');
   assert.match(n.body, /https:\/\/fala-ai-brasil\.vercel\.app\/empresa\n/);
   assert.match(n.body, /responda a este e-mail pedindo a exclusão/);
   assert.doesNotMatch(n.body, /Meu perfil|empresa verificada/);
@@ -122,6 +122,8 @@ test('textos: frases e links por evento', () => {
 
 test('textos: todos com o aviso de segurança e sem detalhe nem promessa', () => {
   for (const { subject, body } of allTexts()) {
+    assert.ok((subject + body).includes('RH Escuta.Aí'), 'nome do produto');
+    assert.doesNotMatch(subject + body, /Escuta A[ií] Brasil/);
     assert.match(body, /Por segurança, este e-mail não traz detalhes\./);
     assert.doesNotMatch(subject + body, /EAB-|protocolo|retid|assédio|categoria|anônim|sigil|garant|terceiros/i);
   }
@@ -285,6 +287,7 @@ test('index.ts: segredo do agendador em tempo constante, sem JWT, só as duas RP
   assert.deepEqual([...new Set([...src.matchAll(/rpc\('([a-z_]+)'/g)].map((m) => m[1]))].sort(), ['notification_claim', 'notification_mark']);
   assert.match(src, /p_include_notices: true/);
   assert.match(src, /PGRST202/);
+  assert.match(src, /FROM_NAME = 'RH Escuta\.Aí'/);
   assert.equal((src.match(/console\.log/g) ?? []).length, 3);
   assert.doesNotMatch(src, /console\.log\([^)]*\b(email|to|gmailUser|password)\b/i);
   assert.match(src, /clearTimeout\(timer\)/);
