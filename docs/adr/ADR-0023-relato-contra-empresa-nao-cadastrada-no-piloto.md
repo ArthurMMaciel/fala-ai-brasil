@@ -274,6 +274,28 @@ Problema bloqueante corrigido antes da aplicação: o consentimento só era exig
 - **Ordem das travas:** a dos 30 dias por empresa passou para o fim, depois da escolha do destino.
 - **O que não muda:** o `consent` do contato continua significando o uso do contato pela equipe, como segundo canal.
 
+## Revisão de 2026-11-26: até 3 contatos por manifestação
+
+**Decisão do responsável**, repassada pelo Gestor: o trabalhador pode indicar **até 3** contatos da empresa por manifestação; antes era 1. Ele pediu "inúmeros"; o Gestor recomendou e ele escolheu "Até 3", como a D4 original da ADR-0012.
+
+**Implementação**, em `20261126120000`, ainda não aplicada (lote 5 do SQL Editor):
+- **Os contatos:**
+  - `complaint_contacts` perde o unique por manifestação, e um gatilho recusa o 4º contato;
+  - cada contato tem e-mail e/ou telefone, `possibly_involved` e `status` próprios e o mesmo consentimento de uso;
+  - a retenção de 90 dias e `ops_purge_expired_contacts` valem para cada contato.
+- **`create_complaint`** aceita `p.notice_contacts` (lista de 1 a 3, sem e-mail repetido) e continua aceitando `p.notice_contact` (um objeto), para o front em produção não quebrar.
+- **Aviso:** continua 1 por manifestação e 1 por empresa a cada 30 dias.
+  - `ops_decide_notice` ganha `p_contact_id`: a equipe escolhe um contato com e-mail e não envolvido, ou a Receita.
+  - Sem escolha, vale o primeiro contato elegível e, sem nenhum, a Receita.
+  - A Receita é recusada se o e-mail dela for o de **qualquer** contato envolvido.
+  - Na recusa, todos os contatos ainda candidatos viram `rejected`.
+  - As demais travas (consentimento do relato, opt-out, `pending_check`, bloqueada, pessoa física, troca do gate) não mudam.
+- **Leitura:**
+  - funções novas `ops_complaint_contacts_list(p_complaint)` (equipe, com `eligible_for_notice` e `opted_out`) e `my_complaint_contacts_list(p_complaint)` (trabalhador);
+  - `ops_list_notice_candidates`, `ops_complaint_contact` e `my_complaint_contact` mantêm a assinatura e devolvem uma linha, com o **contato padrão**: o primeiro com e-mail e não envolvido, ou, sem ele, o primeiro indicado;
+  - a empresa continua sem ler contato algum.
+- **Teste:** `supabase/tests/tx/contatos3_checks.sql`, que passou no banco local em transação desfeita. O rollback também foi testado no local.
+
 ## Ordem de aplicação
 
 Formato igual ao do lote atual: scripts `aplicar` e `conferir` para o SQL Editor, rollback por passo e teste tx antes de cada um, com liberação escrita.
