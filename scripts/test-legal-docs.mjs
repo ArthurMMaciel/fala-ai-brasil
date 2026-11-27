@@ -8,13 +8,20 @@ const output = ts.transpileModule(readFileSync('src/domain/legal-docs.ts', 'utf8
 const legal = await import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}`);
 const plain = value => JSON.parse(JSON.stringify(value));
 
-test('arquivos publicados estão marcados em revisão jurídica e sem texto jurídico inventado', () => {
+// Rascunho do Back (2026-11-27): continua marcado em revisão jurídica, com a versão no topo, sem promessa absoluta
+// e com os pontos de decisão humana como [A DEFINIR] (nada de controladora, prazos ou canal inventados).
+test('arquivos publicados: rascunho em revisão jurídica, versão no topo e sem promessa absoluta', () => {
   for (const [file, title] of [['termos-de-uso.md', 'Termos de uso'], ['aviso-de-privacidade.md', 'Aviso de privacidade']]) {
-    const doc = legal.parseLegalDoc(readFileSync(`src/content/legal/${file}`, 'utf8'));
+    const source = readFileSync(`src/content/legal/${file}`, 'utf8');
+    const doc = legal.parseLegalDoc(source);
     assert.equal(doc.title, title);
     assert.equal(doc.inReview, true);
-    assert.equal(doc.version, 'rascunho-2026-11');
-    assert.deepEqual(plain(doc.blocks.map(block => block.kind)), ['note']);
+    assert.equal(doc.version, 'rascunho-2026-11-27');
+    assert.equal(doc.blocks[0].kind, 'note');
+    assert.match(doc.blocks[0].text, /^Texto em revisão jurídica\. Versão rascunho-2026-11-27\./);
+    assert.match(source, /\[A DEFINIR: razão social, CNPJ e endereço\]/);
+    assert.doesNotMatch(source, /garant|100 ?%|totalmente segur|sigilo absoluto|anonimato (total|absoluto)|nunca será identificad|inviolável/i);
+    assert.ok(doc.blocks.every(block => block.kind !== 'paragraph' || !/^\d+\. /.test(block.text)), 'lista numerada não é aceita pelo leitor');
   }
 });
 
