@@ -370,3 +370,18 @@ test('topo logado: avatar no lugar de Minha área, Área da empresa, Hub do parc
   assert.match(readFileSync('src/app/commercial-portal-bridge.tsx', 'utf8'), /addEventListener\('escuta:open-profile'/);
 });
 
+// P0 do piloto (decisão do responsável em 2026-11-27): conta da empresa gratuita. Sem "Minha assinatura", sem a tela
+// "Plano e pagamentos" e sem desvio para ela quando o trial vence. Parceiro segue com a tela de plano.
+test('empresa: conta gratuita, sem Minha assinatura nem desvio para Plano e pagamentos', () => {
+  const expired = { status: 'trialing', nextBillingAt: '2020-01-01T00:00:00Z', planId: 'x', mode: 'trial' };
+  const company = app();
+  company.api.route('admin', { user: { id: 'c1', name: 'TESTE Empresa', role: 'admin', profile: { type: 'company', id: 'c1' } }, subscriptions: [{ ...expired, userId: 'c1', audience: 'company' }] });
+  assert.equal(company.api.state.route, 'admin');
+  assert.doesNotMatch(company.html, /Minha assinatura|Plano e pagamentos/);
+  company.api.route('commercial-account');
+  assert.equal(company.api.state.route, 'admin');
+  const partner = app();
+  partner.api.route('admin', { user: { id: 'p1', name: 'TESTE Parceiro', role: 'admin', profile: { type: 'partner', id: 'p1' } }, subscriptions: [{ ...expired, userId: 'p1', audience: 'partner' }] });
+  assert.equal(partner.api.state.route, 'commercial-account');
+  assert.match(partner.html, /Minha assinatura/);
+});
