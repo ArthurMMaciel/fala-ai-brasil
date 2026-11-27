@@ -85,6 +85,24 @@ test('payload usa nomes de banco em inglês e só os campos do tipo', () => {
   assert.equal(workerPayload.cpf, '52998224725');
 });
 
+// Conta da empresa gratuita: com a chave ligada (só junto com a migration do Back), empresa não pede nem manda plano.
+test('cadastro da empresa sem plano: chave desligada pede plano; ligada, empresa sai sem plano e parceiro segue igual', async () => {
+  const company = { ...worker, type: 'company', cnpj: '11.222.333/0001-81' };
+  const partner = { ...worker, type: 'partner', documentType: 'cnpj', document: '11.222.333/0001-81', specialty: 'Mediação', contactEmail: 'contato@example.com', contactPhone: '(11) 91234-5678' };
+  const source = readFileSync('src/domain/account-rules.ts', 'utf8');
+  const load = async on => import(`data:text/javascript;base64,${Buffer.from(ts.transpileModule(source.replace(/export const companySignupWithoutPlan = (true|false);/, `export const companySignupWithoutPlan = ${on};`), { compilerOptions: { target: ts.ScriptTarget.ES2021, module: ts.ModuleKind.ES2022 } }).outputText).toString('base64')}#${on}`);
+  const off = await load(false), on = await load(true);
+  assert.equal(off.signupAsksPlan('company'), true);
+  assert.match(off.validateRegistration(company), /plano/);
+  assert.equal(on.signupAsksPlan('company'), false);
+  assert.equal(on.validateRegistration(company), null);
+  assert.equal('plan_id' in on.buildProfilePayload(company), false);
+  assert.equal('subscription_mode' in on.buildProfilePayload(company), false);
+  assert.match(on.validateRegistration(partner), /plano/);
+  assert.equal(on.signupAsksPlan('sponsor'), true);
+  assert.equal(on.signupAsksPlan('worker'), false);
+});
+
 test('papéis da aplicação e contas demo', () => {
   assert.equal(rules.appRoleFor('worker'), 'worker');
   assert.equal(rules.appRoleFor('company'), 'admin');

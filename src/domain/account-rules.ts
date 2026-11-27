@@ -229,13 +229,21 @@ export function validateRegistration(input: RegistrationInput): string | null {
   }
   const addressError = validateAddress(input.address);
   if (addressError) return addressError;
-  if (input.type !== "worker" && (!input.planId || !input.subscriptionMode)) return "Selecione um plano e uma modalidade.";
+  if (signupAsksPlan(input.type) && (!input.planId || !input.subscriptionMode)) return "Selecione um plano e uma modalidade.";
   const checks = passwordChecks(input.password, input.confirm);
   if (input.password.length < minPasswordLength) return `A senha precisa ter pelo menos ${minPasswordLength} caracteres.`;
   const missing = passwordRules.filter(rule => rule.id !== "match" && !checks[rule.id]).map(rule => rule.label.toLowerCase());
   if (missing.length) return `A senha precisa ter: ${missing.join(", ")}.`;
   if (!checks.match) return "A confirmação de senha precisa ser igual à senha informada.";
   return null;
+}
+
+// Conta da empresa gratuita (decisão do responsável em 2026-11-27): o cadastro da empresa deixa de pedir plano e
+// modalidade e não manda plan_id/subscription_mode. Só ligar junto com a migration do Back em que create_profile deixa
+// de criar assinatura para 'company' (aplicada em produção); antes disso o banco recusa o cadastro sem plano.
+export const companySignupWithoutPlan = false;
+export function signupAsksPlan(type: RegistrationInput["type"]): boolean {
+  return type !== "worker" && !(companySignupWithoutPlan && type === "company");
 }
 
 // Monta o payload esperado por private.create_profile (nomes de banco em inglês).
@@ -250,7 +258,7 @@ export function buildProfilePayload(input: RegistrationInput): Record<string, un
     city: input.address.city.trim(),
     state: input.address.state.trim().toUpperCase(),
   };
-  const plan = input.type === "worker" ? {} : { plan_id: input.planId, subscription_mode: input.subscriptionMode };
+  const plan = signupAsksPlan(input.type) ? { plan_id: input.planId, subscription_mode: input.subscriptionMode } : {};
   switch (input.type) {
     case "worker":
       return { full_name: input.name.trim(), cpf: onlyDigits(input.cpf ?? ""), phone: normalizePhone(input.phone ?? ""), address };
