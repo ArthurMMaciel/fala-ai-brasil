@@ -7,8 +7,9 @@ import ts from 'typescript';
 const compile = file => ts.transpileModule(readFileSync(file, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2021, module: ts.ModuleKind.ES2022 } }).outputText;
 const asUrl = code => `data:text/javascript;base64,${Buffer.from(code).toString('base64')}`;
 const rulesUrl = asUrl(compile('src/domain/account-rules.ts'));
+const brandUrl = asUrl(compile('src/domain/brand.ts'));
 const source = readFileSync('src/domain/company-notice.ts', 'utf8');
-const load = async phone => import(asUrl(ts.transpileModule(source.replace(/export const companyContactPhoneEnabled = (true|false);/, `export const companyContactPhoneEnabled = ${phone};`), { compilerOptions: { target: ts.ScriptTarget.ES2021, module: ts.ModuleKind.ES2022 } }).outputText.replace(/from ['"]\.\/account-rules['"]/, `from '${rulesUrl}'`)) + `#${phone}`);
+const load = async phone => import(asUrl(ts.transpileModule(source.replace(/export const companyContactPhoneEnabled = (true|false);/, `export const companyContactPhoneEnabled = ${phone};`), { compilerOptions: { target: ts.ScriptTarget.ES2021, module: ts.ModuleKind.ES2022 } }).outputText.replace(/from ['"]\.\/account-rules['"]/, `from '${rulesUrl}'`).replace(/from ['"]\.\/brand['"]/, `from '${brandUrl}'`)) + `#${phone}`);
 
 test('etapa de contato aparece em toda manifestação, com texto próprio para empresa cadastrada', () => {
   const wizard = readFileSync('src/portals/complaint-wizard.tsx', 'utf8');
@@ -89,7 +90,7 @@ test('contrato dos 3 contatos: notice_contacts sem notice_contact, listas com re
   assert.match(wizard, /multipleNoticeContactsEnabled \? \{ noticeContacts: noticeContactsPayload\(notice, extraContacts, registered\), noticeContact: null \} : \{ noticeContact: noticeContactPayload\(notice, registered\) \}/);
   const notice = await load(true);
   assert.equal(notice.contactsConsentText(1), notice.noticeTexts.consent);
-  assert.equal(notice.contactsConsentText(2), 'Concordo que a equipe da Escuta Aí Brasil use estes contatos como segundo canal com a empresa nesta manifestação. A empresa não vê estes contatos.');
+  assert.equal(notice.contactsConsentText(2), 'Concordo que a equipe da RH Escuta.Aí use estes contatos como segundo canal com a empresa nesta manifestação. A empresa não vê estes contatos.');
   const notices = readFileSync('src/portals/company-notices.tsx', 'utf8');
   assert.match(notices, /contact\.eligibleForNotice !== false && !contact\.possiblyInvolved && !contact\.optedOut/, 'só contatos elegíveis com e-mail');
 });

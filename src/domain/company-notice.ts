@@ -1,4 +1,5 @@
 import { brazilianStates } from './account-rules';
+import { brandName } from './brand';
 
 // ADR-0023: relato contra empresa não cadastrada e aviso à empresa, sem conteúdo, aprovado e enviado à mão pela equipe.
 // Textos marcados "em revisão jurídica" até o advogado (prazo 24/11). Mudar aqui muda todas as telas.
@@ -12,18 +13,18 @@ export const noticeTexts = {
   question: 'A pessoa desse contato pode estar envolvida no que você relata?',
   // Consentimento do contato: só o uso como segundo canal (contrato do Back 40417ac, em revisão jurídica).
   // A autorização do aviso é a pergunta separada (noticeConsentQuestion).
-  consent: 'Concordo que a equipe da Escuta Aí Brasil use este contato como segundo canal com a empresa nesta manifestação. A empresa não vê este contato.',
+  consent: `Concordo que a equipe da ${brandName} use este contato como segundo canal com a empresa nesta manifestação. A empresa não vê este contato.`,
   involvedWarning: 'Com essa resposta, o aviso não será enviado a esse e-mail.',
   notSharedWarning: 'O e-mail para o aviso só é guardado quando você solicita a revisão. Ao guardar sem compartilhar, ele não é enviado.',
   // Texto que a equipe copia e envia da conta da plataforma. Sem link clicável (ADR-0023, mitigação do Gmail).
-  emailSubject: 'Escuta Aí Brasil: existe um relato sobre a sua empresa',
+  emailSubject: `${brandName}: existe um relato sobre a sua empresa`,
   emailBody: [
     'Olá,',
-    'A Escuta Aí Brasil é uma plataforma de escuta psicossocial no trabalho. Informamos que existe um relato na plataforma relacionado à sua empresa.',
+    `A ${brandName} é uma plataforma de escuta psicossocial no trabalho. Informamos que existe um relato na plataforma relacionado à sua empresa.`,
     'Este aviso não traz o conteúdo do relato, a identidade de quem relatou nem a data.',
     `Para saber mais, digite no navegador o endereço ${platformAddress} e cadastre a empresa com o CNPJ. Não enviamos links por e-mail.`,
     'Se não quiser receber novos avisos, responda a este e-mail pedindo a exclusão.',
-    'Equipe Escuta Aí Brasil',
+    `Equipe ${brandName}`,
   ].join('\n\n'),
 };
 
@@ -44,7 +45,7 @@ export const companyContactPhoneEnabled = true;
 
 // Empresa cadastrada: o contato fica só com a equipe, como segundo canal; a empresa não vê.
 export const registeredContactTexts = {
-  intro: 'Se quiser, indique um contato da empresa, como o RH. Esse contato fica só com a equipe da Escuta Aí Brasil, como segundo canal desta manifestação. A empresa não vê o contato que você indicar. É opcional.',
+  intro: `Se quiser, indique um contato da empresa, como o RH. Esse contato fica só com a equipe da ${brandName}, como segundo canal desta manifestação. A empresa não vê o contato que você indicar. É opcional.`,
   email: 'E-mail de contato na empresa (opcional)',
   phone: 'Telefone de contato na empresa (opcional)',
   consent: noticeTexts.consent,
@@ -167,5 +168,5 @@ export function noticeContactsPayload(first: NoticeContactInput, extras: ExtraNo
     .slice(0, maxNoticeContacts);
 }
 // Consentimento com 2 ou 3 contatos: mesma regra no plural (texto passado pelo Gestor em 2026-11-26; em revisão jurídica).
-export const noticeContactsConsentPlural = 'Concordo que a equipe da Escuta Aí Brasil use estes contatos como segundo canal com a empresa nesta manifestação. A empresa não vê estes contatos.';
+export const noticeContactsConsentPlural = `Concordo que a equipe da ${brandName} use estes contatos como segundo canal com a empresa nesta manifestação. A empresa não vê estes contatos.`;
 export const contactsConsentText = (filledCount: number) => filledCount > 1 ? noticeContactsConsentPlural : noticeTexts.consent;

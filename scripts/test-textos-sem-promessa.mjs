@@ -23,11 +23,9 @@ test('nenhuma frase proibida pelo parecer volta ao src/', () => {
   assert.deepEqual(found, []);
 });
 
-// Nome do produto (decisão do responsável em 2026-11-27): "RH Escuta.Aí", vindo de src/domain/brand.ts. O nome antigo só
-// fica nos textos em revisão jurídica (aviso à empresa e consentimentos).
+// Nome do produto (decisão do responsável em 2026-11-27): "RH Escuta.Aí" em todo lugar, vindo de src/domain/brand.ts.
 test('nome antigo do produto não volta às telas', () => {
-  // empresa.tsx: arquivo da sessão comercial; o nome muda junto com os preços, quando o Gestor liberar o arquivo.
-  const allowed = ['src/domain/company-notice.ts', 'src/landing-site/pages/empresa.tsx'];
+  const allowed = [];
   const found = [];
   for (const file of [...sourceFiles('src'), 'index.html']) {
     if (allowed.includes(file)) continue;
@@ -44,6 +42,16 @@ test('parceiros: serviços por nome, sob consulta, sem preço, teste grátis nem
   assert.doesNotMatch(page, /R\$|<Price|grátis|desconto|-5%|BillButton/);
   assert.equal((page.match(/<div className="val sob">Sob consulta<\/div>/g) ?? []).length, 3);
   for (const name of ['Presença', 'Profissional', 'Nacional']) assert.match(page, new RegExp(`<h3>${name}</h3>`));
+});
+
+// P0 do piloto (2026-11-27): página da empresa com conta gratuita e serviços; painel com o aviso discreto, sem botão.
+test('empresa: conta gratuita, Relatório inicial R$ 299 e o resto sob consulta, sem planos, teste grátis ou desconto', () => {
+  const page = readFileSync('src/landing-site/pages/empresa.tsx', 'utf8');
+  assert.doesNotMatch(page, /<Price|BillButton|grátis|desconto|-5%|\/mês|cadastrar-plano/);
+  assert.match(page, /<h3>Relatório inicial<\/h3><div className="val">R\$ 299<\/div><div className="per">por manifestação<\/div>/);
+  for (const name of ['Implantação', 'Apoio especializado']) assert.match(page, new RegExp(`<h3>${name}</h3><div className="val sob">Sob consulta</div>`));
+  assert.match(page, /A conta da empresa é gratuita\./);
+  assert.match(readFileSync('src/portals/portal-live.tsx', 'utf8'), /<p className="muted small company-free-account">Conta gratuita\. Relatório inicial por manifestação: R\$ 299, sob pedido à equipe\.<\/p>\n?\s*<button className="btn" onClick=\{\(\) => onView\('profile'\)\}>/);
 });
 
 test('assistente de manifestação mostra os canais de emergência e diz que não é canal de emergência', () => {

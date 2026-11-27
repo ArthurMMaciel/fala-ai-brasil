@@ -7,7 +7,8 @@ import ts from 'typescript';
 const compile = file => ts.transpileModule(readFileSync(file, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2021, module: ts.ModuleKind.ES2022 } }).outputText;
 const asUrl = code => `data:text/javascript;base64,${Buffer.from(code).toString('base64')}`;
 const rulesUrl = asUrl(compile('src/domain/account-rules.ts'));
-const notice = await import(asUrl(compile('src/domain/company-notice.ts').replace(/from ['"]\.\/account-rules['"]/, `from '${rulesUrl}'`)));
+const brandUrl = asUrl(compile('src/domain/brand.ts'));
+const notice = await import(asUrl(compile('src/domain/company-notice.ts').replace(/from ['"]\.\/account-rules['"]/, `from '${rulesUrl}'`).replace(/from ['"]\.\/brand['"]/, `from '${brandUrl}'`)));
 const plain = value => JSON.parse(JSON.stringify(value));
 
 test('cnpj-lookup: só 200 com status found e dados completos preenchem a empresa; o resto vira manual', () => {
@@ -48,7 +49,7 @@ test('abas da fila de avisos', () => {
 
 test('textos do aviso: em revisão jurídica, com a frase da ADR-0023 e sem link no e-mail', () => {
   assert.equal(notice.noticeTextsInReview, true);
-  assert.equal(notice.noticeTexts.consent, 'Concordo que a equipe da Escuta Aí Brasil use este contato como segundo canal com a empresa nesta manifestação. A empresa não vê este contato.');
+  assert.equal(notice.noticeTexts.consent, 'Concordo que a equipe da RH Escuta.Aí use este contato como segundo canal com a empresa nesta manifestação. A empresa não vê este contato.');
   assert.equal(notice.registeredContactTexts.consent, notice.noticeTexts.consent, 'consentimento único para qualquer empresa');
   assert.doesNotMatch(notice.noticeTexts.emailBody, /https?:\/\/|www\.|\.com\b|\.br\b|<a\b/i);
   // Endereço do site como texto, vindo de um lugar único (decisão do responsável em 2026-11-19).
