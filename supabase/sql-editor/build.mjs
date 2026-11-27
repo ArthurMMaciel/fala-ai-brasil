@@ -59,6 +59,10 @@ const BATCHES = [
     { file: '20261126130000_avisos_por_evento_e_aviso_automatico.sql', after: '20261126120000',
       warn: 'depois deste passo, publique a versão nova da send-notifications; a aprovação de aviso à empresa não cadastrada passa a gerar envio automático.' },
   ] },
+  // Lote 6: conta de empresa gratuita e sem plano (create_profile sem assinatura no ramo 'company'; 2026-11-27).
+  { out: 'lote6', plan: [
+    { file: '20261127140000_empresa_sem_plano.sql', after: '20261126130000' },
+  ] },
 ];
 
 function source(file) {
