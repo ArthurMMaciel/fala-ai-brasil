@@ -617,3 +617,9 @@ body.confirm-open { overflow: hidden; }
   .legal-dialog-foot { flex-direction: column; align-items: stretch; padding-bottom: max(18px, env(safe-area-inset-bottom)); }
   .legal-dialog-foot .btn { width: 100%; }
 }
+/* Até 3 contatos da empresa por manifestação (2026-11-26; liga com o contrato do Back). */
+.legacy-editorial .notice-contact { margin: 18px 0 0; padding: 16px 18px; border: 1px solid #e2e5ec; border-radius: 14px; }
+.legacy-editorial .notice-contact > legend { padding: 0 6px; font: 600 15px/1.3 Outfit, Arial, sans-serif; color: var(--ink); }
+.legacy-editorial .notice-contact .btn { margin-top: 10px; }
+.legacy-editorial .notice-contact-list { margin: 4px 0 8px; padding-left: 18px; }
+.legacy-editorial .notice-contact-list li { margin: 2px 0; }

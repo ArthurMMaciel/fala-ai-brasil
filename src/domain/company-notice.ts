@@ -123,3 +123,34 @@ export function noticeTab(row: NoticeCandidateState): NoticeTab {
 
 export const registrationLabels: Record<string, string> = { pending_check: 'A conferir', pre_registered: 'Pré-cadastrada', registered: 'Cadastrada' };
 export const dataSourceLabels: Record<string, string> = { manual: 'Preenchida pelo trabalhador', cnpj_api: 'Consulta de CNPJ', signup: 'Cadastro da empresa' };
+
+// Até 3 contatos da empresa por manifestação (decisão do responsável, 2026-11-26). Cada contato tem e-mail e/ou
+// telefone e a própria pergunta de envolvimento ("Não sei" conta como envolvido); o consentimento de uso vale para
+// todos; a autorização do aviso continua uma pergunta só. A tela com a lista fica DESLIGADA até o contrato do Back
+// (p.notice_contacts): com ela desligada, vale o contrato atual, um contato em p.notice_contact.
+export const maxNoticeContacts = 3;
+export const multipleNoticeContactsEnabled = false;
+export interface ExtraNoticeContact { email: string; phone: string; involvement: Involvement }
+export const emptyExtraContact = (): ExtraNoticeContact => ({ email: '', phone: '', involvement: '' });
+export const contactFilled = (contact: { email: string; phone?: string }) => Boolean(contact.email.trim() || (companyContactPhoneEnabled && phoneDigits(contact.phone ?? '')));
+
+/** Valida o primeiro contato (regra atual) e os adicionais, com o número do contato na mensagem. */
+export function validateNoticeContacts(first: NoticeContactInput, extras: ExtraNoticeContact[], registered = false): string | null {
+  const firstProblem = validateNoticeContact(first, registered);
+  if (firstProblem) return extras.some(contactFilled) && firstProblem !== registeredContactTexts.missingConsent ? `Contato 1: ${firstProblem}` : firstProblem;
+  for (const [index, extra] of extras.entries()) {
+    if (!contactFilled(extra)) continue;
+    const problem = validateNoticeContact({ ...extra, consent: first.consent }, registered);
+    if (problem) return problem === registeredContactTexts.missingConsent ? problem : `Contato ${index + 2}: ${problem}`;
+  }
+  return null;
+}
+
+/** Lista para p.notice_contacts (contrato futuro): só os contatos preenchidos e válidos, até 3, na ordem da tela. */
+export function noticeContactsPayload(first: NoticeContactInput, extras: ExtraNoticeContact[], registered = false): NoticeContactPayload[] {
+  if (validateNoticeContacts(first, extras, registered)) return [];
+  return [first, ...extras.map(extra => ({ ...extra, consent: first.consent }))]
+    .map(contact => noticeContactPayload(contact, registered))
+    .filter((contact): contact is NoticeContactPayload => Boolean(contact))
+    .slice(0, maxNoticeContacts);
+}

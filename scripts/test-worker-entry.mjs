@@ -16,7 +16,7 @@ test('responsividade: tabelas com rolagem própria seguram o texto de leitor de 
   const css = readFileSync('src/styles/system.css', 'utf8');
   assert.match(css, /\.worker-table-wrap, \.commercial-table-wrap, \.contact-admin-table-wrap, \.table-wrap \{ position: relative; \}/);
   const wizard = readFileSync('src/portals/complaint-wizard.tsx', 'utf8');
-  assert.match(wizard, /contact\.phone \? formatPhone\(contact\.phone\) : ''/);
+  assert.match(wizard, /item\.phone \? formatPhone\(item\.phone\) : ''/);
 });
 
 test('nome da empresa nas manifestações: diretório + my_complaint_companies, com fallback quando a função não existe', () => {

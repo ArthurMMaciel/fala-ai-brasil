@@ -5,7 +5,7 @@ import { showToast } from '../app/toast';
 import { confirmAction } from '../app/confirm-dialog';
 import { brazilianStates, formatPhone, isValidCnpj, isValidPhone, maskCnpj, maskPhone } from '../domain/account-rules';
 import { suggestionLabel, suggestionSummary, suggestSharedVersion } from '../domain/shared-version-suggestion';
-import { companyContactPhoneEnabled, involvementLabels, noticeConsentMissing, noticeConsentQuestion, noticeContactPayload, noticeTexts, noticeTextsInReview, registeredContactTexts, validateManualCompany, validateNoticeContact, type Involvement, type NoticeConsent, type NoticeContactInput } from '../domain/company-notice';
+import { companyContactPhoneEnabled, involvementLabels, noticeConsentMissing, noticeConsentQuestion, noticeContactPayload, noticeContactsPayload, noticeTexts, noticeTextsInReview, registeredContactTexts, validateManualCompany, validateNoticeContacts, contactFilled, emptyExtraContact, maxNoticeContacts, multipleNoticeContactsEnabled, type ExtraNoticeContact, type Involvement, type NoticeConsent, type NoticeContactInput } from '../domain/company-notice';
 
 // Assistente de nova manifestação em 9 etapas (conteúdo da POC, restaurado em 2026-10-30).
 // Relato, versão compartilhável e expectativas vão ao banco; respostas de contexto e contatos
@@ -115,6 +115,8 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
  const [draft, setDraft] = useState({ category: '', title: '', original: '', incidentPeriod: '', recurrence: '', shared: '', expectedOutcomes: [] as string[] });
  const [notice, setNotice] = useState<NoticeContactInput>({ email: '', involvement: '', consent: false });
  const [noticeConsent, setNoticeConsent] = useState<NoticeConsent>('');
+ // Contatos 2 e 3 (até 3 por manifestação). Só aparecem com multipleNoticeContactsEnabled, ligado com o contrato do Back.
+ const [extraContacts, setExtraContacts] = useState<ExtraNoticeContact[]>([]);
  const [error, setError] = useState('');
  const [busy, setBusy] = useState(false);
  const [suggestionNote, setSuggestionNote] = useState('');
@@ -156,7 +158,7 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
   if (key === 'report' && draft.original.trim().length < 10) return setError('Conte o que aconteceu com pelo menos 10 caracteres.');
   if (key === 'notice') {
    if (!registered && !noticeConsent) return setError(noticeConsentMissing);
-   const problem = validateNoticeContact(notice, registered); if (problem) return setError(problem);
+   const problem = validateNoticeContacts(notice, multipleNoticeContactsEnabled ? extraContacts : [], registered); if (problem) return setError(problem);
   }
   if (key === 'expect' && !draft.expectedOutcomes.length) return setError('Escolha pelo menos uma expectativa.');
   go(step + 1);
@@ -207,21 +209,37 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
    {filled && <>
     <fieldset className="response-rating"><legend>{noticeTexts.question}</legend>{(Object.keys(involvementLabels) as Exclude<Involvement, ''>[]).map(value => <label key={value} className="check-row"><input type="radio" name="notice-involvement" value={value} checked={notice.involvement === value} onChange={() => update({ involvement: value })} /> <span>{involvementLabels[value]}</span></label>)}</fieldset>
     {involved && <div className="notice warn small">{registered ? 'Com essa resposta, a equipe não usa esse contato.' : noticeTexts.involvedWarning}</div>}
-    <label className="check-row"><input type="checkbox" checked={notice.consent} onChange={event => update({ consent: event.target.checked })} /> <span>{registered ? registeredContactTexts.consent : noticeTexts.consent}</span></label>
    </>}
+   {multipleNoticeContactsEnabled && extraContacts.map((extra, index) => {
+    const number = index + 2;
+    const change = (next: Partial<ExtraNoticeContact>) => { setExtraContacts(list => list.map((item, position) => position === index ? { ...item, ...next } : item)); setError(''); };
+    const extraInvolved = extra.involvement === 'yes' || extra.involvement === 'unknown';
+    return <fieldset className="notice-contact" key={index}><legend>Contato {number}</legend>
+     <div className="field"><label htmlFor={`notice-email-${number}`}>{registered ? registeredContactTexts.email : noticeTexts.field}</label><input id={`notice-email-${number}`} type="email" maxLength={254} autoComplete="off" value={extra.email} onChange={event => change({ email: event.target.value })} placeholder="rh@empresa.com.br" /></div>
+     {companyContactPhoneEnabled && <div className="field"><label htmlFor={`notice-phone-${number}`}>{registeredContactTexts.phone}</label><input id={`notice-phone-${number}`} type="tel" inputMode="tel" maxLength={15} autoComplete="off" placeholder="(00) 00000-0000" value={extra.phone} onChange={event => change({ phone: maskPhone(event.target.value) })} /></div>}
+     {contactFilled(extra) && <fieldset className="response-rating"><legend>{noticeTexts.question}</legend>{(Object.keys(involvementLabels) as Exclude<Involvement, ''>[]).map(value => <label key={value} className="check-row"><input type="radio" name={`notice-involvement-${number}`} value={value} checked={extra.involvement === value} onChange={() => change({ involvement: value })} /> <span>{involvementLabels[value]}</span></label>)}</fieldset>}
+     {extraInvolved && <div className="notice warn small">{registered ? 'Com essa resposta, a equipe não usa esse contato.' : noticeTexts.involvedWarning}</div>}
+     <button className="btn" type="button" onClick={() => { setExtraContacts(list => list.filter((_, position) => position !== index)); setError(''); }}>Remover contato {number}</button>
+    </fieldset>;
+   })}
+   {multipleNoticeContactsEnabled && filled && extraContacts.length < maxNoticeContacts - 1 && <button className="btn" type="button" onClick={() => setExtraContacts(list => [...list, emptyExtraContact()])}>Adicionar outro contato</button>}
+   {(filled || (multipleNoticeContactsEnabled && extraContacts.some(contactFilled))) && <label className="check-row"><input type="checkbox" checked={notice.consent} onChange={event => update({ consent: event.target.checked })} /> <span>{registered ? registeredContactTexts.consent : noticeTexts.consent}</span></label>}
    {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Continuar</button></div></>;
  } else if (key === 'expect') {
   body = <><h2>O que você espera?</h2><OptionGrid label="O que você espera" options={expectations} value={draft.expectedOutcomes} onSelect={option => { setDraft(current => ({ ...current, expectedOutcomes: current.expectedOutcomes.includes(option) ? current.expectedOutcomes.filter(item => item !== option) : [...current.expectedOutcomes, option] })); setError(''); }} />
    {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Preparar revisão</button></div></>;
  } else {
   const contact = noticeContactPayload(notice, registered);
-  const contactLabel = contact ? [contact.email, contact.phone ? formatPhone(contact.phone) : ''].filter(Boolean).join(' · ') : '';
+  const contacts = multipleNoticeContactsEnabled ? noticeContactsPayload(notice, extraContacts, registered) : contact ? [contact] : [];
+  const contactLabel = (item: { email?: string; phone?: string }) => [item.email, item.phone ? formatPhone(item.phone) : ''].filter(Boolean).join(' · ');
   body = <><h2>Revisão protegida</h2><p className="muted">Seu relato original não será mostrado à empresa. Escreva uma versão separada, sem nomes, locais, datas ou detalhes que possam identificar pessoas.</p>
    <div className="comparison"><div className="text-panel"><h3>Seu relato original</h3><p>{draft.original}</p></div>
     <div className="text-panel"><h3>Versão que será enviada à empresa</h3><textarea rows={8} maxLength={5000} value={draft.shared} onChange={event => { set('shared', event.target.value); setError(''); }} aria-label="Versão que será enviada à empresa" aria-describedby="shared-suggestion-note" placeholder="Descreva o que a empresa precisa saber para entender e responder, sem dados que identifiquem pessoas." />
      <div className="shared-suggestion"><button className="btn" type="button" disabled={!draft.original.trim()} onClick={suggest}>Sugerir versão revisada</button>
       <p id="shared-suggestion-note" className="muted small" role="status">{suggestionNote ? `${suggestionLabel} ${suggestionNote}` : suggestionLabel}</p></div></div></div>
-   {contact ? <p className="muted small">{registered ? 'Contato na empresa (só a equipe vê)' : 'Aviso à empresa'}: {contactLabel}. {contact.possibly_involved ? (registered ? 'Com a sua resposta, a equipe não usa esse contato.' : noticeTexts.involvedWarning) : registered ? '' : 'A equipe confere o e-mail antes de decidir pelo envio.'} {noticeTexts.notSharedWarning.replace('O e-mail para o aviso', 'O contato')}</p> : <p className="muted small">{registered ? 'Nenhum contato na empresa indicado.' : 'Nenhum contato indicado.'}</p>}
+   {contacts.length ? <div className="muted small"><p>{registered ? (contacts.length > 1 ? 'Contatos na empresa (só a equipe vê)' : 'Contato na empresa (só a equipe vê)') : (contacts.length > 1 ? 'Contatos para o aviso à empresa' : 'Aviso à empresa')}:</p>
+    <ul className="notice-contact-list">{contacts.map((item, index) => <li key={index}>{contactLabel(item)}.{' '}{item.possibly_involved ? (registered ? 'Com a sua resposta, a equipe não usa esse contato.' : noticeTexts.involvedWarning) : registered ? '' : 'A equipe confere o e-mail antes de decidir pelo envio.'}</li>)}</ul>
+    <p>{noticeTexts.notSharedWarning.replace('O e-mail para o aviso', contacts.length > 1 ? 'Os contatos' : 'O contato').replace('só é guardado', contacts.length > 1 ? 'só são guardados' : 'só é guardado').replace('ele não é enviado', contacts.length > 1 ? 'eles não são enviados' : 'ele não é enviado')}</p></div> : <p className="muted small">{registered ? 'Nenhum contato na empresa indicado.' : 'Nenhum contato indicado.'}</p>}
    {!registered && <p className="muted small">{noticeConsent === 'yes' ? 'Você autorizou o aviso à empresa, que sai só depois da revisão da equipe.' : 'Você não autorizou o aviso: nada será enviado à empresa.'} A autorização só é guardada quando você solicita a revisão.</p>}
    <p className="muted small">As respostas de contexto ficam só nesta tela e não são armazenadas.</p>
    {errorLine}<div className="nav-actions"><button className="btn" type="button" onClick={() => go(keys.indexOf('report'))}>Quero ajustar meu relato</button><button className="btn" type="button" disabled={busy} onClick={() => submit(false)}>Guardar sem compartilhar</button><button className="btn primary" type="button" disabled={busy} onClick={() => submit(true)}>{busy ? 'Enviando…' : 'Solicitar revisão'}</button></div></>;

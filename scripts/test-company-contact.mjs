@@ -55,3 +55,24 @@ test('Operação: contato indicado no detalhe e e-mail da Receita como destino q
   assert.match(ops, /<ComplaintContact complaintId=\{complaint\.id\} \/>/);
   assert.match(ops, /Só a equipe vê\. A empresa não recebe este contato\./);
 });
+
+// Até 3 contatos da empresa por manifestação (2026-11-26). A tela fica desligada até o contrato do Back.
+test('vários contatos: até 3, validação por contato, "Não sei" conta como envolvido, consentimento único', async () => {
+  const notice = await load(true);
+  assert.equal(notice.maxNoticeContacts, 3);
+  assert.equal(notice.multipleNoticeContactsEnabled, false, 'desligado até o contrato p.notice_contacts');
+  const first = { email: 'rh@example.com', phone: '', involvement: 'no', consent: true };
+  const extras = [{ email: 'ouvidoria@example.com', phone: '', involvement: 'unknown' }, { email: '', phone: '(11) 91234-5678', involvement: 'no' }];
+  assert.equal(notice.validateNoticeContacts(first, extras), null);
+  assert.deepEqual(notice.noticeContactsPayload(first, extras).map(c => [c.email ?? c.phone, c.possibly_involved]), [['rh@example.com', false], ['ouvidoria@example.com', true], ['11912345678', false]]);
+  assert.match(notice.validateNoticeContacts(first, [{ email: 'ruim', phone: '', involvement: 'no' }]), /^Contato 2: Informe um e-mail de contato válido\./);
+  assert.match(notice.validateNoticeContacts(first, [{ email: 'a@example.com', phone: '', involvement: '' }]), /^Contato 2: Responda se a pessoa/);
+  assert.match(notice.validateNoticeContacts({ ...first, involvement: '' }, extras), /^Contato 1: /);
+  assert.equal(notice.validateNoticeContacts({ ...first, consent: false }, extras), notice.registeredContactTexts.missingConsent, 'consentimento vale para todos, sem número');
+  assert.equal(notice.validateNoticeContacts({ email: '', phone: '', involvement: '', consent: false }, [extras[0]]), notice.registeredContactTexts.missingConsent);
+  assert.equal(notice.noticeContactsPayload(first, [...extras, { email: 'quarto@example.com', phone: '', involvement: 'no' }]).length, 3, 'nunca mais que 3');
+  assert.deepEqual(notice.noticeContactsPayload(first, [{ email: '', phone: '', involvement: '' }]).length, 1, 'contato vazio é ignorado');
+  const wizard = readFileSync('src/portals/complaint-wizard.tsx', 'utf8');
+  assert.match(wizard, /noticeContact: noticeContactPayload\(notice, registered\)/, 'envio segue no contrato atual até ligar a lista');
+  assert.match(wizard, /multipleNoticeContactsEnabled && extraContacts\.map/);
+});
