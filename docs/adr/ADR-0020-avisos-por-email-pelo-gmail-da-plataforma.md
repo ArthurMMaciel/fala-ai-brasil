@@ -1,6 +1,6 @@
 # ADR-0020 — Avisos por e-mail pelo Gmail da plataforma
 
-- Estado: **Aceita em parte** em 2026-11-23 (ver "Revisão de 2026-11-23"): escopo das notificações por mudança de situação e teste da porta 465. Os lembretes de 7 e 15 dias (D5) continuam como proposta. **Envio ligado em produção em 2026-11-24:** fila `20261123130000` aplicada, `send-notifications` publicada e agendamento a cada 5 minutos ativo (ver "Envio ligado em 2026-11-24"). **Revisão de 2026-11-26 aceita pelo responsável em 2026-11-27** (texto por evento, aviso automático depois da aprovação, flexibilização da D7); migration `20261126130000` ainda não aplicada.
+- Estado: **Aceita em parte** em 2026-11-23 (ver "Revisão de 2026-11-23"): escopo das notificações por mudança de situação e teste da porta 465. Os lembretes de 7 e 15 dias (D5) continuam como proposta. **Envio ligado em produção em 2026-11-24:** fila `20261123130000` aplicada, `send-notifications` publicada e agendamento a cada 5 minutos ativo (ver "Envio ligado em 2026-11-24"). **Revisão de 2026-11-26 aceita pelo responsável em 2026-11-27** (texto por evento, aviso automático depois da aprovação, flexibilização da D7); migration `20261126130000` aplicada em produção em 2026-11-27 (lote 5, passo 02).
 - Data: 2026-11-09
 - Tarefa: [TASK-0042](../tasks/TASK-0042-avisos-por-email.md)
 - Relacionadas: ADR-0010 (revisão humana), ADR-0012 (representante verificado, D7 risco e D12 marcos de 7 e 15 dias), TASK-0023 (SMTP do Gmail), TASK-0007 (base legal e retenção), parecer de plataforma (seção 2 e R4.2, fora do Git)
