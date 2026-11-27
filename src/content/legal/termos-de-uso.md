@@ -28,27 +28,27 @@ A plataforma não é serviço de emergência, atendimento de saúde, assessoria 
 
 ## Como funciona uma manifestação
 
-- A pessoa trabalhadora escreve o relato original e prepara uma versão para a empresa.
-- A equipe da plataforma revisa a manifestação antes de liberá-la. Ela pode pedir ajustes ou reter a manifestação.
-- A empresa vê só a versão liberada. A plataforma não mostra à empresa o relato original nem os dados de identificação da pessoa trabalhadora.
+- A pessoa trabalhadora escreve o relato, revisa o texto e o envia. A empresa vai ler exatamente esse texto.
+- A equipe da plataforma libera a manifestação para a empresa.
+- Depois da liberação, a empresa lê o texto como foi escrito. A plataforma não mostra à empresa o nome nem os dados de identificação da pessoa trabalhadora.
 - A empresa pode responder. A equipe revisa a resposta antes de ela chegar à pessoa trabalhadora e pode devolvê-la para ajuste.
 - A pessoa trabalhadora pode encerrar a manifestação.
 
 Se a empresa citada não tiver conta, e a pessoa trabalhadora autorizar, a equipe pode aprovar um aviso por e-mail à empresa, informando que existe uma manifestação sobre ela. O aviso não traz o conteúdo da manifestação nem a identidade de quem a registrou.
 
-O texto escrito pela pessoa trabalhadora pode, pelo contexto, permitir que alguém reconheça a situação ou as pessoas envolvidas. Revise a versão para a empresa antes de enviar.
+Como a empresa lê o texto como foi escrito, nomes, datas, setores e outros detalhes podem permitir que alguém reconheça quem relatou ou outras pessoas. Antes de enviar, retire o que possa identificar.
 
 ## Regras de uso
 
 Ao usar a plataforma, você se compromete a:
 
 - relatar fatos que você viveu ou presenciou, de boa-fé;
-- não incluir na versão para a empresa dados pessoais de terceiros além do necessário para descrever a situação;
+- não incluir no relato dados pessoais de terceiros além do necessário para descrever a situação;
 - não usar a plataforma para ameaçar, assediar, discriminar ou difamar;
 - não tentar acessar dados de outras pessoas ou de outras empresas, nem burlar as proteções da plataforma;
 - no caso da empresa, usar as manifestações apenas para compreender e tratar as situações relatadas, sem tentar identificar ou retaliar quem as registrou.
 
-A equipe pode reter manifestações, devolver respostas, suspender ou encerrar contas que descumpram estas regras. [A DEFINIR com o jurídico: procedimento, aviso e recurso].
+A equipe pode deixar de liberar manifestações, devolver respostas da empresa para ajuste, suspender ou encerrar contas que descumpram estas regras. [A DEFINIR com o jurídico: procedimento, aviso e recurso].
 
 ## Avisos por e-mail
 
@@ -62,7 +62,7 @@ As condições dos planos, incluindo período gratuito, valores e cancelamento, 
 ## Responsabilidades
 
 - O conteúdo das manifestações e das respostas é de responsabilidade de quem o escreve.
-- A revisão da equipe busca evitar exposição indevida e abusos, mas não é uma apuração dos fatos relatados.
+- A liberação pela equipe não é uma revisão do texto nem uma apuração dos fatos relatados.
 - A plataforma é um canal de escuta e de recebimento de manifestações. Usá-la não comprova, sozinho, que a empresa cumpre a NR-1 ou gerencia os riscos psicossociais: essa obrigação continua com a empresa empregadora, que conduz a análise, as decisões e as medidas.
 - A plataforma pode passar por interrupções, manutenções ou pausas. [A DEFINIR com o jurídico: limites de responsabilidade].
 

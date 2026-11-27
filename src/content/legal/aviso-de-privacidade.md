@@ -24,7 +24,7 @@ Encarregado pelo tratamento de dados pessoais: [A DEFINIR: nome ou função e ca
 ### Pessoa trabalhadora
 
 - Dados de cadastro: nome, CPF, e-mail, endereço e, se você informar, telefone.
-- Manifestações: o relato original, a versão que você prepara para a empresa, a categoria e o histórico de andamento.
+- Manifestações: o texto do relato, a categoria e o histórico de andamento.
 - Contatos da empresa que você indicar (e-mail e/ou telefone), com a sua marcação de pessoa possivelmente envolvida.
 - Suas escolhas na plataforma: aceite destes documentos, autorização do aviso à empresa e preferência de receber avisos por e-mail.
 
@@ -43,7 +43,7 @@ Encarregado pelo tratamento de dados pessoais: [A DEFINIR: nome ou função e ca
 ## Para que usamos os dados
 
 - Criar e manter a sua conta e confirmar o seu acesso.
-- Receber, revisar e encaminhar manifestações, e permitir que a empresa responda.
+- Receber manifestações, liberá-las à empresa citada e permitir que ela responda.
 - Verificar quem representa cada empresa antes de liberar o acesso às manifestações.
 - Avisar por e-mail que há novidade na sua conta. O e-mail não traz o conteúdo da manifestação.
 - Avisar uma empresa não cadastrada de que existe uma manifestação sobre ela, quando você autorizou e a equipe aprovou o aviso.
@@ -54,9 +54,9 @@ Bases legais: [A DEFINIR com o jurídico, por finalidade]. O papel da plataforma
 
 ## O que a empresa vê
 
-- A empresa vê a versão da manifestação que você preparou para ela e que a equipe liberou. Ela não recebe o relato original.
+- Depois que a equipe libera a manifestação, a empresa lê o texto do relato exatamente como você escreveu.
 - A plataforma não mostra à empresa o seu nome, CPF, e-mail, telefone ou endereço, nem os contatos que você indicou.
-- O texto que você escreve pode, pelo contexto, permitir que alguém reconheça a situação ou as pessoas. Revise a versão para a empresa antes de enviar.
+- Nomes, datas, setores e outros detalhes do texto podem permitir que alguém reconheça você ou outras pessoas. Antes de enviar, retire o que possa identificar.
 - A empresa só acessa manifestações sobre ela mesma, e apenas por representantes verificados pela equipe.
 
 ## Como protegemos os dados
@@ -64,7 +64,7 @@ Bases legais: [A DEFINIR com o jurídico, por finalidade]. O papel da plataforma
 Adotamos medidas técnicas e administrativas compatíveis com a natureza dos dados. Entre elas:
 
 - acesso restrito por perfil: cada pessoa vê apenas o que o seu papel permite (pessoa trabalhadora, representante de empresa ou equipe da plataforma);
-- revisão humana da equipe antes de a manifestação chegar à empresa, antes de a resposta da empresa chegar a você e antes de qualquer aviso a empresa não cadastrada;
+- liberação pela equipe antes de a manifestação chegar à empresa, revisão da resposta da empresa antes de ela chegar a você e aprovação da equipe antes de qualquer aviso a empresa não cadastrada;
 - registro das decisões da equipe e do histórico de cada manifestação;
 - avisos por e-mail com texto fixo, sem o conteúdo das manifestações;
 - registros técnicos (logs) sem o conteúdo das manifestações.
@@ -73,7 +73,7 @@ Nenhum sistema é totalmente imune a falhas ou incidentes. Se ocorrer um inciden
 
 ## Com quem compartilhamos
 
-- Com a empresa citada, apenas a versão liberada da manifestação, como descrito acima.
+- Com a empresa citada, o texto da manifestação depois da liberação pela equipe, sem os seus dados de identificação, como descrito acima.
 - Com fornecedores que operam a plataforma por nossa conta: hospedagem do site, banco de dados e autenticação, e envio de e-mail. Eles tratam os dados conforme as nossas instruções.
 - Com autoridades, quando a lei exigir.
 

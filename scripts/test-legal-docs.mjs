@@ -20,6 +20,8 @@ test('arquivos publicados: rascunho em revisão jurídica, versão no topo e sem
     assert.equal(doc.blocks[0].kind, 'note');
     assert.match(doc.blocks[0].text, /^Texto em revisão jurídica\. Versão rascunho-2026-11-27\./);
     assert.match(source, /\[A DEFINIR: razão social, CNPJ e endereço\]/);
+    // ADR-0027: a empresa lê o texto como foi escrito; sem promessa de relato original protegido ou de escolha do que compartilhar.
+    assert.doesNotMatch(source, /relato original|versão (para a empresa|compartilhável)|escolhe o que (pode ser )?compartilh/i);
     assert.doesNotMatch(source, /garant|100 ?%|totalmente segur|sigilo absoluto|anonimato (total|absoluto)|nunca será identificad|inviolável/i);
     assert.ok(doc.blocks.every(block => block.kind !== 'paragraph' || !/^\d+\. /.test(block.text)), 'lista numerada não é aceita pelo leitor');
   }
