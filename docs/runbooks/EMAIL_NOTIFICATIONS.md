@@ -195,3 +195,17 @@ Conferir em Integrations > Cron (ou `select * from cron.job_run_details order by
 
 - Zero. São cerca de 9 mil invocações por mês (uma a cada 5 minutos), dentro das 500 mil do Free ([preço](https://supabase.com/docs/guides/functions/pricing)).
 - O volume de e-mail no piloto de referência (3 empresas, até 5 casos novos por dia) fica muito abaixo do teto de 300.
+
+## Pedido de exclusão dos avisos (opt-out)
+
+Decisão do responsável em 2026-11-27: ele mesmo atende os pedidos ("Eu mesmo").
+
+- **De onde vem:** o aviso à empresa não cadastrada termina com "responda a este e-mail pedindo a exclusão". As respostas chegam à caixa do remetente (`GMAIL_USER`).
+- **Como registrar:** script `supabase/sql-editor/manutencao/05_opt_out_aviso.sql`, no SQL Editor de produção.
+  1. Preencha no topo o e-mail que pediu a exclusão (`EMAIL_AQUI`) e/ou o CNPJ da empresa (`CNPJ_AQUI`), e o e-mail da sua conta de equipe (`SEU_EMAIL_DE_EQUIPE_AQUI`).
+  2. Rode o arquivo inteiro uma vez. Com CNPJ, saem da lista o e-mail da Receita desse CNPJ e os contatos que já foram destino de aviso dessa empresa.
+  3. Confira o resultado: uma linha por e-mail tratado, sem mostrar e-mail algum, com `gravado_na_lista = true`. `ja_existia = true` indica que o pedido já estava registrado.
+  4. Não salve a consulta com os campos preenchidos.
+- **Efeito:** grava só o hash do e-mail (`private.notice_opt_outs`), o mesmo que `ops_add_opt_out` faz na Operação. A equipe não consegue mais aprovar aviso para esse e-mail, e um aviso aprovado e ainda não enviado não sai, porque a fila confere o opt-out na hora do envio.
+- **Responder a quem pediu:** opcional. Se responder, não cite manifestação nem empresa além do que o aviso já dizia.
+- **Escopo:** vale para o aviso à empresa não cadastrada. O trabalhador desliga os próprios avisos em Meu perfil.

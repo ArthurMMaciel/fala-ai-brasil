@@ -296,7 +296,9 @@ Problema bloqueante corrigido antes da aplicação: o consentimento só era exig
   - a empresa continua sem ler contato algum.
 - **Teste:** `supabase/tests/tx/contatos3_checks.sql`, que passou no banco local em transação desfeita. O rollback também foi testado no local.
 
-## Revisão de 2026-11-26: envio automático do aviso depois da aprovação (proposta, aguarda o responsável)
+## Revisão de 2026-11-26: envio automático do aviso depois da aprovação (aceita em 2026-11-27)
+
+**Decisão do responsável em 2026-11-27**, repassada pelo Gestor: "Confirmo". O envio automático depois da aprovação está aceito. A aprovação humana em `ops_decide_notice` continua obrigatória. Quem atende os pedidos de exclusão por resposta ao e-mail é o próprio responsável ("Eu mesmo"), com o script `supabase/sql-editor/manutencao/05_opt_out_aviso.sql`. A aplicação em produção continua dependendo da liberação escrita dele na sessão do Back.
 
 **Pedido do Gestor** em 2026-11-26: o aviso à empresa não cadastrada sai sozinho depois que a equipe aprova. Hoje a equipe aprova e envia à mão.
 
@@ -328,9 +330,9 @@ Problema bloqueante corrigido antes da aplicação: o consentimento só era exig
   - Nada de protocolo, categoria, conteúdo ou nome do trabalhador.
 - **Teste:** `supabase/tests/tx/avisos2_checks.sql`, que passou no banco local, assim como o rollback e a regressão de `contatos3` e `avisos`.
 
-**Pendências antes de aplicar:**
-1. **Aprovação do responsável.** A mudança contraria a revisão de 2026-11-23 da ADR-0020 ("o contato e a Receita não recebem nada automático"), que ele aprovou.
-2. **Caixa de respostas:** alguém da equipe precisa ler as respostas na conta do remetente e registrar a exclusão com `ops_add_opt_out`. Sem isso, o pedido de exclusão escrito no e-mail não é atendido.
+**Pendências:**
+1. ~~Aprovação do responsável~~: aceita em 2026-11-27.
+2. ~~Caixa de respostas~~: o responsável lê as respostas na conta do remetente e registra a exclusão com `manutencao/05_opt_out_aviso.sql`.
 3. **Base legal e texto:** o e-mail a terceiro (contato indicado ou e-mail da Receita) continua na pendência jurídica da TASK-0007. O texto passa pelo jurídico.
 
 ## Ordem de aplicação

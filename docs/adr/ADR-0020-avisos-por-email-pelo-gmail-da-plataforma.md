@@ -1,6 +1,6 @@
 # ADR-0020 — Avisos por e-mail pelo Gmail da plataforma
 
-- Estado: **Aceita em parte** em 2026-11-23 (ver "Revisão de 2026-11-23"): escopo das notificações por mudança de situação e teste da porta 465. Os lembretes de 7 e 15 dias (D5) continuam como proposta. **Envio ligado em produção em 2026-11-24:** fila `20261123130000` aplicada, `send-notifications` publicada e agendamento a cada 5 minutos ativo (ver "Envio ligado em 2026-11-24").
+- Estado: **Aceita em parte** em 2026-11-23 (ver "Revisão de 2026-11-23"): escopo das notificações por mudança de situação e teste da porta 465. Os lembretes de 7 e 15 dias (D5) continuam como proposta. **Envio ligado em produção em 2026-11-24:** fila `20261123130000` aplicada, `send-notifications` publicada e agendamento a cada 5 minutos ativo (ver "Envio ligado em 2026-11-24"). **Revisão de 2026-11-26 aceita pelo responsável em 2026-11-27** (texto por evento, aviso automático depois da aprovação, flexibilização da D7); migration `20261126130000` ainda não aplicada.
 - Data: 2026-11-09
 - Tarefa: [TASK-0042](../tasks/TASK-0042-avisos-por-email.md)
 - Relacionadas: ADR-0010 (revisão humana), ADR-0012 (representante verificado, D7 risco e D12 marcos de 7 e 15 dias), TASK-0023 (SMTP do Gmail), TASK-0007 (base legal e retenção), parecer de plataforma (seção 2 e R4.2, fora do Git)
@@ -184,7 +184,15 @@ Decisão do responsável, comunicada pelo Gestor ("Aprovo"):
 5. **Prazo.** Mesmo com a porta aberta, a função entra depois do go/no-go de 25/11 e é tratada como mudança pós-go/no-go.
 6. **Pendências de dados (Back):** fila, gatilho, destinatários verificados e opt-out do trabalhador, a registrar na parte de dados desta ADR e em migration própria.
 
-## Revisão de 2026-11-26: texto por evento e aviso à empresa não cadastrada (proposta, aguarda o responsável)
+## Revisão de 2026-11-26: texto por evento e aviso à empresa não cadastrada (aceita em 2026-11-27)
+
+**Decisões do responsável em 2026-11-27**, repassadas pelo Gestor:
+- aviso automático ao contato ou à Receita depois da aprovação humana: "Confirmo". Isso substitui o item 2 da revisão de 2026-11-23;
+- e-mail da empresa cadastrada citar o evento (liberação, devolução, encerramento), sem conteúdo do relato: "Pode citar o evento". Isso flexibiliza a D7 para a conta verificada da empresa; o e-mail do trabalhador continua sem a situação;
+- quem atende os pedidos de exclusão: o próprio responsável ("Eu mesmo"), pelo script `supabase/sql-editor/manutencao/05_opt_out_aviso.sql`;
+- os assuntos escolhidos pelo Back ficam valendo.
+
+Aplicar o passo 02 e publicar a função nova continuam dependendo da liberação escrita do responsável na sessão do Back.
 
 Pedido do Gestor em 2026-11-26. Migration `20261126130000`, não aplicada (lote 5, passo 02), e versão nova da `send-notifications`, não publicada.
 
@@ -195,10 +203,10 @@ Pedido do Gestor em 2026-11-26. Migration `20261126130000`, não aplicada (lote 
      - empresa: liberação ("Sua empresa acabou de receber uma nova manifestação"), devolução ("pediu um ajuste em uma resposta") e encerramento ("Uma manifestação da sua empresa foi encerrada"), com link para `/#entrar-empresa`.
    - Todos os textos mantêm "Por segurança, este e-mail não traz detalhes." e nenhum traz protocolo, categoria, situação de revisão ou conteúdo.
    - O agrupamento passa a ser por tipo e endereço: vários motivos da mesma empresa saem num e-mail só, com uma frase por motivo.
-   - A D7 ("texto genérico, sem a situação") fica flexibilizada: o e-mail da empresa diz que houve liberação, devolução ou encerramento. Isso revela, a quem lê a caixa, que existe uma manifestação. Para a conta verificada da empresa, o Gestor considerou aceitável.
+   - A D7 ("texto genérico, sem a situação") fica flexibilizada, por decisão do responsável em 2026-11-27: o e-mail da empresa diz que houve liberação, devolução ou encerramento. Isso revela, a quem lê a caixa, que existe uma manifestação; nunca traz conteúdo do relato.
 2. **Aviso à empresa não cadastrada** (`kind = 'company_notice'`), depois da aprovação humana da ADR-0023. Detalhes na ADR-0023, "Revisão de 2026-11-26: envio automático do aviso depois da aprovação".
    - **Muda o item 2 da revisão de 2026-11-23:** o contato indicado ou o e-mail da Receita passa a receber um e-mail automático, mas só depois que a equipe aprova aquele aviso, com as mesmas travas.
-   - **Precisa da aprovação do responsável antes de aplicar.**
+   - Aceito pelo responsável em 2026-11-27 ("Confirmo"); a aprovação humana do aviso continua obrigatória.
 3. **Compatibilidade e ordem.**
    - `notification_claim` ganha `p_include_notices` (padrão `false`). A função publicada hoje não recebe avisos de empresa, que esperam na fila.
    - A versão nova pede `true` e, se o banco ainda não tiver a migration, cai na chamada antiga.

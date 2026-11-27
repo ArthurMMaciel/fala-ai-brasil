@@ -66,3 +66,9 @@ A senha não passa pelo SQL Editor. O script recusa conta inexistente ou com e-m
 - Os dois recusam rodar com os valores de exemplo.
 
 Não salve nenhum destes arquivos com e-mail ou senha preenchidos.
+
+## Registrar pedido de exclusão dos avisos (opt-out)
+
+`05_opt_out_aviso.sql`: preencha o e-mail que pediu a exclusão e/ou o CNPJ, mais o e-mail da sua conta de equipe, e rode o arquivo inteiro. A conferência mostra uma linha por e-mail tratado, sem exibir e-mails. Passo a passo em `docs/runbooks/EMAIL_NOTIFICATIONS.md`, seção "Pedido de exclusão dos avisos (opt-out)".
+
+Testado no banco local em 2026-11-27, numa transação desfeita: por e-mail, por CNPJ (e-mail da Receita), repetido (não duplica) e recusas sem campo preenchido e sem conta de equipe. O caminho "contato já avisado da empresa" depende de aviso aprovado e não foi exercitado no local.

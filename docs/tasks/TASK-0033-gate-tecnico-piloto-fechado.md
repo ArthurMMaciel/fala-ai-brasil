@@ -36,3 +36,11 @@ Registrar evidências, pendências, riscos residuais e aprovadores técnico, pro
 ## Riscos e rollback
 
 Segurança/privacidade: exposição de dados sensíveis. Operação: triagem sem capacidade. Custo: backup, e-mail, suporte e horas humanas. Rollback: suspender novas entradas e convites, preservar casos existentes e trilhas, comunicar envolvidos conforme runbook aprovado.
+
+## Pendências dos termos e do aviso de privacidade (Back, 2026-11-27)
+
+Constatadas ao escrever o rascunho (`578f0fe`). Ficam registradas, sem implementação agora (decisão do responsável, repassada pelo Gestor em 2026-11-27):
+
+- **Novo aceite quando a versão muda:** o banco tem `my_legal_status`, `record_legal_acceptance` e `ops_publish_legal_version`, mas o front não chama `my_legal_status`. Hoje, publicar versão nova não pede novo aceite a quem já tem conta. O texto do rascunho deixa a forma de comunicação como [A DEFINIR].
+- **Exclusão da conta pelo usuário:** não existe. O pedido vai pelo canal de atendimento, ainda [A DEFINIR], e a exclusão é feita pela equipe.
+- **Busca de CNPJ:** a função `cnpj-lookup` não está publicada em produção (conferido em 2026-11-27; só a `send-notifications` está). O rascunho não afirma consulta automática a bases públicas.
