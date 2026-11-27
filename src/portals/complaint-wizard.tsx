@@ -5,7 +5,7 @@ import { showToast } from '../app/toast';
 import { confirmAction } from '../app/confirm-dialog';
 import { brazilianStates, formatPhone, isValidCnpj, isValidPhone, maskCnpj, maskPhone } from '../domain/account-rules';
 import { suggestionLabel, suggestionSummary, suggestSharedVersion } from '../domain/shared-version-suggestion';
-import { companyContactPhoneEnabled, involvementLabels, noticeConsentMissing, noticeConsentQuestion, noticeContactPayload, noticeContactsPayload, noticeTexts, noticeTextsInReview, registeredContactTexts, validateManualCompany, validateNoticeContacts, contactFilled, emptyExtraContact, maxNoticeContacts, multipleNoticeContactsEnabled, type ExtraNoticeContact, type Involvement, type NoticeConsent, type NoticeContactInput } from '../domain/company-notice';
+import { companyContactPhoneEnabled, involvementLabels, noticeConsentMissing, noticeConsentQuestion, noticeContactPayload, noticeContactsPayload, noticeTexts, noticeTextsInReview, registeredContactTexts, validateManualCompany, validateNoticeContacts, contactFilled, contactsConsentText, emptyExtraContact, maxNoticeContacts, multipleNoticeContactsEnabled, type ExtraNoticeContact, type Involvement, type NoticeConsent, type NoticeContactInput } from '../domain/company-notice';
 
 // Assistente de nova manifestação em 9 etapas (conteúdo da POC, restaurado em 2026-10-30).
 // Relato, versão compartilhável e expectativas vão ao banco; respostas de contexto e contatos
@@ -169,7 +169,7 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
   // Contrato final da ADR-0023: cadastrada vai por company_id; fora da base, por CNPJ, e o create_complaint cria a empresa.
   // company_manual vai sempre que a cnpj-lookup não respondeu found.
   const company = chosen ? { companyId: chosen.id } : { companyId: '', companyCnpj: pending?.cnpj ?? '', companyManual: pending?.source === 'manual' ? { name: pending.name, city: pending.city, state: pending.state } : null };
-  const result = await createWorkerComplaint({ ...company, category: draft.category, title: draft.title, original: draft.original, shared: share ? draft.shared : '', incidentPeriod: draft.incidentPeriod.slice(0, 80), recurrence: draft.recurrence.slice(0, 80), expectedOutcomes: draft.expectedOutcomes, noticeContact: noticeContactPayload(notice, registered), noticeConsent: registered ? null : noticeConsent === 'yes' }, share);
+  const result = await createWorkerComplaint({ ...company, category: draft.category, title: draft.title, original: draft.original, shared: share ? draft.shared : '', incidentPeriod: draft.incidentPeriod.slice(0, 80), recurrence: draft.recurrence.slice(0, 80), expectedOutcomes: draft.expectedOutcomes, ...(multipleNoticeContactsEnabled ? { noticeContacts: noticeContactsPayload(notice, extraContacts, registered), noticeContact: null } : { noticeContact: noticeContactPayload(notice, registered) }), noticeConsent: registered ? null : noticeConsent === 'yes' }, share);
   setBusy(false);
   if (!result.ok) return showToast('error', result.message);
   showToast('success', share ? 'Manifestação registrada. A equipe revisa a versão antes de liberar à empresa.' : 'Manifestação guardada. Você pode solicitar a revisão depois.'); onCreated();
@@ -223,7 +223,7 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
     </fieldset>;
    })}
    {multipleNoticeContactsEnabled && filled && extraContacts.length < maxNoticeContacts - 1 && <button className="btn" type="button" onClick={() => setExtraContacts(list => [...list, emptyExtraContact()])}>Adicionar outro contato</button>}
-   {(filled || (multipleNoticeContactsEnabled && extraContacts.some(contactFilled))) && <label className="check-row"><input type="checkbox" checked={notice.consent} onChange={event => update({ consent: event.target.checked })} /> <span>{registered ? registeredContactTexts.consent : noticeTexts.consent}</span></label>}
+   {(filled || (multipleNoticeContactsEnabled && extraContacts.some(contactFilled))) && <label className="check-row"><input type="checkbox" checked={notice.consent} onChange={event => update({ consent: event.target.checked })} /> <span>{contactsConsentText([notice, ...(multipleNoticeContactsEnabled ? extraContacts : [])].filter(contactFilled).length)}</span></label>}
    {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Continuar</button></div></>;
  } else if (key === 'expect') {
   body = <><h2>O que você espera?</h2><OptionGrid label="O que você espera" options={expectations} value={draft.expectedOutcomes} onSelect={option => { setDraft(current => ({ ...current, expectedOutcomes: current.expectedOutcomes.includes(option) ? current.expectedOutcomes.filter(item => item !== option) : [...current.expectedOutcomes, option] })); setError(''); }} />

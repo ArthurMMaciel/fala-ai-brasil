@@ -30,10 +30,11 @@ test('Operação e trabalhador no contrato final: campos novos da fila, escolha 
   const service = readFileSync('src/services/notices.ts', 'utf8');
   assert.match(service, /email: String\(row\.contact_email \?\? row\.email \?\? ''\)/);
   assert.match(service, /registryEmail: String\(row\.receita_email \?\? ''\)/);
-  assert.match(service, /\.\.\.\(destination \? \{ p_destination: destination \} : \{\}\)/, 'p_destination só quando a equipe escolhe');
+  assert.match(service, /: destination \? \{ p_destination: destination \} : \{\};/, 'p_destination só quando a equipe escolhe');
+  assert.match(service, /contactId \? \{ p_destination: null, p_contact_id: contactId \}/, 'contato escolhido vai em p_contact_id, com p_destination nulo');
   assert.match(service, /'ops_complaint_contact' : 'my_complaint_contact'/);
   const notices = readFileSync('src/portals/company-notices.tsx', 'utf8');
-  assert.match(notices, /decision === 'approved' && bothDestinations && <fieldset/);
+  assert.match(notices, /decision === 'approved' && !usingList && bothDestinations && <fieldset/, 'sem a lista de contatos, vale a escolha antiga');
   assert.match(readFileSync('src/portals/worker-portal-live.tsx', 'utf8'), /<MyComplaintContact complaintId=\{complaint\.id\} \/>/);
 });
 
@@ -53,7 +54,7 @@ test('Operação: contato indicado no detalhe e e-mail da Receita como destino q
   assert.match(notices, /E-mail da Receita: confira antes \(pode ser do contador ou pessoal\)/);
   const ops = readFileSync('src/portals/ops-portal-live.tsx', 'utf8');
   assert.match(ops, /<ComplaintContact complaintId=\{complaint\.id\} \/>/);
-  assert.match(ops, /Só a equipe vê\. A empresa não recebe este contato\./);
+  assert.match(ops, /Só a equipe vê\. A empresa não recebe \{contacts\.length > 1 \? 'estes contatos' : 'este contato'\}\./);
 });
 
 // Até 3 contatos da empresa por manifestação (2026-11-26). A tela fica desligada até o contrato do Back.
@@ -75,4 +76,20 @@ test('vários contatos: até 3, validação por contato, "Não sei" conta como e
   const wizard = readFileSync('src/portals/complaint-wizard.tsx', 'utf8');
   assert.match(wizard, /noticeContact: noticeContactPayload\(notice, registered\)/, 'envio segue no contrato atual até ligar a lista');
   assert.match(wizard, /multipleNoticeContactsEnabled && extraContacts\.map/);
+});
+// Contrato dos até 3 contatos (Back 03847ae, migration 20261126120000): listas, envio e escolha do destino.
+test('contrato dos 3 contatos: notice_contacts sem notice_contact, listas com retorno ao contato único, consentimento no plural', async () => {
+  const data = readFileSync('src/services/data.ts', 'utf8');
+  assert.match(data, /share && input\.noticeContacts\?\.length \? \{ notice_contacts: input\.noticeContacts \} : share && input\.noticeContact \? \{ notice_contact: input\.noticeContact \} : \{\}/, 'nunca os dois juntos');
+  const service = readFileSync('src/services/notices.ts', 'utf8');
+  assert.match(service, /'ops_complaint_contacts_list' : 'my_complaint_contacts_list'/);
+  assert.match(service, /if \(!missingFunction\(error\)\) throw/);
+  assert.match(service, /const single = await loadComplaintContact\(complaintId, as\);/, 'sem a lista, cai no contato único');
+  const wizard = readFileSync('src/portals/complaint-wizard.tsx', 'utf8');
+  assert.match(wizard, /multipleNoticeContactsEnabled \? \{ noticeContacts: noticeContactsPayload\(notice, extraContacts, registered\), noticeContact: null \} : \{ noticeContact: noticeContactPayload\(notice, registered\) \}/);
+  const notice = await load(true);
+  assert.equal(notice.contactsConsentText(1), notice.noticeTexts.consent);
+  assert.equal(notice.contactsConsentText(2), 'Concordo que a equipe da Escuta Aí Brasil use estes contatos como segundo canal com a empresa nesta manifestação. A empresa não vê estes contatos.');
+  const notices = readFileSync('src/portals/company-notices.tsx', 'utf8');
+  assert.match(notices, /contact\.eligibleForNotice !== false && !contact\.possiblyInvolved && !contact\.optedOut/, 'só contatos elegíveis com e-mail');
 });

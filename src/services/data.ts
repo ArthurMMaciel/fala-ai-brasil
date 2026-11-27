@@ -76,6 +76,8 @@ export interface NewComplaintInput {
   companyCnpj?: string; companyManual?: { name: string; city: string; state: string } | null;
   // E-mail para o aviso; só vai com a versão compartilhável.
   noticeContact?: { email?: string; phone?: string; possibly_involved: boolean; consent: true } | null;
+  // Até 3 contatos (contrato 03847ae): vai em notice_contacts e, nesse caso, notice_contact não vai (o banco recusa os dois).
+  noticeContacts?: { email?: string; phone?: string; possibly_involved: boolean; consent: true }[] | null;
   // Aceite do aviso, só para empresa não cadastrada (chave provisória em noticeConsentKey).
   noticeConsent?: boolean | null;
 }
@@ -89,7 +91,7 @@ export function complaintCompanyPayload(input: Pick<NewComplaintInput, "companyI
 
 export async function createWorkerComplaint(input: NewComplaintInput, share: boolean): Promise<AuthResult<string>> {
   const { data, error } = await supabase().rpc("create_complaint", {
-    p: { ...complaintCompanyPayload(input), category: input.category, title: input.title.trim(), original_content: input.original.trim(), shared_content: share ? input.shared.trim() : null, incident_period: input.incidentPeriod, recurrence: input.recurrence, expected_outcomes: input.expectedOutcomes, ...(share && input.noticeContact ? { notice_contact: input.noticeContact } : {}), ...(share && typeof input.noticeConsent === "boolean" ? { [noticeConsentKey]: input.noticeConsent } : {}) },
+    p: { ...complaintCompanyPayload(input), category: input.category, title: input.title.trim(), original_content: input.original.trim(), shared_content: share ? input.shared.trim() : null, incident_period: input.incidentPeriod, recurrence: input.recurrence, expected_outcomes: input.expectedOutcomes, ...(share && input.noticeContacts?.length ? { notice_contacts: input.noticeContacts } : share && input.noticeContact ? { notice_contact: input.noticeContact } : {}), ...(share && typeof input.noticeConsent === "boolean" ? { [noticeConsentKey]: input.noticeConsent } : {}) },
     p_share: share,
   });
   return error ? { ok: false, message: rpcError(error, "Não foi possível registrar a manifestação. Tente novamente.") } : { ok: true, value: data as string };

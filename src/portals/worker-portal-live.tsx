@@ -9,7 +9,7 @@ import { statusLabel } from '../domain/complaint-status';
 import { buildWorkerPrint, printDateTime } from '../domain/print-document';
 import { usePrintDocument } from './print-document';
 import { WorkerResponses } from './response-review';
-import { loadComplaintContact, type ComplaintContact } from '../services/notices';
+import { loadComplaintContacts, type ComplaintContactItem } from '../services/notices';
 import { formatPhone } from '../domain/account-rules';
 
 // Portal do trabalhador com dados reais (modelo v3). O relato original nunca sai daqui; a empresa recebe só a versão revisada.
@@ -104,14 +104,15 @@ function List({ complaints, companies, onSelect, onNew }: { complaints: WorkerCo
   <div className="worker-table-wrap"><table className="worker-table"><thead><tr><th>Protocolo</th><th>Assunto</th><th>Empresa</th><th>Situação</th><th>Criada em</th><th><span className="sr-only">Abrir</span></th></tr></thead><tbody>{rows.map(item => <tr key={item.id} tabIndex={0} onClick={() => onSelect(item)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') onSelect(item); }}><td>{item.protocol}</td><td>{item.title}</td><td>{companies.get(item.companyId)?.name ?? '—'}</td><td><Status status={item.status} /></td><td>{dateLabel(item.createdAt)}</td><td><button className="worker-row-action" aria-label={`Abrir manifestação ${item.protocol}`} onClick={event => { event.stopPropagation(); onSelect(item); }}>›</button></td></tr>)}</tbody></table></div>}</>;
 }
 
-// Contato na empresa que o próprio trabalhador indicou (my_complaint_contact, contrato e0f43bd). Sem função ou sem contato: nada.
+// Contatos na empresa que o próprio trabalhador indicou (até 3; my_complaint_contacts_list, contrato 03847ae).
+// Sem a lista, cai no contato único (my_complaint_contact). Sem função ou sem contato: nada.
 function MyComplaintContact({ complaintId }: { complaintId: string }) {
- const [contact, setContact] = useState<ComplaintContact | null>(null);
- useEffect(() => { let active = true; loadComplaintContact(complaintId, 'worker').then(result => { if (active && !result.missing && result.contact && (result.contact.email || result.contact.phone)) setContact(result.contact); }).catch(() => undefined); return () => { active = false; }; }, [complaintId]);
- if (!contact) return null;
- return <section className="worker-detail-section"><h3>Contato que você indicou</h3><p className="muted small">Só a equipe da Escuta Aí Brasil vê este contato. A empresa não vê.</p>
-  <ul className="ops-notice-facts">{contact.email && <li><span className="muted small">E-mail</span><strong>{contact.email}</strong></li>}{contact.phone && <li><span className="muted small">Telefone</span><strong>{formatPhone(contact.phone)}</strong></li>}
-   {contact.possiblyInvolved && <li><span className="muted small">Você indicou</span><strong>que a pessoa pode estar envolvida: a equipe não usa este contato.</strong></li>}</ul></section>;
+ const [contacts, setContacts] = useState<ComplaintContactItem[]>([]);
+ useEffect(() => { let active = true; loadComplaintContacts(complaintId, 'worker').then(result => { if (active && !result.missing) setContacts(result.contacts); }).catch(() => undefined); return () => { active = false; }; }, [complaintId]);
+ if (!contacts.length) return null;
+ return <section className="worker-detail-section"><h3>{contacts.length > 1 ? 'Contatos que você indicou' : 'Contato que você indicou'}</h3><p className="muted small">Só a equipe da Escuta Aí Brasil vê {contacts.length > 1 ? 'estes contatos' : 'este contato'}. A empresa não vê.</p>
+  {contacts.map((contact, index) => <ul className="ops-notice-facts" key={contact.contactId || index}>{contact.email && <li><span className="muted small">E-mail</span><strong>{contact.email}</strong></li>}{contact.phone && <li><span className="muted small">Telefone</span><strong>{formatPhone(contact.phone)}</strong></li>}
+   {contact.possiblyInvolved && <li><span className="muted small">Você indicou</span><strong>que a pessoa pode estar envolvida: a equipe não usa este contato.</strong></li>}</ul>)}</section>;
 }
 
 function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerComplaint; company?: DirectoryCompany; onBack: () => void; onChanged: () => void }) {

@@ -4,7 +4,7 @@ import { confirmAction } from '../app/confirm-dialog';
 import { EmptyState } from './ui';
 import { maskCnpj } from '../domain/account-rules';
 import { dataSourceLabels, noticeStatusLabels, noticeTab, noticeTexts, noticeTextsInReview, registrationLabels, validateOpsReason, type NoticeTab } from '../domain/company-notice';
-import { addNoticeOptOut, decideNotice, listNoticeCandidates, listPendingCompanies, markNoticeSent, noticeDestination, purgeExpiredContacts, reviewPendingCompany, type NoticeCandidate, type NoticeDestinationChoice, type PendingCompany } from '../services/notices';
+import { addNoticeOptOut, decideNotice, listNoticeCandidates, listPendingCompanies, loadComplaintContacts, markNoticeSent, noticeDestination, purgeExpiredContacts, reviewPendingCompany, type NoticeCandidate, type NoticeDestinationChoice, type PendingCompany , type ComplaintContactItem } from '../services/notices';
 
 const registryEmailBadge = 'E-mail da Receita: confira antes (pode ser do contador ou pessoal)';
 
@@ -94,10 +94,17 @@ function NoticeDetail({ item, onBack, onChanged }: { item: NoticeCandidate; onBa
  const locks = blockers(item);
  // Sem contato do trabalhador, o destino é o e-mail da Receita (pode ser do contador ou pessoal): a equipe confere.
  // Com os dois e-mails (do trabalhador e da Receita), a equipe escolhe o destino na aprovação (p_destination).
- const bothDestinations = Boolean(item.email && item.registryEmail);
- const [choice, setChoice] = useState<NoticeDestinationChoice | null>(bothDestinations ? (item.destinationSource === 'receita' ? 'receita' : 'worker') : null);
- const destination = noticeDestination(item, choice ?? undefined);
- const to = destination?.email ?? '';
+  const bothDestinations = Boolean(item.email && item.registryEmail);
+  const [choice, setChoice] = useState<NoticeDestinationChoice | null>(bothDestinations ? (item.destinationSource === 'receita' ? 'receita' : 'worker') : null);
+  // Até 3 contatos (contrato 03847ae): com a lista, a equipe escolhe entre os contatos elegíveis com e-mail (não envolvidos,
+  // sem pedido de não receber) ou a Receita; o contato vai em p_contact_id. Sem a lista, vale a escolha acima.
+  const [contactList, setContactList] = useState<ComplaintContactItem[] | null>(null);
+  const [pickedContact, setPickedContact] = useState<string | null>(null);
+  useEffect(() => { let active = true; loadComplaintContacts(item.complaintId, 'ops').then(result => { if (!active || result.missing || !result.list) return; const eligible = result.contacts.filter(contact => contact.email && contact.contactId && contact.eligibleForNotice !== false && !contact.possiblyInvolved && !contact.optedOut); setContactList(eligible); setPickedContact(eligible[0]?.contactId ?? null); if (!eligible.length && item.registryEmail) setChoice('receita'); }).catch(() => undefined); return () => { active = false; }; }, [item.complaintId, item.registryEmail]);
+  const usingList = contactList !== null;
+  const listDestination = usingList ? (pickedContact ? { email: contactList.find(contact => contact.contactId === pickedContact)?.email ?? '', fromRegistry: false } : item.registryEmail ? { email: item.registryEmail, fromRegistry: true } : null) : null;
+  const destination = usingList ? listDestination : noticeDestination(item, choice ?? undefined);
+  const to = destination?.email ?? '';
  const registryBadge = destination?.fromRegistry ? <span className="commercial-badge">{registryEmailBadge}</span> : null;
  const run = async (action: () => Promise<{ ok: boolean; message?: string }>, done: string) => { setBusy(true); const result = await action(); setBusy(false); if (!result.ok) return showToast('error', result.message ?? 'Não foi possível concluir.'); showToast('success', done); onChanged(); };
  async function decide(event: React.FormEvent) {
@@ -107,7 +114,7 @@ function NoticeDetail({ item, onBack, onChanged }: { item: NoticeCandidate; onBa
    ? { title: 'Aprovar o aviso?', text: `O aviso vai para ${to}.${destination?.fromRegistry ? ' É o e-mail da Receita: confirme que é um canal da empresa.' : ''} Depois de aprovado, você envia o texto fixo pela conta da plataforma.`, confirmLabel: 'Aprovar aviso' }
    : { title: 'Recusar o aviso?', text: 'O e-mail não recebe nada.', confirmLabel: 'Recusar aviso', danger: true });
   if (!ok) return;
-  await run(() => decideNotice(item.complaintId, decision, reason, decision === 'approved' ? choice : null), decision === 'approved' ? 'Aviso aprovado. Envie e marque como enviado.' : 'Aviso recusado.');
+  await run(() => decideNotice(item.complaintId, decision, reason, decision === 'approved' && !(usingList && pickedContact) ? (usingList ? 'receita' : choice) : null, decision === 'approved' && usingList ? pickedContact : null), decision === 'approved' ? 'Aviso aprovado. Envie e marque como enviado.' : 'Aviso recusado.');
  }
  const copy = async () => { try { await navigator.clipboard.writeText(`${noticeTexts.emailSubject}\n\n${noticeTexts.emailBody}`); showToast('success', 'Texto copiado.'); } catch { showToast('error', 'Não foi possível copiar. Selecione o texto e copie manualmente.'); } };
  const optOut = async () => { if (to && await confirmAction({ title: 'Registrar o pedido de não receber avisos?', text: `Nenhum aviso futuro vai para ${to}.`, confirmLabel: 'Registrar pedido', danger: true })) run(() => addNoticeOptOut(to), 'Pedido registrado.'); };
@@ -121,7 +128,10 @@ function NoticeDetail({ item, onBack, onChanged }: { item: NoticeCandidate; onBa
     <fieldset className="response-rating"><legend>O que fazer</legend>
      {!noConsent && <label className="check-row"><input type="radio" name="notice-decision" checked={decision === 'approved'} onChange={() => setDecision('approved')} /> <span>Aprovar o aviso</span></label>}
      <label className="check-row"><input type="radio" name="notice-decision" checked={decision === 'rejected'} onChange={() => setDecision('rejected')} /> <span>Recusar o aviso</span></label></fieldset>
-    {decision === 'approved' && bothDestinations && <fieldset className="response-rating"><legend>Enviar para</legend>
+     {decision === 'approved' && usingList && (contactList.length + (item.registryEmail ? 1 : 0)) > 1 && <fieldset className="response-rating"><legend>Enviar para</legend>
+      {contactList.map(contact => <label key={contact.contactId} className="check-row"><input type="radio" name="notice-destination" checked={pickedContact === contact.contactId} onChange={() => setPickedContact(contact.contactId)} /> <span>{contact.email} (indicado pelo trabalhador)</span></label>)}
+      {item.registryEmail && <label className="check-row"><input type="radio" name="notice-destination" checked={pickedContact === null} onChange={() => setPickedContact(null)} /> <span>{item.registryEmail} ({registryEmailBadge})</span></label>}</fieldset>}
+     {decision === 'approved' && !usingList && bothDestinations && <fieldset className="response-rating"><legend>Enviar para</legend>
      <label className="check-row"><input type="radio" name="notice-destination" checked={choice === 'worker'} onChange={() => setChoice('worker')} /> <span>{item.email} (indicado pelo trabalhador)</span></label>
      <label className="check-row"><input type="radio" name="notice-destination" checked={choice === 'receita'} onChange={() => setChoice('receita')} /> <span>{item.registryEmail} ({registryEmailBadge})</span></label></fieldset>}
     {decision === 'rejected' && <label className="field">Motivo<textarea rows={3} maxLength={300} value={reason} onChange={event => setReason(event.target.value)} placeholder="Ex.: e-mail pessoal de uma pessoa nomeada." /><small className="muted">{reason.trim().length}/300 caracteres. Sem conteúdo de relato.</small></label>}

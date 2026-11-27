@@ -92,8 +92,11 @@ export async function listNoticeCandidates(): Promise<{ missing: true } | { miss
 }
 
 // p_destination só vai quando a equipe escolhe: a versão anterior da função não tem o parâmetro.
-export async function decideNotice(complaintId: string, decision: 'approved' | 'rejected', reason: string, destination: NoticeDestinationChoice | null = null): Promise<AuthResult<null>> {
-  const { error } = await supabase().rpc('ops_decide_notice', { p_complaint: complaintId, p_decision: decision, p_reason: reason.trim() || null, ...(destination ? { p_destination: destination } : {}) });
+// Com a lista de contatos (contrato 03847ae), o destino escolhido vai em p_contact_id, com p_destination nulo; a Receita
+// continua em p_destination = 'receita'.
+export async function decideNotice(complaintId: string, decision: 'approved' | 'rejected', reason: string, destination: NoticeDestinationChoice | null = null, contactId: string | null = null): Promise<AuthResult<null>> {
+  const target = contactId ? { p_destination: null, p_contact_id: contactId } : destination ? { p_destination: destination } : {};
+  const { error } = await supabase().rpc('ops_decide_notice', { p_complaint: complaintId, p_decision: decision, p_reason: reason.trim() || null, ...target });
   return error ? { ok: false, message: opsFailure(error, 'Não foi possível registrar a decisão do aviso.') } : { ok: true, value: null };
 }
 
@@ -107,6 +110,24 @@ export async function loadComplaintContact(complaintId: string, as: 'ops' | 'wor
   return { missing: false, contact: toContact((data ?? [])[0] as Record<string, unknown> | undefined) };
 }
 
+// Até 3 contatos (contrato do Back 03847ae, migration 20261126120000): listas para o trabalhador e para a equipe.
+// Sem a função _list (PGRST202/42883), cai no contato único (my_/ops_complaint_contact); sem as duas, missing.
+export interface ComplaintContactItem extends ComplaintContact { contactId: string; optedOut?: boolean; eligibleForNotice?: boolean }
+const toContactItem = (row: Record<string, unknown>): ComplaintContactItem => ({
+  ...(toContact(row) as ComplaintContact), contactId: String(row.contact_id ?? ''),
+  optedOut: row.opted_out === undefined ? undefined : Boolean(row.opted_out),
+  eligibleForNotice: row.eligible_for_notice === undefined ? undefined : Boolean(row.eligible_for_notice),
+});
+
+export async function loadComplaintContacts(complaintId: string, as: 'ops' | 'worker'): Promise<{ missing: true } | { missing: false; list: boolean; contacts: ComplaintContactItem[] }> {
+  const { data, error } = await supabase().rpc(as === 'ops' ? 'ops_complaint_contacts_list' : 'my_complaint_contacts_list', { p_complaint: complaintId });
+  if (!error) return { missing: false, list: true, contacts: ((data ?? []) as Record<string, unknown>[]).map(toContactItem).filter(item => item.email || item.phone) };
+  if (!missingFunction(error)) throw new Error(opsFailure(error, 'Não foi possível carregar os contatos.'));
+  const single = await loadComplaintContact(complaintId, as);
+  if (single.missing) return { missing: true };
+  const contact = single.contact && (single.contact.email || single.contact.phone) ? [{ ...single.contact, contactId: '' }] : [];
+  return { missing: false, list: false, contacts: contact };
+}
 export async function markNoticeSent(noticeId: string, outcome: 'sent' | 'bounced'): Promise<AuthResult<null>> {
   const { error } = await supabase().rpc('ops_mark_notice_sent', { p_notice: noticeId, p_outcome: outcome });
   return error ? { ok: false, message: opsFailure(error, 'Não foi possível registrar o envio.') } : { ok: true, value: null };

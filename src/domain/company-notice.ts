@@ -154,3 +154,6 @@ export function noticeContactsPayload(first: NoticeContactInput, extras: ExtraNo
     .filter((contact): contact is NoticeContactPayload => Boolean(contact))
     .slice(0, maxNoticeContacts);
 }
+// Consentimento com 2 ou 3 contatos: mesma regra no plural (texto passado pelo Gestor em 2026-11-26; em revisão jurídica).
+export const noticeContactsConsentPlural = 'Concordo que a equipe da Escuta Aí Brasil use estes contatos como segundo canal com a empresa nesta manifestação. A empresa não vê estes contatos.';
+export const contactsConsentText = (filledCount: number) => filledCount > 1 ? noticeContactsConsentPlural : noticeTexts.consent;

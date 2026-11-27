@@ -11,7 +11,7 @@ import { ContactSolicitationsAdmin } from './contact-solicitations-admin';
 import { OpsResponses } from './response-review';
 import { OpsRepresentatives } from './representatives';
 import { OpsNotices, OpsPendingCompanies } from './company-notices';
-import { listNoticeCandidates, listPendingCompanies, loadComplaintContact, type ComplaintContact as ComplaintContactData } from '../services/notices';
+import { listNoticeCandidates, listPendingCompanies, loadComplaintContacts, type ComplaintContactItem } from '../services/notices';
 import { noticeTab } from '../domain/company-notice';
 import { formatPhone } from '../domain/account-rules';
 
@@ -96,24 +96,24 @@ function ComplaintList({ rows, onOpen, empty, waiting = false }: { rows: OpsComp
   <tbody>{rows.map(row => <tr key={row.id} tabIndex={0} onClick={() => onOpen(row)} onKeyDown={event => event.key === 'Enter' && onOpen(row)}><td>{row.protocol}</td><td>{row.companyName}</td><td>{row.title}<small>{row.category}</small></td><td><Status status={row.status} /></td><td>{waiting ? <span title={when(row.updatedAt)}>{waitingLabel(row.updatedAt)}</span> : when(row.updatedAt)}</td></tr>)}</tbody></table></div>;
 }
 
-// Contato na empresa indicado pelo trabalhador (só a equipe vê): ops_complaint_contact (contrato e0f43bd).
-// Sem a função, usa a fila de avisos. Sem dado, a seção não aparece.
+// Contatos na empresa indicados pelo trabalhador (até 3; só a equipe vê): ops_complaint_contacts_list (contrato 03847ae).
+// Sem a lista, cai no contato único (ops_complaint_contact) e, sem ele, na fila de avisos. Sem dado, a seção não aparece.
 function ComplaintContact({ complaintId }: { complaintId: string }) {
- const [contact, setContact] = useState<ComplaintContactData | null>(null);
+ const [contacts, setContacts] = useState<ComplaintContactItem[]>([]);
  useEffect(() => {
   let active = true;
-  loadComplaintContact(complaintId, 'ops').then(async result => {
-   if (!result.missing) { if (active) setContact(result.contact && (result.contact.email || result.contact.phone) ? result.contact : null); return; }
+  loadComplaintContacts(complaintId, 'ops').then(async result => {
+   if (!result.missing) { if (active) setContacts(result.contacts); return; }
    const fallback = await listNoticeCandidates();
    const row = fallback.missing ? undefined : fallback.rows.find(item => item.complaintId === complaintId && (item.email || item.phone));
-   if (active) setContact(row ? { email: row.email, phone: row.phone, possiblyInvolved: row.possiblyInvolved } : null);
+   if (active) setContacts(row ? [{ contactId: row.contactId ?? '', email: row.email, phone: row.phone, possiblyInvolved: row.possiblyInvolved }] : []);
   }).catch(() => undefined);
   return () => { active = false; };
  }, [complaintId]);
- if (!contact) return null;
- return <section className="worker-detail-section"><h3>Contato indicado pelo trabalhador</h3><p className="muted small">Só a equipe vê. A empresa não recebe este contato.</p>
-  <ul className="ops-notice-facts">{contact.email && <li><span className="muted small">E-mail</span><strong>{contact.email}</strong></li>}{contact.phone && <li><span className="muted small">Telefone</span><strong>{formatPhone(contact.phone)}</strong></li>}
-   <li><span className="muted small">Possível envolvimento</span><strong>{contact.possiblyInvolved ? 'Sim ou não sabe: não usar' : 'Não'}</strong></li></ul></section>;
+ if (!contacts.length) return null;
+ return <section className="worker-detail-section"><h3>{contacts.length > 1 ? 'Contatos indicados pelo trabalhador' : 'Contato indicado pelo trabalhador'}</h3><p className="muted small">Só a equipe vê. A empresa não recebe {contacts.length > 1 ? 'estes contatos' : 'este contato'}.</p>
+  {contacts.map((contact, index) => <ul className="ops-notice-facts" key={contact.contactId || index}>{contact.email && <li><span className="muted small">E-mail</span><strong>{contact.email}</strong></li>}{contact.phone && <li><span className="muted small">Telefone</span><strong>{formatPhone(contact.phone)}</strong></li>}
+   <li><span className="muted small">Possível envolvimento</span><strong>{contact.possiblyInvolved ? 'Sim ou não sabe: não usar' : 'Não'}</strong></li>{contact.optedOut && <li><span className="muted small">Avisos</span><strong>Pediu para não receber</strong></li>}</ul>)}</section>;
 }
 
 // Para onde a manifestação vai depois da liberação: chegou à empresa, falta representante verificado ou empresa sem conta.
