@@ -23,12 +23,12 @@ const relatar = { href: '/#cadastrar', label: 'Relatar uma situação' };
 const planos = { href: '#planos', label: 'Ver soluções e planos' };
 
 export const sitePages: Record<SitePageId, SitePage> = {
-  inicio: { id: 'inicio', path: '/', title: `${brandName} | Pra quem trabalha`, description: 'Plataforma gratuita e sigilosa de escuta psicossocial pra quem trabalha.', bodyClass: 'p-trab', entrar: '/#entrar', cadastrar: '/#cadastrar', cta: relatar, contato: '#contato' },
-  empresa: { id: 'empresa', path: '/empresa', title: `${brandName} | Pra empresas`, description: 'Receba manifestações liberadas pelos trabalhadores, organize a atuação e dê retorno.', bodyClass: 'p-empresa', entrar: '/#entrar-empresa', cadastrar: '/#cadastrar-empresa', cta: { href: '/#cadastrar-empresa', label: 'Criar conta da empresa' }, contato: '#contato' },
+  inicio: { id: 'inicio', path: '/', title: `${brandName} | Pra quem trabalha`, description: 'Plataforma gratuita e sigilosa de escuta psicossocial pra quem trabalha.', bodyClass: 'p-trab', entrar: '/#entrar', cadastrar: '/#cadastrar', cta: relatar, contato: '' },
+  empresa: { id: 'empresa', path: '/empresa', title: `${brandName} | Pra empresas`, description: 'Receba manifestações de quem trabalha, organize a atuação e dê retorno.', bodyClass: 'p-empresa', entrar: '/#entrar-empresa', cadastrar: '/#cadastrar-empresa', cta: { href: '/#cadastrar-empresa', label: 'Criar conta da empresa' }, contato: '#contato' },
   parceiros: { id: 'parceiros', path: '/parceiros', title: `${brandName} | Pra parceiros do Hub`, description: 'Apresente sua especialidade e participe de uma rede dedicada ao contexto psicossocial do trabalho.', bodyClass: 'p-parceiros', entrar: '/#entrar-parceiro', cadastrar: '/#cadastrar-parceiro', cta: planos, contato: '#contato' },
   patrocinio: { id: 'patrocinio', path: '/patrocinio', title: `${brandName} | Patrocínio`, description: 'Contribua pra conteúdos, encontros e estudos públicos sobre o trabalho e suas relações.', bodyClass: 'p-patrocinio', entrar: '/#entrar-patrocinador', cadastrar: '/#cadastrar-patrocinador', cta: planos, contato: '#contato' },
   intelligence: { id: 'intelligence', path: '/intelligence', title: `${brandName} | Intelligence`, description: 'Estudos e leituras agregadas pra apoiar perguntas melhores sobre o ambiente de trabalho.', bodyClass: 'p-intelligence', entrar: '/#entrar-intelligence', cadastrar: '/#cadastrar-intelligence', cta: planos, contato: '#contato' },
-  '404': { id: '404', path: null, title: `${brandName} | Página não encontrada`, description: null, bodyClass: 'p-trab', entrar: '/#entrar', cadastrar: '/#cadastrar', cta: relatar, contato: '/#contato' },
+  '404': { id: '404', path: null, title: `${brandName} | Página não encontrada`, description: null, bodyClass: 'p-trab', entrar: '/#entrar', cadastrar: '/#cadastrar', cta: relatar, contato: '' },
 };
 
 // Público de cada página. Página de público oculto (hiddenAudiences em entry-routes, a mesma lista do cadastro)

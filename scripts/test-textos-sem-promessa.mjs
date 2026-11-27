@@ -54,6 +54,26 @@ test('empresa: conta gratuita, Relatório inicial R$ 299 e o resto sob consulta,
   assert.match(readFileSync('src/portals/portal-live.tsx', 'utf8'), /<p className="muted small company-free-account">Conta gratuita\. Relatório inicial por manifestação: R\$ 299, sob pedido à equipe\.<\/p>\n?\s*<button className="btn" onClick=\{\(\) => onView\('profile'\)\}>/);
 });
 
+// ADR-0027 (2026-11-27): o relato vai direto, a equipe só libera e os textos públicos não prometem o que saiu.
+test('ADR-0027: envio direto, só "Liberar" na Operação e textos públicos sem versão separada', () => {
+  const wizard = readFileSync('src/portals/complaint-wizard.tsx', 'utf8');
+  assert.match(wizard, /export const directSendWarning = 'A empresa vai ler exatamente este texto, sem o seu nome\. Antes de enviar, tire nomes, datas, setores e qualquer detalhe que identifique você ou outras pessoas\.';/);
+  assert.match(wizard, /<h2>Revise seu relato<\/h2>/);
+  assert.match(wizard, />Alterar relato<\/button>/);
+  assert.match(wizard, /\{busy \? 'Enviando…' : 'Enviar manifestação'\}/);
+  assert.match(wizard, /original: draft\.original, shared: draft\.original,/);
+  assert.match(wizard, /<div className="notice warn direct-send-warning" role="note">\{directSendWarning\}<\/div>\n\s*\{errorLine\}<div className="nav-actions">\{back\}<button className="btn primary"/, 'aviso D4 logo acima do botão');
+  assert.doesNotMatch(wizard, /Guardar sem compartilhar|Versão que será enviada|Sugerir versão revisada|Quero ajustar meu relato|Solicitar revisão/);
+  const ops = readFileSync('src/portals/ops-portal-live.tsx', 'utf8');
+  assert.equal((ops.match(/onClick=\{release\}/g) ?? []).length, 1);
+  assert.doesNotMatch(ops, /decide\('adjustment_requested'\)|decide\('held'\)|pedir ajuste|reter para/i);
+  const worker = readFileSync('src/portals/worker-portal-live.tsx', 'utf8');
+  assert.match(worker, /adjustment_requested: 'Ajuste solicitado'/, 'casos antigos continuam com o rótulo');
+  const publicText = ['src/landing-site/pages/inicio.tsx', 'src/landing-site/pages/empresa.tsx', 'src/portals/portal-live.tsx', 'src/portals/worker-portal-live.tsx', 'src/domain/site-pages.ts'].map(file => readFileSync(file, 'utf8')).join('\n');
+  assert.doesNotMatch(publicText, /Fica protegido|<li>O relato original<\/li>|escolhe o que compartilhar|Escolha o que pode ser compartilhado|decida o que pode ser compartilhado|liberad[ao]s? pelos? trabalhador|versão compartilhável revisada|nunca vê seu relato original/i);
+  assert.doesNotMatch(readFileSync('src/landing-site/pages/inicio.tsx', 'utf8'), /ContactForm/);
+});
+
 test('assistente de manifestação mostra os canais de emergência e diz que não é canal de emergência', () => {
   const wizard = readFileSync('src/portals/complaint-wizard.tsx', 'utf8');
   assert.ok(wizard.includes('Em caso de risco imediato, procure ajuda: CVV 188, SAMU 192 ou Polícia Militar 190. A {brandName} não é um canal de emergência.'), 'frase fixa (B4)');
@@ -77,5 +97,5 @@ test('glossário: manifestação para o caso, relato para o texto; sobretítulos
   // Textos em revisão jurídica (aviso à empresa e consentimento) não mudam.
   const legal = readFileSync('src/domain/company-notice.ts', 'utf8');
   assert.match(legal, /existe um relato sobre a sua empresa/);
-  assert.match(readFileSync('src/domain/site-pages.ts', 'utf8'), /description: 'Receba manifestações liberadas pelos trabalhadores, organize a atuação e dê retorno\.'/);
+  assert.match(readFileSync('src/domain/site-pages.ts', 'utf8'), /description: 'Receba manifestações de quem trabalha, organize a atuação e dê retorno\.'/);
 });

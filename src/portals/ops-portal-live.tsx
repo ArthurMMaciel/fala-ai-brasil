@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { decideOpsComplaint, loadNotificationStats, listOpsComplaints, listOpsCompanies, listOpsRepresentatives, loadOpsMetrics, loadOpsTimeline, readOpsOriginal, type OpsComplaint, type OpsCompany, type OpsMetrics, type OpsTimelineItem, type NotificationStats, type ReviewDecision } from '../services/ops';
 import type { ComplaintStatusDb } from '../services/data';
 import { statusLabel } from '../domain/complaint-status';
-import { notificationAlert, notificationAlertText, oldestFirst, opsReasonMax, releaseDelivery, releaseNextStep, validateOpsReason, waitingLabel, type ReleaseDelivery, type ReleaseView } from '../domain/ops-queue';
+import { notificationAlert, notificationAlertText, oldestFirst, releaseDelivery, releaseNextStep, waitingLabel, type ReleaseDelivery, type ReleaseView } from '../domain/ops-queue';
 import { showToast } from '../app/toast';
 import { confirmAction } from '../app/confirm-dialog';
 import { Metric, Sidebar } from './portal-live';
@@ -37,7 +37,8 @@ function SectionTabs({ section, view, counts, onView }: { section: OpsSection; v
 const statusLabels: Record<ComplaintStatusDb, string> = { received: 'Guardada', in_review: 'Em revisão', adjustment_requested: 'Ajuste solicitado', held: 'Retida', shared: 'Liberada', answer_in_review: 'Resposta em revisão', answered: 'Respondida', closed: 'Finalizada', canceled: 'Retirada' };
 const statusTone: Record<ComplaintStatusDb, string> = { received: 'em-aberto', in_review: 'em-revisão', adjustment_requested: 'em-revisão', held: 'retida', shared: 'encaminhada-para-empresa', answer_in_review: 'em-revisão', answered: 'respondida', closed: 'finalizada', canceled: 'em-aberto' };
 const eventLabels: Record<ComplaintStatusDb, string> = { received: 'Registrada', in_review: 'Revisão solicitada', adjustment_requested: 'Ajuste solicitado', held: 'Retida', shared: 'Liberada para a empresa', answer_in_review: 'Resposta enviada · em revisão', answered: 'Respondida', closed: 'Finalizada', canceled: 'Retirada pelo trabalhador' };
-const decisionLabels: Record<ReviewDecision, string> = { released: 'Liberar para a empresa', adjustment_requested: 'Pedir ajuste ao trabalhador', held: 'Reter para análise' };
+// ADR-0027 (2026-11-27): a equipe só libera. ops_decide_complaint segue aceitando ajuste e retenção, mas a tela não oferece.
+const releaseLabel = 'Liberar para a empresa';
 
 function when(value: string) { return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(value)); }
 function hours(value: number | null) { return value === null ? '—' : value < 48 ? `${String(value).replace('.', ',')} h` : `${(value / 24).toFixed(1).replace('.', ',')} dias`; }
@@ -126,7 +127,6 @@ function NextStep({ delivery, before, onGo }: { delivery: ReleaseDelivery; befor
 
 function ComplaintDetail({ complaint, delivery, onBack, onChanged, onGo }: { complaint: OpsComplaint; delivery: ReleaseDelivery; onBack: () => void; onChanged: () => void; onGo: (view: ReleaseView) => void }) {
  const [timeline, setTimeline] = useState<OpsTimelineItem[] | null>(null);
- const [reason, setReason] = useState('');
  const [busy, setBusy] = useState(false);
  const [originalOpen, setOriginalOpen] = useState(false);
  const [justification, setJustification] = useState('');
@@ -134,14 +134,13 @@ function ComplaintDetail({ complaint, delivery, onBack, onChanged, onGo }: { com
  const [version, setVersion] = useState(0);
  useEffect(() => { let active = true; loadOpsTimeline(complaint.id).then(rows => { if (active) setTimeline(rows); }); return () => { active = false; }; }, [complaint.id, version]);
  const canDecide = complaint.status === 'in_review' || complaint.status === 'held';
- async function decide(decision: ReviewDecision) {
-  const reasonError = validateOpsReason(decision, reason);
-  if (reasonError) return showToast('error', reasonError, 'Confira os dados');
-  if (decision === 'released' && !(await confirmAction({ title: 'Liberar para a empresa?', text: 'A empresa passará a ver a versão compartilhável desta manifestação.', confirmLabel: 'Liberar para a empresa' }))) return;
-  setBusy(true); const result = await decideOpsComplaint(complaint.id, decision, reason); setBusy(false);
+ async function release() {
+  if (!(await confirmAction({ title: 'Liberar para a empresa?', text: 'A empresa passará a ler o texto desta manifestação, sem o nome de quem relatou.', confirmLabel: releaseLabel }))) return;
+  const decision: ReviewDecision = 'released';
+  setBusy(true); const result = await decideOpsComplaint(complaint.id, decision, ''); setBusy(false);
   if (!result.ok) return showToast('error', result.message);
-  showToast('success', decision === 'released' ? `Manifestação liberada. ${releaseNextStep(delivery).text}` : decision === 'held' ? 'Manifestação retida para análise.' : 'Ajuste solicitado ao trabalhador.');
-  setReason(''); onChanged();
+  showToast('success', `Manifestação liberada. ${releaseNextStep(delivery).text}`);
+  onChanged();
  }
  async function openOriginal() {
   if (justification.trim().length < 10) return showToast('error', 'Informe a justificativa com pelo menos 10 caracteres.', 'Confira os dados');
@@ -153,16 +152,16 @@ function ComplaintDetail({ complaint, delivery, onBack, onChanged, onGo }: { com
  return <><button className="text-action worker-back" onClick={onBack}>← Voltar</button>
   <div className="worker-detail-heading"><div><span className="editorial-eyebrow">Manifestação {complaint.protocol}</span><h2>{complaint.title}</h2><p className="muted">{complaint.companyName} · {complaint.category} · criada em {when(complaint.createdAt)}</p></div><Status status={complaint.status} /></div>
   <div className="worker-detail-grid"><div>
-   <section className="worker-detail-section"><h3>Versão compartilhável</h3><p className="muted small">É o único texto que a empresa pode receber. Confira se não há nomes, locais, datas ou detalhes que identifiquem pessoas.</p>{complaint.shared ? <p className="worker-original">{complaint.shared}</p> : <p className="muted">O trabalhador ainda não escreveu a versão compartilhável.</p>}</section>
+   <section className="worker-detail-section"><h3>Texto que a empresa vai ler</h3><p className="muted small">É o texto do trabalhador, sem o nome de quem relatou. Confira se não há nomes, locais, datas ou detalhes que identifiquem pessoas.</p>{complaint.shared ? <p className="worker-original">{complaint.shared}</p> : <p className="muted">Ainda não há texto para a empresa nesta manifestação.</p>}</section>
    <section className="worker-detail-section"><h3>Contexto</h3><dl><div><dt>Quando aconteceu</dt><dd>{complaint.incidentPeriod ?? '—'}</dd></div><div><dt>Recorrência</dt><dd>{complaint.recurrence ?? '—'}</dd></div><div><dt>O que espera</dt><dd>{complaint.expectedOutcomes.length ? complaint.expectedOutcomes.join(', ') : '—'}</dd></div><div><dt>Respostas da empresa</dt><dd>{complaint.responses}</dd></div></dl></section>
    {complaint.status === 'shared' && <NextStep delivery={delivery} before={false} onGo={onGo} />}
    {canDecide && <NextStep delivery={delivery} before onGo={onGo} />}
    {canDecide && <section className="worker-detail-section ops-decision"><h3>Decisão da equipe</h3>
-    <label className="field">Motivo (obrigatório para ajuste ou retenção)<textarea rows={3} maxLength={opsReasonMax} aria-describedby="ops-reason-count" value={reason} onChange={event => setReason(event.target.value)} placeholder="Ex.: a versão cita o nome do gestor; retire antes da liberação." /><small className="muted">No pedido de ajuste, o motivo aparece para o trabalhador. Na retenção, fica só na trilha da equipe.</small><small id="ops-reason-count" className={`muted ops-reason-count${reason.trim().length > opsReasonMax - 30 ? ' near-limit' : ''}`}>{reason.trim().length}/{opsReasonMax} caracteres</small></label>
-    <div className="ops-decision-actions"><button className="btn primary" disabled={busy || !complaint.shared} onClick={() => decide('released')}>{decisionLabels.released}</button><button className="btn" disabled={busy} onClick={() => decide('adjustment_requested')}>{decisionLabels.adjustment_requested}</button>{complaint.status !== 'held' && <button className="btn" disabled={busy} onClick={() => decide('held')}>{decisionLabels.held}</button>}</div></section>}
+    <p className="muted small">Se o texto expuser alguém, não libere e fale com o responsável.</p>
+    <div className="ops-decision-actions"><button className="btn primary" disabled={busy || !complaint.shared} onClick={release}>{releaseLabel}</button></div></section>}
    <section className="worker-detail-section"><h3>Relato original</h3>
     {original !== null ? <><p className="muted small">Acesso registrado. Não copie este texto para fora da plataforma.</p><p className="worker-original">{original}</p></> :
-     originalOpen ? <><label className="field">Justificativa do acesso<textarea rows={2} maxLength={500} value={justification} onChange={event => setJustification(event.target.value)} placeholder="Ex.: o texto pode identificar pessoas; pedir ajuste." /></label><div className="ops-decision-actions"><button className="btn primary" disabled={busy} onClick={openOriginal}>Abrir e registrar acesso</button><button className="btn" onClick={() => setOriginalOpen(false)}>Cancelar</button></div></> :
+     originalOpen ? <><label className="field">Justificativa do acesso<textarea rows={2} maxLength={500} value={justification} onChange={event => setJustification(event.target.value)} placeholder="Ex.: conferir um caso antigo com versão separada." /></label><div className="ops-decision-actions"><button className="btn primary" disabled={busy} onClick={openOriginal}>Abrir e registrar acesso</button><button className="btn" onClick={() => setOriginalOpen(false)}>Cancelar</button></div></> :
      <><p className="muted small">Fica fechado por padrão. Abrir exige justificativa e fica registrado na trilha de auditoria.</p><button className="btn" onClick={() => setOriginalOpen(true)}>Ver relato original</button></>}
    </section>
   </div><aside className="worker-detail-aside"><ComplaintContact complaintId={complaint.id} /><section className="worker-detail-section"><h3>Trilha</h3>
@@ -230,7 +229,7 @@ export function OpsPortalLive() {
   {failure ? <section className="commercial-panel"><h2>Não foi possível carregar</h2><p>{failure}</p></section> :
    opened ? <ComplaintDetail key={opened.id + opened.status} complaint={opened} delivery={releaseDelivery(opened.companyId, delivery.verified, delivery.pending)} onBack={() => setOpenId(null)} onChanged={() => setVersion(value => value + 1)} onGo={go} /> :
    view === 'overview' ? <Overview metrics={metrics} counts={counts} emailStats={emailStats} onView={go} /> :
-   view === 'queue' ? <>{head('Operação', 'Fila de revisão', 'Confira a versão compartilhável e decida: liberar para a empresa, pedir ajuste ao trabalhador ou reter para análise.')}
+   view === 'queue' ? <>{head('Operação', 'Fila de revisão', 'Confira o texto de cada manifestação e libere para a empresa.')}
     {complaints === null ? <p className="muted">Carregando…</p> : <ComplaintList rows={queue} waiting onOpen={row => setOpenId(row.id)} empty="Nenhuma manifestação aguardando revisão." />}</> :
    view === 'all' ? <>{head('Operação', 'Manifestações', 'Todas as manifestações, sem identidade de quem relatou.')}
     <div className="worker-filters"><label>Buscar<input value={search} onChange={event => setSearch(event.target.value)} placeholder="Protocolo, empresa ou assunto" /></label><label>Situação<select value={filter} onChange={event => setFilter(event.target.value as ComplaintStatusDb | '')}><option value="">Todas</option>{(Object.keys(statusLabels) as ComplaintStatusDb[]).map(key => <option key={key} value={key}>{statusLabels[key]}</option>)}</select></label></div>

@@ -36,8 +36,8 @@ test('resumo, rótulo e tela: sem promessa de anonimato; nada sai do navegador',
   const domain = readFileSync('src/domain/shared-version-suggestion.ts', 'utf8');
   assert.doesNotMatch(domain, /fetch\(|import .* from ['"]\.\.\/services|supabase/);
   const wizard = readFileSync('src/portals/complaint-wizard.tsx', 'utf8');
-  assert.match(wizard, />Sugerir versão revisada<\/button>/);
-  assert.match(wizard, /const result = suggestSharedVersion\(draft\.original\);/);
+  // ADR-0027: o assistente não oferece mais a sugestão (a empresa lê o próprio relato). O domínio fica para a IA futura.
+  assert.doesNotMatch(wizard, /Sugerir versão revisada|suggestSharedVersion/);
   assert.doesNotMatch(`${domain}\n${wizard}`, /anônim|anonim/i);
   assert.equal(s.suggestSharedVersion('').text, '');
 });

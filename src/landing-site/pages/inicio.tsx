@@ -1,5 +1,5 @@
 // Gerado a partir de inicio.html (landing oficial); textos, imagens e classes iguais aos da página estática.
-import { Caminhos, ContactForm, Marquee, SponsorStrip } from '../site-parts';
+import { Caminhos, Marquee, SponsorStrip } from '../site-parts';
 import { brandName } from '../../domain/brand';
 
 export function InicioPage() {
@@ -12,7 +12,7 @@ export function InicioPage() {
     <div className="rv">
       <span className="eyebrow">Para quem trabalha · Acesso gratuito</span>
       <h1>Sua voz merece <em>espaço.</em></h1>
-      <p className="lead">Conte sua experiência no trabalho, decida o que pode ser compartilhado e acompanhe os próximos passos.</p>
+      <p className="lead">Conte sua experiência no trabalho e acompanhe os próximos passos.</p>
       <div className="hero-ctas"><a className="btn btn-pri" href="/#cadastrar">Relatar uma situação <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a><a className="btn btn-sec" href="/#entrar">Acompanhar meu relato</a></div>
       <div className="trust"><div><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="10" width="14" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg></i>Sigiloso</div><div><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v18M17 7.5c0-1.9-2.2-3-5-3s-5 1.1-5 3 2.2 2.8 5 3.3 5 1.4 5 3.4-2.2 3.3-5 3.3-5-1.2-5-3" /></svg></i>Gratuito</div><div><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3 8-8" /><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9" /></svg></i>Você decide o que compartilhar</div></div>
       
@@ -62,7 +62,7 @@ export function InicioPage() {
       <p>pra relatar e acompanhar. Sem plano, sem cartão.</p>
       <ul className="check">
         <li>Relatar e acompanhar sem custo, com sigilo</li>
-        <li>Você escolhe o que compartilhar</li>
+        <li>Seu nome não vai para a empresa</li>
         <li>Acompanhamento de cada etapa</li>
         <li>O pagamento não define prioridade de atendimento</li>
       </ul>
@@ -82,7 +82,7 @@ export function InicioPage() {
     <div className="rv"><span className="eyebrow">O percurso</span><h2>Do relato ao retorno.</h2><p className="lead">3 passos. Você no controle do começo ao fim.</p></div>
     <div className="steps"><article className="step rv"><div className="step-img"><img src="/landing/img/photo-1766066014237-00645c74e9c6-700x400.jpg" alt="Pessoa usando computador" /><span className="step-n" style={{ background: "var(--azul)", color: "#fff" }}>1</span></div>
         <div className="step-body"><h3>Conte</h3><p>Descreva o que aconteceu com as suas palavras.</p></div><span className="arrow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span></article><article className="step rv"><div className="step-img"><img src="/landing/img/photo-1742203103007-8b79bdede0f8-700x400.jpg" alt="Mulher revisando informações" /><span className="step-n" style={{ background: "var(--verde)", color: "#fff" }}>2</span></div>
-        <div className="step-body"><h3>Revise</h3><p>Escolha o que pode ser compartilhado. Nada sai sem a sua autorização.</p></div><span className="arrow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span></article><article className="step rv"><div className="step-img"><img src="/landing/img/photo-1761839258605-d1b118266ccc-700x400.jpg" alt="Homem conversando e sendo ouvido" /><span className="step-n" style={{ background: "var(--amarelo)", color: "var(--tinta)" }}>3</span></div>
+        <div className="step-body"><h3>Revise</h3><p>Releia o seu relato antes de enviar. A equipe confere e libera para a empresa.</p></div><span className="arrow"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span></article><article className="step rv"><div className="step-img"><img src="/landing/img/photo-1761839258605-d1b118266ccc-700x400.jpg" alt="Homem conversando e sendo ouvido" /><span className="step-n" style={{ background: "var(--amarelo)", color: "var(--tinta)" }}>3</span></div>
         <div className="step-body"><h3>Acompanhe</h3><p>Volte pra ver registros e respostas.</p></div></article></div>
   </div>
 </section>
@@ -103,17 +103,6 @@ export function InicioPage() {
 </section>
 
 
-<section className="contato pad" id="contato" style={{ paddingBottom: "110px" }}>
-  <div className="wrap">
-    <div className="contato-box rv">
-      <div className="contato-art">
-        <img src="/landing/img/photo-1600880292203-757bb62b4baf-900x1100.jpg" alt="" />
-        <div className="tag"><b>Fale com a nossa equipe</b><span>Pra relatar, use o botão "Relatar uma situação". Este formulário é só pra contato.</span></div>
-      </div>
-      <ContactForm pagina="inicio" perfil="Trabalhador" />
-    </div>
-  </div>
-</section>
 
 <SponsorStrip />
     </>

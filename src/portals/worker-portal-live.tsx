@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { closeWorkerComplaint, listCompanyDirectory, listMyComplaintCompanies, listWorkerComplaints, mergeCompanies, listCompanyResponsiveness, loadMyResponseRatings, loadWorkerComplaintDetail, shareWorkerComplaint, type ComplaintFeedback, type ComplaintStatusDb, type DirectoryCompany, type ResponseRating, type ResponsivenessRow, type WorkerComplaint, type WorkerComplaintDetail } from '../services/data';
 import { showToast } from '../app/toast';
-import { ComplaintWizard } from './complaint-wizard';
+import { ComplaintWizard, directSendWarning } from './complaint-wizard';
 import { QuickActions } from './ui';
 import { WorkerProfile } from './profile-live';
 import { ResponsivenessTable, responsivenessMethod } from './responsiveness';
@@ -13,7 +13,8 @@ import { loadComplaintContacts, type ComplaintContactItem } from '../services/no
 import { formatPhone } from '../domain/account-rules';
 import { brandName } from '../domain/brand';
 
-// Portal do trabalhador com dados reais (modelo v3). O relato original nunca sai daqui; a empresa recebe só a versão revisada.
+// Portal do trabalhador com dados reais (modelo v3). ADR-0027: a empresa lê o texto que o trabalhador escreveu, depois
+// que a equipe libera. Casos antigos com versão separada ou em "ajuste solicitado" continuam aparecendo como eram.
 type View = 'dashboard' | 'list' | 'detail' | 'new' | 'companies' | 'profile';
 export type WorkerEntryView = 'dashboard' | 'list' | 'companies' | 'profile';
 type Period = 'weekly' | 'monthly' | 'yearly';
@@ -91,7 +92,7 @@ function Dashboard({ complaints, companies, onList, onNew, onCompanies, onOpen }
   <div className="worker-funnel">{[['Em acompanhamento', count(['received', 'in_review', 'adjustment_requested', 'held', 'shared', 'answer_in_review', 'answered'])], ['Em revisão', count(['in_review', 'adjustment_requested', 'held', 'answer_in_review'])], ['Aguardando empresa', count(['shared'])], ['Respondidas', count(['answered'])], ['Finalizadas', count(['closed'])]].map(([label, value]) => <article key={String(label)}><span>{label}</span><strong>{value}</strong></article>)}</div>
   <section className="worker-dashboard-section"><div className="worker-section-heading"><div><h3>Manifestações criadas</h3><p className="muted">Quantas manifestações você registrou no período.</p></div><div className="worker-chart-controls"><label>Período<select value={period} onChange={event => setPeriod(event.target.value as Period)}><option value="weekly">Últimos 7 dias</option><option value="monthly">Este mês</option><option value="yearly">Este ano</option></select></label></div></div>
    {values.some(Boolean) ? <div className={`worker-columns-chart worker-columns-${period}`} aria-label="Manifestações criadas no período">{values.map((value, index) => <div className="worker-column" key={`${labels[index]}-${index}`}><strong>{value}</strong><i style={{ height: `${Math.max(value / max * 100, value ? 16 : 4)}%` }} /><span>{labels[index]}</span></div>)}</div> : <p className="muted worker-chart-empty">Nenhuma manifestação criada neste período.</p>}</section>
-  <section className="worker-dashboard-note"><h3>O que acontece depois que eu envio?</h3><p>Você revisa a versão que a empresa vai ler e decide se envia agora. A empresa nunca vê seu relato original nem sua identidade, e você acompanha cada resposta por aqui.</p></section>
+  <section className="worker-dashboard-note"><h3>O que acontece depois que eu envio?</h3><p>A equipe confere o seu relato e libera para a empresa. A empresa lê o texto que você escreveu, sem o seu nome, e você acompanha cada resposta por aqui.</p></section>
  </>;
 }
 
@@ -101,7 +102,7 @@ function List({ complaints, companies, onSelect, onNew }: { complaints: WorkerCo
  const rows = complaints.filter(item => `${item.protocol} ${item.title} ${companies.get(item.companyId)?.name ?? ''}`.toLowerCase().includes(search.toLowerCase()) && (!status || item.status === status));
  return <><div className="worker-portal-heading"><div><h2>Manifestações</h2><p className="muted">Consulte seus registros e abra os detalhes para acompanhar cada etapa.</p></div><button className="btn primary" onClick={onNew}>Nova manifestação</button></div>
   <div className="worker-filters"><label>Buscar<input value={search} onChange={event => setSearch(event.target.value)} placeholder="Protocolo, assunto ou empresa" /></label><label>Situação<select value={status} onChange={event => setStatus(event.target.value)}><option value="">Todas</option>{Object.entries(statusLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label></div>
-  {rows.length === 0 ? <div className="worker-empty"><h3>{complaints.length ? 'Nenhuma manifestação encontrada' : 'Você ainda não registrou manifestações'}</h3><p>{complaints.length ? 'Revise a busca ou a situação.' : 'Quando quiser, comece uma nova manifestação. Você decide o que a empresa vai ler.'}</p></div> :
+  {rows.length === 0 ? <div className="worker-empty"><h3>{complaints.length ? 'Nenhuma manifestação encontrada' : 'Você ainda não registrou manifestações'}</h3><p>{complaints.length ? 'Revise a busca ou a situação.' : 'Quando quiser, comece uma nova manifestação.'}</p></div> :
   <div className="worker-table-wrap"><table className="worker-table"><thead><tr><th>Protocolo</th><th>Assunto</th><th>Empresa</th><th>Situação</th><th>Criada em</th><th><span className="sr-only">Abrir</span></th></tr></thead><tbody>{rows.map(item => <tr key={item.id} tabIndex={0} onClick={() => onSelect(item)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') onSelect(item); }}><td>{item.protocol}</td><td>{item.title}</td><td>{companies.get(item.companyId)?.name ?? '—'}</td><td><Status status={item.status} /></td><td>{dateLabel(item.createdAt)}</td><td><button className="worker-row-action" aria-label={`Abrir manifestação ${item.protocol}`} onClick={event => { event.stopPropagation(); onSelect(item); }}>›</button></td></tr>)}</tbody></table></div>}</>;
 }
 
@@ -123,7 +124,7 @@ function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerCo
  const [feedback, setFeedback] = useState<ComplaintFeedback | ''>('');
  const [ratings, setRatings] = useState<ResponseRating[]>([]);
  const [ratingsVersion, setRatingsVersion] = useState(0);
- useEffect(() => { let active = true; loadWorkerComplaintDetail(complaint.id).then(value => { if (active) { setDetail(value); setShareText(complaint.status === 'adjustment_requested' ? value.shared ?? '' : ''); } }); return () => { active = false; }; }, [complaint.id, complaint.status]);
+ useEffect(() => { let active = true; loadWorkerComplaintDetail(complaint.id).then(value => { if (active) { setDetail(value); setShareText(complaint.status === 'adjustment_requested' ? value.shared ?? value.original : value.original); } }); return () => { active = false; }; }, [complaint.id, complaint.status]);
  // Avaliações por resposta (ADR-0013); sem a migration a RPC falha e a lista fica vazia.
  useEffect(() => { let active = true; loadMyResponseRatings(complaint.id).then(value => { if (active) setRatings(value); }).catch(() => undefined); return () => { active = false; }; }, [complaint.id, ratingsVersion]);
  const responses = detail?.timeline.filter(item => item.kind === 'response') ?? [];
@@ -145,10 +146,10 @@ function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerCo
  }
  const adjustmentNote = detail?.timeline.filter(item => item.status === 'adjustment_requested').slice(-1)[0]?.content;
  async function share() {
-  if (shareText.trim().length < 10) return showToast('error', 'Revise a versão para a empresa (mínimo de 10 caracteres).');
+  if (shareText.trim().length < 10) return showToast('error', 'Revise o texto para a empresa (mínimo de 10 caracteres).');
   setBusy(true); const result = await shareWorkerComplaint(complaint.id, shareText); setBusy(false);
   if (!result.ok) return showToast('error', result.message);
-  showToast('success', 'Revisão solicitada. A equipe confere a versão antes de liberar à empresa.'); onChanged();
+  showToast('success', 'Manifestação enviada. A equipe confere e libera para a empresa.'); onChanged();
  }
  async function close() {
   setBusy(true); const result = await closeWorkerComplaint(complaint.id, preRelease ? null : feedback || null); setBusy(false);
@@ -156,13 +157,15 @@ function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerCo
   showToast('success', preRelease ? 'Manifestação retirada. Ela não chegará à empresa.' : 'Acompanhamento encerrado. Obrigado pelo retorno.'); onChanged();
  }
  const open = !['closed', 'canceled'].includes(complaint.status);
+ // ADR-0027: com o mesmo texto nas duas colunas, mostra um bloco só. Texto diferente = caso antigo com versão separada.
+ const sameText = Boolean(detail?.shared) && detail?.shared?.trim() === detail?.original.trim();
  return <><button className="text-action worker-back" onClick={onBack}>← Voltar para manifestações</button>
   <div className="worker-detail-heading"><div><span className="editorial-eyebrow">Manifestação {complaint.protocol}</span><h2>{complaint.title}</h2><p className="muted">{company?.name ?? '—'} · criada em {dateLabel(complaint.createdAt)}</p></div><div className="worker-detail-heading-actions"><Status status={complaint.status} /><button className="btn" type="button" disabled={!detail} onClick={() => { setWithOriginal(false); pdfDialog.current?.showModal(); }}>Baixar PDF</button></div></div>
   <dialog ref={pdfDialog} className="pdf-dialog" aria-labelledby="pdf-dialog-title"><form method="dialog" onSubmit={event => { event.preventDefault(); generatePdf(); }}>
    <h3 id="pdf-dialog-title">Baixar PDF</h3>
    <p className="muted small">O PDF não traz seu nome nem seus dados de contato. Na janela de impressão, escolha "Salvar como PDF".</p>
    <fieldset><legend className="sr-only">O que incluir</legend>
-    <label><input type="radio" name="pdf-content" checked={!withOriginal} onChange={() => setWithOriginal(false)} /> Só a versão compartilhável e o acompanhamento</label>
+    <label><input type="radio" name="pdf-content" checked={!withOriginal} onChange={() => setWithOriginal(false)} /> Só o texto enviado à empresa e o acompanhamento</label>
     <label><input type="radio" name="pdf-content" checked={withOriginal} onChange={() => setWithOriginal(true)} /> Incluir meu relato original</label>
    </fieldset>
    {withOriginal && <p className="commercial-callout">O relato original é só seu. Guarde o arquivo com cuidado e evite encaminhá-lo.</p>}
@@ -171,11 +174,12 @@ function Detail({ complaint, company, onBack, onChanged }: { complaint: WorkerCo
   {host}
   {!detail ? <p className="muted">Carregando detalhes…</p> : <div className="worker-detail-grid"><div>
    <section className="worker-detail-section"><h3>Resumo</h3><dl><div><dt>Empresa</dt><dd>{company?.name ?? '—'}</dd></div><div><dt>Assunto</dt><dd>{complaint.category}</dd></div><div><dt>Quando aconteceu</dt><dd>{complaint.incidentPeriod ?? '—'}</dd></div><div><dt>Recorrência</dt><dd>{complaint.recurrence ?? '—'}</dd></div></dl></section>
-   <section className="worker-detail-section"><h3>Seu relato original</h3><p className="muted small">Só você vê este texto.</p><p className="worker-original">{detail.original}</p></section>
-   {(complaint.status === 'received' || complaint.status === 'adjustment_requested') ? <section className="worker-detail-section"><h3>{complaint.status === 'adjustment_requested' ? 'Ajustar a versão para a empresa' : 'Compartilhar com a empresa'}</h3>
+   {sameText ? <section className="worker-detail-section"><h3>Seu relato</h3><p className="muted small">{preRelease ? 'A equipe confere e libera para a empresa. Até lá, a empresa não vê nada.' : 'A empresa recebeu este texto, sem o seu nome.'}</p><p className="worker-original">{detail.original}</p></section>
+    : <section className="worker-detail-section"><h3>Seu relato original</h3><p className="muted small">Só você vê este texto.</p><p className="worker-original">{detail.original}</p></section>}
+   {(complaint.status === 'received' || complaint.status === 'adjustment_requested') ? <section className="worker-detail-section"><h3>{complaint.status === 'adjustment_requested' ? 'Ajustar o texto para a empresa' : 'Enviar à empresa'}</h3>
      {complaint.status === 'adjustment_requested' && adjustmentNote && <div className="commercial-callout">{adjustmentNote}</div>}
-     <p className="muted small">Escreva uma versão separada. Inclua o necessário para a empresa entender e responder, sem nomes, locais, datas ou detalhes que possam identificar pessoas. A equipe revisa antes de liberar.</p><textarea className="worker-share-text" rows={6} value={shareText} onChange={event => setShareText(event.target.value)} aria-label="Versão para a empresa" placeholder="Escreva a versão que poderá ser mostrada à empresa." /><button className="btn primary" disabled={busy} onClick={share}>{complaint.status === 'adjustment_requested' ? 'Enviar ajuste para revisão' : 'Solicitar revisão'}</button></section>
-    : detail.shared && <section className="worker-detail-section"><h3>{preRelease ? 'Versão em revisão' : 'Versão que a empresa recebeu'}</h3>{preRelease && <p className="muted small">A equipe confere esta versão antes de liberar à empresa. Até lá, a empresa não vê nada.</p>}<p className="worker-original">{detail.shared}</p></section>}
+     <div className="notice warn small" role="note">{directSendWarning}</div><textarea className="worker-share-text" rows={6} value={shareText} onChange={event => setShareText(event.target.value)} aria-label="Texto para a empresa" /><button className="btn primary" disabled={busy} onClick={share}>Enviar manifestação</button></section>
+    : detail.shared && !sameText && <section className="worker-detail-section"><h3>{preRelease ? 'Versão em revisão' : 'Versão que a empresa recebeu'}</h3>{preRelease && <p className="muted small">A equipe confere esta versão antes de liberar à empresa. Até lá, a empresa não vê nada.</p>}<p className="worker-original">{detail.shared}</p></section>}
    <WorkerResponses responses={responses} ratings={ratings} onRated={() => setRatingsVersion(value => value + 1)} />
    {complaint.expectedOutcomes.length > 0 && <section className="worker-detail-section"><h3>O que você espera</h3><ul>{complaint.expectedOutcomes.map(item => <li key={item}>{item}</li>)}</ul></section>}
   </div><aside className="worker-detail-aside">

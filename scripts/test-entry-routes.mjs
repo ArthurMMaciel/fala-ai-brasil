@@ -64,12 +64,15 @@ test('páginas da landing (React): links válidos, contato ligado ao serviço, n
     for (const [, hash] of source.matchAll(/href="\/(#(?:entrar|cadastrar)[^"]*)"/g)) assert.ok(entry.authEntryFromHash(hash), `${page}: ${hash}`);
     assert.doesNotMatch(source, /\.html|data-netlify|data-ajax|fala-ai-brasil\.vercel\.app|images\.unsplash\.com|fonts\.googleapis|fonts\.gstatic|name="site"|href="#"|dangerouslySetInnerHTML/, page);
     const forms = [...source.matchAll(/<ContactForm [^>]*\/>/g)].map(m => m[0]);
-    if (page === '404') { assert.equal(forms.length, 0); continue; }
+    // ADR-0027: a página do Trabalhador (e a 404) não tem formulário de contato.
+    if (page === '404' || page === 'inicio') { assert.equal(forms.length, 0, page); continue; }
     assert.equal(forms.length, 1, page);
     assert.match(forms[0], new RegExp(`pagina="${page}"`), page);
   }
   for (const page of Object.values(site.sitePages)) for (const hash of [page.entrar, page.cadastrar]) assert.ok(entry.authEntryFromHash(hash.replace(/^\//, '')), `${page.id}: ${hash}`);
   assert.match(parts, /submitContactSolicitation\(input\)/);
+  assert.match(parts, /<input type="hidden" name="perfil" value=\{perfil\} \/>/, 'perfil vem da página');
+  assert.doesNotMatch(parts, /role="radiogroup" aria-label="Seu perfil"/);
   assert.match(parts, /<input id="tel" name="telefone" required/);
   assert.match(parts, /Não escreva relatos/);
   assert.doesNotMatch(parts, /dangerouslySetInnerHTML|innerHTML/);

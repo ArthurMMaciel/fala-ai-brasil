@@ -29,7 +29,8 @@ test('motivo da decisão: até 469 caracteres, mínimo de 10 fora da liberação
   assert.equal(queue.validateOpsReason('adjustment_requested', 'a'.repeat(469)), null);
   assert.equal(queue.validateOpsReason('adjustment_requested', 'a'.repeat(470)), 'O motivo pode ter até 469 caracteres (agora tem 470).');
   assert.equal('Ajuste solicitado pela equipe: '.length + queue.opsReasonMax, 500);
-  assert.ok(readFileSync('src/portals/ops-portal-live.tsx', 'utf8').includes('<textarea rows={3} maxLength={opsReasonMax}'));
+  // ADR-0027: a tela não oferece ajuste nem retenção; as regras ficam no domínio para o banco, que segue aceitando.
+  assert.doesNotMatch(readFileSync('src/portals/ops-portal-live.tsx', 'utf8'), /opsReasonMax|Pedir ajuste|Reter para análise/);
 });
 
 // Próximo passo depois de liberar (pedido do responsável, 2026-11-23).
@@ -49,7 +50,7 @@ test('próximo passo da liberação: empresa verificada, sem verificado, sem con
   assert.deepEqual(queue.releaseNextStep('unregistered').links.map(link => link.view), ['pending-companies', 'notices']);
   assert.deepEqual(queue.releaseNextStep('unknown').links.map(link => link.view), ['companies']);
   const portal = readFileSync('src/portals/ops-portal-live.tsx', 'utf8');
-  assert.match(portal, /showToast\('success', decision === 'released' \? `Manifestação liberada\. \$\{releaseNextStep\(delivery\)\.text\}`/);
+  assert.match(portal, /showToast\('success', `Manifestação liberada\. \$\{releaseNextStep\(delivery\)\.text\}`\)/);
   assert.match(portal, /listOpsRepresentatives\('verified'\)/);
 });
 // ADR-0020 (2026-11-24): cartão "E-mails da plataforma" na Visão geral da Operação.

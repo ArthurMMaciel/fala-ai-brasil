@@ -2,17 +2,20 @@ import { useState } from 'react';
 import { createWorkerComplaint, type DirectoryCompany } from '../services/data';
 import { findCompanyByCnpj, lookupCnpj } from '../services/notices';
 import { showToast } from '../app/toast';
-import { confirmAction } from '../app/confirm-dialog';
 import { brazilianStates, formatPhone, isValidCnpj, isValidPhone, maskCnpj, maskPhone } from '../domain/account-rules';
-import { suggestionLabel, suggestionSummary, suggestSharedVersion } from '../domain/shared-version-suggestion';
 import { companyContactPhoneEnabled, involvementLabels, noticeConsentMissing, noticeConsentQuestion, noticeContactPayload, noticeContactsPayload, noticeTexts, noticeTextsInReview, registeredContactTexts, validateManualCompany, validateNoticeContacts, contactFilled, contactsConsentText, emptyExtraContact, maxNoticeContacts, multipleNoticeContactsEnabled, type ExtraNoticeContact, type Involvement, type NoticeConsent, type NoticeContactInput } from '../domain/company-notice';
 import { brandName } from '../domain/brand';
 
 // Assistente de nova manifestação em 9 etapas (conteúdo da POC, restaurado em 2026-10-30).
+// ADR-0027 (2026-11-27): a empresa lê o texto que o trabalhador escreveu. Na revisão, o relato fica em modo leitura,
+// com "Alterar relato", e "Enviar manifestação" manda o próprio relato também como versão compartilhável (shared =
+// original; as duas colunas seguem separadas no banco). A equipe só libera.
 // Relato, versão compartilhável e expectativas vão ao banco; respostas de contexto e contatos
 // indicados ficam só nesta sessão até a aprovação do modelo de dados (ADR-0009).
 // ADR-0023: a empresa é escolhida pelo CNPJ; fora da base, entra só no envio, com e-mail opcional para o aviso.
 type Answer = string | string[];
+
+export const directSendWarning = 'A empresa vai ler exatamente este texto, sem o seu nome. Antes de enviar, tire nomes, datas, setores e qualquer detalhe que identifique você ou outras pessoas.';
 
 const contextSteps: { title: string; intro: string; fields: [string, string[]][] }[] = [
  { title: 'Seu contexto', intro: 'Antes de você falar sobre o que aconteceu, queremos entender um pouco do seu contexto.', fields: [
@@ -113,24 +116,17 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
  const [pending, setPending] = useState<PendingCompany | null>(null);
  const [step, setStep] = useState(0);
  const [answers, setAnswers] = useState<Record<string, Answer>>({});
- const [draft, setDraft] = useState({ category: '', title: '', original: '', incidentPeriod: '', recurrence: '', shared: '', expectedOutcomes: [] as string[] });
+ const [draft, setDraft] = useState({ category: '', title: '', original: '', incidentPeriod: '', recurrence: '', expectedOutcomes: [] as string[] });
  const [notice, setNotice] = useState<NoticeContactInput>({ email: '', involvement: '', consent: false });
  const [noticeConsent, setNoticeConsent] = useState<NoticeConsent>('');
  // Contatos 2 e 3 (até 3 por manifestação). Só aparecem com multipleNoticeContactsEnabled, ligado com o contrato do Back.
  const [extraContacts, setExtraContacts] = useState<ExtraNoticeContact[]>([]);
  const [error, setError] = useState('');
  const [busy, setBusy] = useState(false);
- const [suggestionNote, setSuggestionNote] = useState('');
+ // Edição no lugar, na revisão: rascunho separado até "Salvar alterações".
+ const [editing, setEditing] = useState<{ title: string; original: string } | null>(null);
  const set = (key: keyof typeof draft, value: string | string[]) => setDraft(current => ({ ...current, [key]: value }));
  const go = (next: number) => { setError(''); setStep(next); window.scrollTo({ top: 0 }); };
- // Revisor simulado (sem IA e sem serviço externo): a sugestão é feita aqui no navegador, a partir do relato original.
- async function suggest() {
-  if (draft.shared.trim() && !(await confirmAction({ title: 'Trocar o texto atual pela sugestão?', text: 'O texto que você escreveu na versão para a empresa será substituído. Você pode editar depois.', confirmLabel: 'Trocar pelo texto sugerido' }))) return;
-  const result = suggestSharedVersion(draft.original);
-  set('shared', result.text.slice(0, 5000));
-  setSuggestionNote(suggestionSummary(result.counts));
-  setError('');
- }
 
  if (!chosen && !pending) return <CompanyStep companies={companies} onCancel={onCancel} onChoose={company => { setChosen(company); setStep(0); }} onPending={company => { setPending(company); setStep(0); }} />;
  const companyName = chosen?.name ?? pending?.name ?? '';
@@ -140,7 +136,7 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
  const keys = [...contextSteps.map(() => 'context'), 'theme', 'report', 'notice', 'expect', 'review'];
  const registered = !pending;
  const key = keys[step];
- const titles: Record<string, string> = { theme: 'Tema', report: 'Relato', notice: pending ? 'Aviso à empresa' : 'Contato na empresa', expect: 'O que você espera', review: 'Revisão protegida' };
+ const titles: Record<string, string> = { theme: 'Tema', report: 'Relato', notice: pending ? 'Aviso à empresa' : 'Contato na empresa', expect: 'O que você espera', review: 'Revise seu relato' };
  const total = keys.length;
 
  function select(question: number, option: string) {
@@ -164,16 +160,23 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
   if (key === 'expect' && !draft.expectedOutcomes.length) return setError('Escolha pelo menos uma expectativa.');
   go(step + 1);
  }
- async function submit(share: boolean) {
-  if (share && draft.shared.trim().length < 10) return setError('Revise a versão que a empresa vai ler (pelo menos 10 caracteres).');
+ function saveEdit() {
+  if (!editing) return;
+  if (editing.title.trim().length < 3) return setError('Dê um título curto ao relato (pelo menos 3 caracteres).');
+  if (editing.original.trim().length < 10) return setError('Conte o que aconteceu com pelo menos 10 caracteres.');
+  setDraft(current => ({ ...current, title: editing.title, original: editing.original })); setEditing(null); setError('');
+ }
+ async function submit() {
+  if (editing) return setError('Salve ou cancele a alteração do relato antes de enviar.');
+  if (draft.original.trim().length < 10) return setError('Conte o que aconteceu com pelo menos 10 caracteres.');
   setBusy(true);
   // Contrato final da ADR-0023: cadastrada vai por company_id; fora da base, por CNPJ, e o create_complaint cria a empresa.
   // company_manual vai sempre que a cnpj-lookup não respondeu found.
   const company = chosen ? { companyId: chosen.id } : { companyId: '', companyCnpj: pending?.cnpj ?? '', companyManual: pending?.source === 'manual' ? { name: pending.name, city: pending.city, state: pending.state } : null };
-  const result = await createWorkerComplaint({ ...company, category: draft.category, title: draft.title, original: draft.original, shared: share ? draft.shared : '', incidentPeriod: draft.incidentPeriod.slice(0, 80), recurrence: draft.recurrence.slice(0, 80), expectedOutcomes: draft.expectedOutcomes, ...(multipleNoticeContactsEnabled ? { noticeContacts: noticeContactsPayload(notice, extraContacts, registered), noticeContact: null } : { noticeContact: noticeContactPayload(notice, registered) }), noticeConsent: registered ? null : noticeConsent === 'yes' }, share);
+  const result = await createWorkerComplaint({ ...company, category: draft.category, title: draft.title, original: draft.original, shared: draft.original, incidentPeriod: draft.incidentPeriod.slice(0, 80), recurrence: draft.recurrence.slice(0, 80), expectedOutcomes: draft.expectedOutcomes, ...(multipleNoticeContactsEnabled ? { noticeContacts: noticeContactsPayload(notice, extraContacts, registered), noticeContact: null } : { noticeContact: noticeContactPayload(notice, registered) }), noticeConsent: registered ? null : noticeConsent === 'yes' }, true);
   setBusy(false);
   if (!result.ok) return showToast('error', result.message);
-  showToast('success', share ? 'Manifestação registrada. A equipe revisa a versão antes de liberar à empresa.' : 'Manifestação guardada. Você pode solicitar a revisão depois.'); onCreated();
+  showToast('success', 'Manifestação enviada. A equipe confere e libera para a empresa.'); onCreated();
  }
 
  const errorLine = error && <p className="field-error" role="alert">{error}</p>;
@@ -191,7 +194,7 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
    {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Continuar</button></div></>;
  } else if (key === 'report') {
   body = <><h2>Conte o que aconteceu do seu jeito.</h2><p className="muted">Você não precisa escrever de forma perfeita. Explique como se estivesse contando para alguém de confiança.</p>
-   <div className="notice">Evite colocar seu nome, telefone, e-mail ou informações que facilitem sua identificação. Antes de enviar, você revisa a versão que a empresa vai ler.</div>
+   <div className="notice">Evite colocar seu nome, telefone, e-mail ou informações que facilitem sua identificação. A empresa vai ler o texto que você escrever, sem o seu nome.</div>
    <label className="field">Título curto<input value={draft.title} maxLength={140} onChange={event => set('title', event.target.value)} placeholder="Ex.: Sobrecarga e cobranças fora do horário" /></label>
    <label className="field">Relato<textarea rows={7} maxLength={5000} value={draft.original} onChange={event => set('original', event.target.value)} /></label>
    <div className="grid two"><label className="field">Quando isso aconteceu? (opcional)<input value={draft.incidentPeriod} maxLength={80} onChange={event => set('incidentPeriod', event.target.value)} placeholder="Ex.: Últimas semanas" /></label><label className="field">Isso é recorrente? (opcional)<input value={draft.recurrence} maxLength={80} onChange={event => set('recurrence', event.target.value)} placeholder="Ex.: Recorrente" /></label></div>
@@ -228,22 +231,26 @@ export function ComplaintWizard({ companies, initialCompanyId = '', onCancel, on
    {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Continuar</button></div></>;
  } else if (key === 'expect') {
   body = <><h2>O que você espera?</h2><OptionGrid label="O que você espera" options={expectations} value={draft.expectedOutcomes} onSelect={option => { setDraft(current => ({ ...current, expectedOutcomes: current.expectedOutcomes.includes(option) ? current.expectedOutcomes.filter(item => item !== option) : [...current.expectedOutcomes, option] })); setError(''); }} />
-   {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Preparar revisão</button></div></>;
+   {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" onClick={next}>Revisar relato</button></div></>;
  } else {
   const contact = noticeContactPayload(notice, registered);
   const contacts = multipleNoticeContactsEnabled ? noticeContactsPayload(notice, extraContacts, registered) : contact ? [contact] : [];
   const contactLabel = (item: { email?: string; phone?: string }) => [item.email, item.phone ? formatPhone(item.phone) : ''].filter(Boolean).join(' · ');
-  body = <><h2>Revisão protegida</h2><p className="muted">Seu relato original não será mostrado à empresa. Escreva uma versão separada, sem nomes, locais, datas ou detalhes que possam identificar pessoas.</p>
-   <div className="comparison"><div className="text-panel"><h3>Seu relato original</h3><p>{draft.original}</p></div>
-    <div className="text-panel"><h3>Versão que será enviada à empresa</h3><textarea rows={8} maxLength={5000} value={draft.shared} onChange={event => { set('shared', event.target.value); setError(''); }} aria-label="Versão que será enviada à empresa" aria-describedby="shared-suggestion-note" placeholder="Descreva o que a empresa precisa saber para entender e responder, sem dados que identifiquem pessoas." />
-     <div className="shared-suggestion"><button className="btn" type="button" disabled={!draft.original.trim()} onClick={suggest}>Sugerir versão revisada</button>
-      <p id="shared-suggestion-note" className="muted small" role="status">{suggestionNote ? `${suggestionLabel} ${suggestionNote}` : suggestionLabel}</p></div></div></div>
+  body = <><h2>Revise seu relato</h2><p className="muted">Confira o texto antes de enviar. A equipe confere e libera para a empresa.</p>
+   {editing ? <div className="text-panel review-edit">
+     <label className="field">Título curto<input value={editing.title} maxLength={140} onChange={event => { setEditing({ ...editing, title: event.target.value }); setError(''); }} /></label>
+     <label className="field">Relato<textarea rows={8} maxLength={5000} value={editing.original} onChange={event => { setEditing({ ...editing, original: event.target.value }); setError(''); }} /></label>
+     <div className="nav-actions"><button className="btn" type="button" onClick={() => { setEditing(null); setError(''); }}>Cancelar</button><button className="btn primary" type="button" onClick={saveEdit}>Salvar alterações</button></div></div>
+    : <div className="text-panel review-read"><h3>{draft.title}</h3><p className="review-text">{draft.original}</p>
+     <button className="btn" type="button" onClick={() => { setEditing({ title: draft.title, original: draft.original }); setError(''); }}>Alterar relato</button></div>}
    {contacts.length ? <div className="muted small"><p>{registered ? (contacts.length > 1 ? 'Contatos na empresa (só a equipe vê)' : 'Contato na empresa (só a equipe vê)') : (contacts.length > 1 ? 'Contatos para o aviso à empresa' : 'Aviso à empresa')}:</p>
     <ul className="notice-contact-list">{contacts.map((item, index) => <li key={index}>{contactLabel(item)}.{' '}{item.possibly_involved ? (registered ? 'Com a sua resposta, a equipe não usa esse contato.' : noticeTexts.involvedWarning) : registered ? '' : 'A equipe confere o e-mail antes de decidir pelo envio.'}</li>)}</ul>
-    <p>{noticeTexts.notSharedWarning.replace('O e-mail para o aviso', contacts.length > 1 ? 'Os contatos' : 'O contato').replace('só é guardado', contacts.length > 1 ? 'só são guardados' : 'só é guardado').replace('ele não é enviado', contacts.length > 1 ? 'eles não são enviados' : 'ele não é enviado')}</p></div> : <p className="muted small">{registered ? 'Nenhum contato na empresa indicado.' : 'Nenhum contato indicado.'}</p>}
-   {!registered && <p className="muted small">{noticeConsent === 'yes' ? 'Você autorizou o aviso à empresa, que sai só depois da revisão da equipe.' : 'Você não autorizou o aviso: nada será enviado à empresa.'} A autorização só é guardada quando você solicita a revisão.</p>}
+    {/* ADR-0027: sem "guardar sem compartilhar", o aviso de notSharedWarning (em revisão jurídica) não se aplica aqui. */}
+    <p>{contacts.length > 1 ? 'Os contatos só são guardados' : 'O contato só é guardado'} quando você envia a manifestação.</p></div> : <p className="muted small">{registered ? 'Nenhum contato na empresa indicado.' : 'Nenhum contato indicado.'}</p>}
+   {!registered && <p className="muted small">{noticeConsent === 'yes' ? 'Você autorizou o aviso à empresa, que sai só depois da revisão da equipe.' : 'Você não autorizou o aviso: nada será enviado à empresa.'} A autorização só é guardada quando você envia a manifestação.</p>}
    <p className="muted small">As respostas de contexto ficam só nesta tela e não são armazenadas.</p>
-   {errorLine}<div className="nav-actions"><button className="btn" type="button" onClick={() => go(keys.indexOf('report'))}>Quero ajustar meu relato</button><button className="btn" type="button" disabled={busy} onClick={() => submit(false)}>Guardar sem compartilhar</button><button className="btn primary" type="button" disabled={busy} onClick={() => submit(true)}>{busy ? 'Enviando…' : 'Solicitar revisão'}</button></div></>;
+   <div className="notice warn direct-send-warning" role="note">{directSendWarning}</div>
+   {errorLine}<div className="nav-actions">{back}<button className="btn primary" type="button" disabled={busy || Boolean(editing)} onClick={submit}>{busy ? 'Enviando…' : 'Enviar manifestação'}</button></div></>;
  }
  const stepTitle = key === 'context' ? contextSteps[step].title : titles[key];
  return <><button className="text-action worker-back" onClick={onCancel}>← Voltar</button>

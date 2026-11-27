@@ -3,7 +3,7 @@
 import { Children, cloneElement, createContext, isValidElement, useContext, useEffect, useState, type CSSProperties, type FormEvent, type ReactElement, type ReactNode } from 'react';
 import { maskPhone } from '../domain/account-rules';
 import { landingContactInput } from '../domain/landing-contact';
-import { contactProfiles, isVisibleSitePage, siteMenu, sitePages, type SitePage, type SitePageId } from '../domain/site-pages';
+import { isVisibleSitePage, siteMenu, sitePages, type SitePage, type SitePageId } from '../domain/site-pages';
 import { submitContactSolicitation, validateContactSolicitation } from '../services/contact-solicitations';
 import { FooterLogo, HeaderLogo } from './site-logos';
 import { brandName } from '../domain/brand';
@@ -43,7 +43,7 @@ export function SiteFooter({ page }: { page: SitePage }) {
           <div><a className="logo" href="/"><FooterLogo /></a><p>A escuta precisa ter continuidade. Plataforma em desenvolvimento pra escuta psicossocial no trabalho.</p></div>
           <div><h4>Plataforma</h4><ul><li><a href="/">Início</a></li><li><a href="/#cadastrar">Relatar uma situação</a></li><li><a href="/#entrar">Acompanhamento</a></li></ul></div>
           <div><h4>Pra quem</h4><ul>{siteMenu.map(item => <li key={item.id}><a href={sitePages[item.id].path ?? '/'}>{item.label}</a></li>)}</ul></div>
-          <div><h4>Conta</h4><ul><li><a href={page.entrar}>Entrar</a></li><li><a href={page.cadastrar}>Cadastrar</a></li><li><a href={page.contato}>Fale com a gente</a></li></ul></div>
+          <div><h4>Conta</h4><ul><li><a href={page.entrar}>Entrar</a></li><li><a href={page.cadastrar}>Cadastrar</a></li>{page.contato ? <li><a href={page.contato}>Fale com a gente</a></li> : null}</ul></div>
         </div>
         <div className="sos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /><path d="M12 9v4M12 17h.01" /></svg>Não é um serviço de urgência. Em risco imediato, procure os serviços públicos de emergência.</div>
         <div className="f-bot"><span>© 2026 {brandName}</span><span>Protótipo · Dados fictícios · Evite inserir dados pessoais reais.</span></div>
@@ -135,7 +135,7 @@ export function ContactForm({ pagina, perfil, organizacao = false }: { pagina: s
     const data = new FormData(event.currentTarget);
     const field = (name: string) => { const value = data.get(name); return typeof value === 'string' ? value : ''; };
     const input = landingContactInput({ perfil: field('perfil'), pagina, nome: field('nome'), email: field('email'), telefone: field('telefone'), organizacao: field('organizacao'), botField: field('bot-field') });
-    if (!input) return setError('Escolha o seu perfil.');
+    if (!input) return setError('Não foi possível identificar a página do contato. Recarregue a página.');
     const problem = validateContactSolicitation(input);
     if (problem) return setError(problem);
     setSending(true);
@@ -156,7 +156,7 @@ export function ContactForm({ pagina, perfil, organizacao = false }: { pagina: s
       <span className="eyebrow">Saiba mais</span>
       <h2>Vamos conversar?</h2>
       <p style={{ color: 'var(--cinza)' }}>Deixe seus dados e nossa equipe retorna pra apresentar a {brandName} pro seu perfil.</p>
-      <div className="perfis" role="radiogroup" aria-label="Seu perfil">{contactProfiles.map(value => <label key={value}><input type="radio" name="perfil" value={value} defaultChecked={value === perfil} /><span>{value}</span></label>)}</div>
+      <input type="hidden" name="perfil" value={perfil} />
       <div className="campos">
         <div className="campo full"><label htmlFor="nome">Nome</label><input id="nome" name="nome" required maxLength={120} autoComplete="name" /></div>
         <div className="campo"><label htmlFor="email">E-mail</label><input id="email" name="email" required maxLength={254} type="email" autoComplete="email" /></div>

@@ -13,7 +13,7 @@ export function EmpresaPage() {
     <div className="rv">
       <span className="eyebrow">Para empresas</span>
       <h1>Escutar é só <em>o começo.</em></h1>
-      <p className="lead">Um caminho pra receber a versão compartilhável de um relato, organizar a atuação e dar retorno a quem falou.</p>
+      <p className="lead">Um caminho pra receber relatos de quem trabalha, organizar a atuação e dar retorno a quem falou.</p>
       <div className="hero-ctas"><a className="btn btn-pri" href="/#cadastrar-empresa">Criar conta da empresa <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a><a className="btn btn-sec" href="#planos">Ver serviços</a></div>
       <div className="trust"><div><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg></i>Só o conteúdo liberado</div><div><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5" /><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c1.8.7 3 2.5 3.5 5.2" /></svg></i>RH e Compliance juntos</div><div><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4" /><path d="M12 12l6-6" /></svg></i>Riscos vistos antes</div></div>
       
@@ -23,7 +23,7 @@ export function EmpresaPage() {
       <img className="ha-main" src="/landing/img/photo-1713947506934-c0b6519e069d-1100xx.jpg" alt="" />
       <img className="ha-sec" src="/landing/img/photo-1622675363311-3e1904dc1885-600x600.jpg" alt="" />
       <div className="ha-dot"></div>
-      <div className="ha-card"><span className="ok" style={{ background: "var(--azul)" }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M14 3v6h6M8 13h8M8 17h5" /></svg></span><div><b>Novo relato compartilhado</b><small>Contexto liberado pelo trabalhador. Sem dados de identificação.</small></div></div>
+      <div className="ha-card"><span className="ok" style={{ background: "var(--azul)" }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M14 3v6h6M8 13h8M8 17h5" /></svg></span><div><b>Novo relato compartilhado</b><small>Relato liberado pela equipe. Sem o nome de quem relatou.</small></div></div>
       <div className="ha-card ha-card2"><span className="ok" style={{ background: "var(--verde)" }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 7" /></svg></span><div><b>Resposta enviada</b><small>O trabalhador já pode ver o retorno.</small></div></div>
     </div>
   </div>
@@ -40,7 +40,7 @@ export function EmpresaPage() {
     <div className="rv">
       <span className="eyebrow">Quem somos · Nosso objetivo</span>
       <h2>Escuta com continuidade e responsabilidade.</h2>
-      <p className="lead">A proposta da {brandName} aproxima quem precisa falar e quem pode agir. A empresa acompanha apenas o conteúdo liberado pra ela, sem acesso ao relato original ou à identidade do trabalhador.</p>
+      <p className="lead">A proposta da {brandName} aproxima quem precisa falar e quem pode agir. A empresa lê o relato liberado pela equipe, sem acesso à identidade do trabalhador.</p>
       <div className="valores"><div className="valor"><i style={{ background: "var(--azul)" }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h10M4 12h16M4 18h7" /><circle cx="18" cy="6" r="2" /><circle cx="15" cy="18" r="2" /></svg></i><b>Fila e responsáveis</b><p>Cada caso com dono e próximo passo.</p></div><div className="valor"><i style={{ background: "var(--verde)" }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg></i><b>Prazos e escalonamento</b><p>Nada fica parado sem ninguém ver.</p></div><div className="valor"><i style={{ background: "var(--amarelo)", color: "var(--tinta)" }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg></i><b>Indicadores</b><p>Leitura da organização ao longo do tempo.</p></div><div className="valor"><i style={{ background: "var(--profundo)" }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l8 4v5c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V7z" /><path d="M9 12l2 2 4-4" /></svg></i><b>Apoio à NR-1</b><p>Gestão de riscos psicossociais com registro.</p></div></div>
       
     </div>
@@ -49,13 +49,13 @@ export function EmpresaPage() {
 
 <section className="pad" style={{ paddingTop: "0" }}>
   <div className="wrap">
-    <div className="rv"><span className="eyebrow">Privacidade por desenho</span><h2>O que a sua empresa vê. E o que fica protegido.</h2>
-    <p className="lead">A empresa acompanha só o conteúdo que o trabalhador liberou. É isso que dá confiança pra pessoa falar.</p></div>
+    <div className="rv"><span className="eyebrow">Privacidade por desenho</span><h2>O que a sua empresa vê. E o que ela não vê.</h2>
+    <p className="lead">A empresa lê o relato depois que a equipe libera, sem o nome de quem relatou. É isso que dá confiança pra pessoa falar.</p></div>
     <div className="ve">
       <div className="ve-col ve-sim rv"><h3><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 7" /></svg></span>A empresa vê</h3><ul>
-        <li>A versão compartilhável do relato, liberada pelo trabalhador</li><li>O contexto necessário pra agir</li><li>Responsáveis, prazos e próximos passos registrados</li><li>Indicadores da organização</li></ul></div>
-      <div className="ve-col ve-nao rv"><h3><span>✕</span>Fica protegido</h3><ul>
-        <li>O relato original</li><li>A identidade do trabalhador</li><li>Qualquer informação que ele não liberou</li><li>Dados pessoais de cadastro</li></ul></div>
+        <li>O relato do trabalhador, liberado pela equipe</li><li>O contexto necessário pra agir</li><li>Responsáveis, prazos e próximos passos registrados</li><li>Indicadores da organização</li></ul></div>
+      <div className="ve-col ve-nao rv"><h3><span>✕</span>A empresa não vê</h3><ul>
+        <li>A identidade do trabalhador</li><li>Dados pessoais de cadastro</li><li>Os contatos indicados pelo trabalhador</li></ul></div>
     </div>
     <p className="ve-nota"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16h.01" /></svg>Acesso a casos reais exige verificação e liberação segura. Ver e responder um relato não depende de pagamento.</p>
   </div>
