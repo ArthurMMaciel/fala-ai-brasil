@@ -51,7 +51,7 @@ test('empresa: conta gratuita, Relatório inicial R$ 299 e o resto sob consulta,
   assert.match(page, /<h3>Relatório inicial<\/h3><div className="val">R\$ 299<\/div><div className="per">por manifestação<\/div>/);
   for (const name of ['Implantação', 'Apoio especializado']) assert.match(page, new RegExp(`<h3>${name}</h3><div className="val sob">Sob consulta</div>`));
   assert.match(page, /A conta da empresa é gratuita\./);
-  assert.match(readFileSync('src/portals/portal-live.tsx', 'utf8'), /<p className="muted small company-free-account">Conta gratuita\. Relatório inicial por manifestação: R\$ 299, sob pedido à equipe\.<\/p>\n?\s*<button className="btn" onClick=\{\(\) => onView\('profile'\)\}>/);
+  assert.match(readFileSync('src/portals/portal-live.tsx', 'utf8'), /<p className="muted small company-free-account">Conta gratuita\. Relatório inicial por manifestação: R\$ 299, sob pedido à equipe\.<\/p>\s*<button className="btn" onClick=\{\(\) => onView\('profile'\)\}>/);
 });
 
 // ADR-0027 (2026-11-27): o relato vai direto, a equipe só libera e os textos públicos não prometem o que saiu.
@@ -62,7 +62,7 @@ test('ADR-0027: envio direto, só "Liberar" na Operação e textos públicos sem
   assert.match(wizard, />Alterar relato<\/button>/);
   assert.match(wizard, /\{busy \? 'Enviando…' : 'Enviar manifestação'\}/);
   assert.match(wizard, /original: draft\.original, shared: draft\.original,/);
-  assert.match(wizard, /<div className="notice warn direct-send-warning" role="note">\{directSendWarning\}<\/div>\n\s*\{errorLine\}<div className="nav-actions">\{back\}<button className="btn primary"/, 'aviso D4 logo acima do botão');
+  assert.match(wizard, /<div className="notice warn direct-send-warning" role="note">\{directSendWarning\}<\/div>\s*\{errorLine\}<div className="nav-actions">\{back\}<button className="btn primary"/, 'aviso D4 logo acima do botão');
   assert.doesNotMatch(wizard, /Guardar sem compartilhar|Versão que será enviada|Sugerir versão revisada|Quero ajustar meu relato|Solicitar revisão/);
   const ops = readFileSync('src/portals/ops-portal-live.tsx', 'utf8');
   assert.equal((ops.match(/onClick=\{release\}/g) ?? []).length, 1);
